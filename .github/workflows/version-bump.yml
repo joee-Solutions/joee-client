@@ -1,0 +1,27 @@
+name: Version Bump
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'Dockerfile'
+      - '.github/workflows/**'
+      - '.github/k8/**'
+      - 'src/**'
+      - 'package.json'
+
+jobs:
+  bump_version_number:
+    name: Bump Version Number
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@main
+      - name: 'Automated Version Bump'
+        uses: 'phips28/gh-action-bump-version@master'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          version-type: 'patch'

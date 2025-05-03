@@ -1,0 +1,63 @@
+
+<div id="services" class="mt-2   ">
+<section id="wtjmpenb" class="bg-cover bg-center bg-no-repeat relative   " style="background-image: url(&quot;https://fundu-space-sfo3-dev.sfo3.digitaloceanspaces.com/thescogroupco/10.png?AWSAccessKeyId=Y2F2FXM2ULLLG6K362KF&amp;Expires=2051862204&amp;Signature=ku93YfDeaBOR6atu32PcqkmwavE%3D&quot;);">
+    <div id="yw7kq7ze" class="absolute inset-0 bg-black bg-opacity-75   "></div>
+ 
+  <div id="bx3tb7ha" class="container z-10 relative text-white mx-auto px-6 py-16 lg:py-24 flex flex-col lg:flex-row items-center lg:items-start space-y-12 lg:space-y-0 lg:space-x-16 ">
+    
+    <div id="xqklsi2d" class="lg:w-1/2 ">
+      <h3 id="a7qukyp9" class="text-white-400 text-lg font-bold uppercase mb-2   ">Our Service</h3>
+      <h2 id="jgvi9qwj" class="text-4xl lg:text-5xl font-bold mb-4 leading-tight  ">
+       We prioritize our customer service experience that is second to none
+      </h2>
+      <p id="xfi53vch" class="text-lg text-gray-200 mb-6 ">
+       To do this, our passengers will be our primary focus - in comfort, peace of mind, and joy as they will fly with us.
+      </p>
+    </div>
+    
+    <div id="seg4a0rx" class="grid grid-cols-1 md:grid-cols-2 gap-8 lg:w-1/2   ">
+      
+      <div id="yup4xpby" class="flex items-start space-x-4   ">
+        <div id="l9dl0esz" class="bg-gray-400 text-white p-4 rounded-full   ">
+          <i id="xdjq303d" class="fas fa-plane text-xl   "></i>
+        </div>
+        <div id="y7yp6xqb" class="   ">
+          <h4 id="hg2ry2g9" class="text-xl font-bold mb-1   ">Covers the sub-regional of West Africa</h4>
+      
+        </div>
+      </div>
+      
+      <div id="hvvpx20j" class="flex items-start space-x-4   ">
+        <div id="cjs49xit" class="bg-gray-400 text-white p-4 rounded-full   ">
+          <i id="sutwn8cy" class="fas fa-certificate text-xl   "></i>
+        </div>
+        <div id="sxmlzp5y" class="   ">
+          <h4 id="cs6h2ugh" class="text-xl font-bold mb-1   ">Covers all the states in Nigeria</h4>
+  
+        </div>
+      </div>
+      
+      <div id="ftctzem9" class="flex items-start space-x-4   ">
+        <div id="zqv2klf7" class="bg-gray-400 text-white p-4 rounded-full   ">
+          <i id="pdu2qj1s" class="fas fa-tools text-xl   "></i>
+        </div>
+        <div id="tke3rpq3" class="   ">
+          <h4 id="aljghdfs" class="text-xl font-bold mb-1   ">Covers all the countries in Africa</h4>
+       
+        </div>
+      </div>
+      
+      <div id="u5qev5t9" class="flex items-start space-x-4   ">
+        <div id="li9ci6vm" class="bg-gray-400 text-white p-4 rounded-full   ">
+          <i id="dinpmzm7" class="fas fa-shield-alt text-xl   "></i>
+        </div>
+        <div id="at1x2zl2" class="   ">
+          <h4 id="gqhld8q6" class="text-xl font-bold mb-1   ">Covers all the rest of the world</h4>
+  
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div>
