@@ -101,7 +101,7 @@ const ResetPasswordOtpClient = ({ token }: { token: string }) => {
       <div className="extra-details flex justify-center gap-2 text-xs md:text-sm mb-7">
         Didn&apos;t receive the email?
         <Link
-          href={"/auth/forgot-password"}
+          href={"/forgot-password"}
           className="text-brand-400 hover:underline"
         >
           Click to resend?

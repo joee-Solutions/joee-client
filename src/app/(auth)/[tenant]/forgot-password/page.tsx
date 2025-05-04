@@ -77,7 +77,7 @@ const ForgetPassword = () => {
 
           <div className="extra-details flex justify-between text-xs md:text-sm mb-7">
             <Link
-              href={"/auth/login"}
+              href={"/login"}
               className="text-[#FAD900] hover:underline"
             >
               Login

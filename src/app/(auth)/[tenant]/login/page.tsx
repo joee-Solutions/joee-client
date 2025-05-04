@@ -53,7 +53,7 @@ const TenantLoginPage = () => {
       const rt = await processRequestNoAuth("post", API_ENDPOINTS.LOGIN, data);
       if (rt) {
         Cookies.set("mfa_token", rt.data.token, { expires: 1 / 48 });
-        router.push("/auth/verify-otp");
+        router.push("/verify-otp");
       }
     } catch (error: any) {
       toast.error(error?.response?.data.error);
@@ -153,7 +153,7 @@ const TenantLoginPage = () => {
             </div>
             <div className="extra-details flex justify-between text-xs md:text-sm mb-7">
               <Link
-                href={"/auth/forgot-password"}
+                href={"/forgot-password"}
                 className="text-[#FAD900] hover:underline"
               >
                 Forgot password?

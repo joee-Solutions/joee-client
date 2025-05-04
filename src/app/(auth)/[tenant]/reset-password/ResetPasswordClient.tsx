@@ -69,7 +69,7 @@ const ResetPasswordClient = () => {
         }
       );
       if (res.status) {
-        router.push("/auth/login");
+        router.push("/login");
       }
     } catch (error) {
       console.log(error);

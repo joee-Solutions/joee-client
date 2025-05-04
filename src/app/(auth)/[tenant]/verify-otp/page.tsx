@@ -9,7 +9,7 @@ const VerifyOTP = () => {
   const token = getMfaToken();
   useEffect(() => {
     if (!token) {
-      router.push("/auth/login");
+      router.push("/login");
     }
   }, []);
 

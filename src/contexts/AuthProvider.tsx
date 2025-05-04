@@ -9,7 +9,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const pathName = usePathname();
   useEffect(() => {
     if (!user) {
-      router.push("/auth/login");
+      router.push("/login");
     } else {
       if (pathName.includes("auth")) {
         router.push("/");

@@ -8,7 +8,7 @@ const ResetPasswordOtp = async ({
 }) => {
   const token = (await params).slug;
   if (!token || token.length < 10) {
-    redirect("/auth/forgot-password");
+    redirect("/forgot-password");
   }
   return <ResetPasswordOtpClient token={token} />;
 };
