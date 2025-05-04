@@ -10,44 +10,26 @@ export const sideNavigation = [
     name: "Dashboard",
     icon: DashboardIcon,
     href: "/dashboard",
-    showRuler: false,
-    isTitle: false,
   },
   {
-    name: "Organization",
+    name: "Departments",
     icon: OrgIcon,
-    // href: "/dashboard/organization",
-    isTitle: true,
-    // showRuler: true,
-    children: [
-      {
-        title: "Organization",
-        href: "/dashboard/organization",
-        icon: OrgIcon,
-      },
-      {
-        title: "Active",
-        icon: ActiveUserIcon,
-        href: "/dashboard/organization/active",
-      },
-      {
-        title: "Inactive",
-        icon: UserRoundMinusIcon,
-        href: "/dashboard/organization/inactive",
-      },
-      {
-        title: "Deactivated",
-        icon: icons.UserX,
-        href: "/dashboard/organization/deactivated",
-      },
-    ],
+    href: "/dashboard/departments",
+  },
+  {
+    name: "Employees",
+    icon: OrgIcon,
+    href: "/dashboard/employees",
+  },
+  {
+    name: "Patients",
+    icon: OrgIcon,
+    href: "/dashboard/patients",
   },
   {
     name: "Notifications",
     icon: OrgIcon,
-    href: "/dashboard/notifications",
-    showRuler: true,
-    isTitle: true,
+    href: "/dashboard/notifcations",
 
     children: [
       {
@@ -63,52 +45,25 @@ export const sideNavigation = [
     ],
   },
   {
-    name: "Admin",
-    icon: OrgIcon,
-    href: "/dashboard/admin",
-    showRuler: true,
-    isTitle: true,
-
-    children: [
-      {
-        title: "Admin Profile",
-        icon: icons.CircleUserRound,
-        href: "/dashboard/profile",
-      },
-      {
-        title: "Create Admin",
-        icon: icons.BookUser,
-        href: "/dashboard/admin/create",
-      },
-      {
-        title: "Admin List",
-        icon: icons.Users,
-        href: "/dashboard/admin/list",
-      },
-    ],
-  },
-  {
-    name: "Settings & Support",
+    name: "Settings",
     icon: OrgIcon,
     href: "/dashboard/settings",
-    showRuler: true,
-    isTitle: true,
 
-    children: [
-      {
-        title: "User training Guide",
-        icon: icons.FileArchive,
-        href: "/dashboard/user-training-guide",
-      },
-      {
-        title: "System Settings",
-        icon: icons.Cog,
-        href: "/dashboard/settings",
-      },
-      {
-        title: "Logout",
-        icon: icons.LogOut,
-      },
-    ],
+    // children: [
+    //   {
+    //     title: "User training Guide",
+    //     icon: icons.FileArchive,
+    //     href: "/dashboard/user-training-guide",
+    //   },
+    //   {
+    //     title: "System Settings",
+    //     icon: icons.Cog,
+    //     href: "/dashboard/settings",
+    //   },
+    //   {
+    //     title: "Logout",
+    //     icon: icons.LogOut,
+    //   },
+    // ],
   },
 ];
