@@ -1,16 +1,41 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+/* eslint-disable prefer-const */
 import { siteConfig } from "@/framework/site-config";
-import axios, { AxiosInstance, AxiosStatic } from "axios";
+import axios from "axios";
 import { getRefreshToken, getToken } from "./get-token";
-import Router from "next/router";
 import Cookies from "js-cookie";
-import { API_ENDPOINTS } from "./api-endpoints";
+import { API_ENDPOINTS } from "@/framework/api-endpoints";
 
 let httpNoAuth: any;
 let refreshingToking = false;
+let controller = new AbortController();
+
+export const resetController = () => {
+  controller.abort();
+  controller = new AbortController(); // reassign
+};
+
+const getBaseURL = () => {
+  if (typeof window === "undefined") return "";
+  const { hostname } = window.location;
+  const subdomain = hostname.split(".")[0];
+  if (process.env.NODE_ENV === "production") {
+    // Extract the subdomain (if any) from the hostname
+
+    // Construct the base URL dynamically based on the subdomain
+    return `https://${subdomain}.joee.com.ng/api`;
+  }
+
+  // Use localhost for development
+  return `http://${subdomain}.localhost:3600/api`;
+};
+
+const baseURL = getBaseURL();
+console.log("baseURL -->", baseURL);
 
 if (typeof window !== undefined) {
   httpNoAuth = axios.create({
-    baseURL: siteConfig.siteUrl,
+    baseURL: baseURL,
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
@@ -18,13 +43,13 @@ if (typeof window !== undefined) {
   });
 }
 httpNoAuth.interceptors.request.use(
-  (config) => {
+  (config: any) => {
     config.headers = {
       ...config.headers,
     };
     return config;
   },
-  (error) => {
+  (error: any) => {
     return Promise.reject(error);
   }
 );
@@ -32,7 +57,7 @@ httpNoAuth.interceptors.request.use(
 let httpAuth: any;
 if (typeof window !== undefined) {
   httpAuth = axios.create({
-    baseURL: siteConfig.siteUrl,
+    baseURL: baseURL,
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
@@ -40,7 +65,7 @@ if (typeof window !== undefined) {
   });
 }
 httpAuth.interceptors.request.use(
-  (config) => {
+  (config: any) => {
     const token = getToken();
     let authorization;
     if (typeof token === "string" && token.trim().length > 10) {
@@ -53,7 +78,7 @@ httpAuth.interceptors.request.use(
           authorization = `Bearer ${token}`;
         }
       } else {
-        Router.push("/auth/logout");
+        // window.location.href = "/";
       }
     }
     config.headers = {
@@ -62,7 +87,7 @@ httpAuth.interceptors.request.use(
     };
     return config;
   },
-  (error) => {
+  (error: any) => {
     return Promise.reject(error);
   }
 );
@@ -70,27 +95,29 @@ httpAuth.interceptors.request.use(
 const processRequestNoAuth = async (
   method: "post" | "get" | "put" | "delete",
   path: string,
-  data?,
+  data?: any,
   callback?: (path: string, data: any, error?: any) => void,
-  files?: any[]
+  files?: any[] | File | Blob
 ) => {
   console.debug("request -> processDataRequest", path);
 
   let rt;
-  //   if (isNotEmpty(files)) {
-  //     data = convertToFormData(data, files)
-  //     httpNoAuth.defaults.headers['Content-Type'] = 'multipart/form-data';
-  //     method = 'post';
-  //   }
+  if (files) {
+    data = convertToFormData(data, files);
+    httpNoAuth.defaults.headers["Content-Type"] = "multipart/form-data";
+    method = "post";
+  }
   try {
     if (method === "post") {
-      rt = await httpNoAuth.post(`/api/${path}`, data);
+      rt = await httpNoAuth.post(`${path}`, data);
     } else if (method === "get") {
-      rt = await httpNoAuth.get(path);
+      rt = await httpNoAuth.get(`${path}`, {
+        signal: controller.signal,
+      });
     } else if (method === "put") {
-      rt = await httpNoAuth.put(path, data);
+      rt = await httpNoAuth.put(`${path}`, data);
     } else if (method === "delete") {
-      rt = await httpNoAuth.delete(path);
+      rt = await httpNoAuth.delete(`${path}`);
     } else {
       throw new Error(`Invalid method, method:${method} path:${path}`);
     }
@@ -111,30 +138,32 @@ const processRequestNoAuth = async (
 };
 
 const processRequestAuth = async (
-  method,
-  path,
-  data?,
+  method: string,
+  path: string,
+  data?: any,
   callback?: (path: string, data: any, error?: any) => void,
-  files?: any[]
+  files?: any[] | File | Blob
 ) => {
   console.debug("request -> processDataRequest", path);
 
   let rt;
-  // if (isNotEmpty(files)) {
-  //   data = convertToFormData(data, files)
-  //   httpAuth.defaults.headers['Content-Type'] = 'multipart/form-data';
-  //   method = 'post';
-  // }
+  if (files) {
+    data = convertToFormData(data, files);
+    httpAuth.defaults.headers["Content-Type"] = "multipart/form-data";
+    method = "post";
+  }
 
   try {
     if (method === "post") {
-      rt = await httpAuth.post(`/api/${path}`, data);
+      rt = await httpAuth.post(`${path}`, data);
     } else if (method === "get") {
-      rt = await httpAuth.get(path);
+      rt = await httpAuth.get(`${path}`, {
+        signal: controller.signal,
+      });
     } else if (method === "put") {
-      rt = await httpAuth.put(path, data);
+      rt = await httpAuth.put(`${path}`, data);
     } else if (method === "delete") {
-      rt = await httpAuth.delete(path);
+      rt = await httpAuth.delete(`${path}`);
     } else {
       throw new Error(`Invalid method, method:${method} path:${path}`);
     }
@@ -197,27 +226,56 @@ const refreshUser = async () => {
   return null;
 };
 
-export const convertToFormData = (data, files) => {
+export const convertToFormData = (data: any, files: any) => {
   const formData = new FormData();
-  formData.append("data", JSON.stringify(data));
+
+  // Append each key in data separately instead of as a JSON string
+  Object.keys(data).forEach((key) => {
+    formData.append(key, data[key]);
+  });
 
   if (Array.isArray(files)) {
-    files.forEach((file, index) => {
-      formData.append(`file${index}`, file);
+    // If files is an array, append each file with the same key
+    files.forEach((file) => {
+      formData.append("file[]", file); // Use `file[]` for backend array support
     });
+  } else if (files instanceof File) {
+    formData.append("file", files); // Single file upload
   } else if (typeof files === "object") {
+    // If files is an object, loop through keys
     Object.keys(files).forEach((key) => {
       let keyFiles = Array.isArray(files[key]) ? files[key] : [files[key]];
-      keyFiles.forEach((file, index) => {
-        formData.append(`${key}${index}`, file);
+      keyFiles.forEach((file) => {
+        formData.append(`${key}[]`, file); // `key[]` ensures proper backend parsing
       });
     });
-  } else if (files.constructor.name === "File") {
-    formData.append(`file`, files);
   }
 
   return formData;
 };
+
+// export const convertToFormData = (data: any, files: string | any[] | Blob) => {
+//   const formData = new FormData();
+//   formData.append("data", JSON.stringify(data));
+
+//   if (Array.isArray(files)) {
+//     files.forEach((file, index) => {
+//       formData.append(`file${index}`, file);
+//     });
+//   } else if (typeof files === "object") {
+//     Object.keys(files).forEach((key) => {
+//       // @ts-ignore
+//       let keyFiles = Array.isArray(files[key]) ? files[key] : [files[key]];
+//       keyFiles.forEach((file, index) => {
+//         formData.append(`${key}${index}`, file);
+//       });
+//     });
+//   } else if (files.constructor.name === "File") {
+//     formData.append(`file`, files);
+//   }
+
+//   return formData;
+// };
 
 export {
   httpAuth,

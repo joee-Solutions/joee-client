@@ -1,8 +1,8 @@
 "use client";
 
 import { DepartmentList } from "@/components/shared/table/data";
-import NewOrg from "@/app/(dashboard)/dashboard/organization/NewOrg";
-import OrgManagement from "@/app/(dashboard)/dashboard/organization/OrgManagement";
+import NewOrg from "@/app/(dashboard)/[tenant]/dashboard/organization/NewOrg";
+import OrgManagement from "@/app/(dashboard)/[tenant]/dashboard/organization/OrgManagement";
 
 
 import DataTable from "@/components/shared/table/DataTable";

@@ -10,11 +10,11 @@ const HomePage = () => {
     Cookies.remove("auth_token");
     Cookies.remove("refresh_token");
     Cookies.remove("user");
-    router.push("/auth/login");
+    router.push("/login");
   };
   useEffect(() => {
     if (!Cookies.get("auth_token")) {
-      router.push("/auth/login");
+      router.push("/login");
     }
   }, []);
   return (

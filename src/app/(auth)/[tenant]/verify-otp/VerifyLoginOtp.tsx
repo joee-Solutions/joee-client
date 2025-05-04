@@ -67,7 +67,7 @@ const VerifyOtpLoginClient = ({ token }: { token: string }) => {
         error.status === 401 &&
         error.response.data.error === "Invalid Session"
       ) {
-        router.push("/auth/login");
+        router.push("/login");
       }
       toast.error(error?.response?.data?.error, {
         toastId: "error",

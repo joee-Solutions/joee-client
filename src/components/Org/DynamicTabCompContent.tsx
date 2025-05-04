@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { useEffect, useMemo, useState } from "react";
 import { FaPlus } from "react-icons/fa";
 import { Button } from "../ui/button";
-import { TabVal } from "@/app/(dashboard)/dashboard/organization/[org]/view/page";
+import { TabVal } from "@/app/(dashboard)/[tenant]/dashboard/organization/[org]/view/page";
 import DepartmentList from "@/components/Org/Departments/DepartmentList";
 import AddDepartmentForm from "@/components/Org/Departments/AddDepartmentForm";
 import OrgDetails from "@/components/Org/Manage Organization/OrgDetails";

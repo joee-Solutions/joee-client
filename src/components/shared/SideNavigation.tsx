@@ -14,7 +14,7 @@ const SideNavigation = () => {
       Cookies.remove("auth_token");
       Cookies.remove("user");
       // Cookies.remove()
-      router.push("/auth/login");
+      router.push("/login");
     } catch (error) {
       console.log("Logout error:", error);
     }
