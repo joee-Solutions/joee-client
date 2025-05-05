@@ -57,7 +57,11 @@ function FieldSelect<T extends FieldValues>({
             </FormControl>
             <SelectContent className="bg-white">
               {options.map((option) => (
-                <SelectItem key={option} value={option}>
+                <SelectItem
+                  key={option}
+                  value={option}
+                  className="hover:bg-[#003465] hover:text-white cursor-pointer"
+                >
                   {option}
                 </SelectItem>
               ))}
