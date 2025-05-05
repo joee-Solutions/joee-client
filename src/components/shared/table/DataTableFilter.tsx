@@ -108,7 +108,7 @@ export function ListView({ pageSize, setPageSize }: ListViewProps) {
             <SelectItem
               key={currPageSize}
               value={`${currPageSize}`}
-              className="cursor-pointer"
+              className="cursor-pointer hover:bg-[#003465] hover:text-white"
             >
               {currPageSize}
             </SelectItem>

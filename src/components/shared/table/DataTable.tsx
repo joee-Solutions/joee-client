@@ -1,13 +1,10 @@
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import Image from "next/image";
-import { Ellipsis } from "lucide-react";
 import React, { useMemo } from "react";
 
 const getColumnHeaders = function (data: Record<string, any>) {
@@ -42,14 +39,11 @@ export default function DataTable({ tableDataObj, children }: DataTableProps) {
 
   return (
     <Table>
-      <TableHeader className="bg-[#EDF0F6] h-[38px]">
-        <TableRow>
+      <TableHeader className="bg-[#003465] h-[38px]">
+        <TableRow className="text-white">
           {columnHeaders.map((column) => {
             return (
-              <TableHead
-                key={column}
-                className="font-semibold text-xs text-black"
-              >
+              <TableHead key={column} className="font-semibold text-xs">
                 {column}
               </TableHead>
             );

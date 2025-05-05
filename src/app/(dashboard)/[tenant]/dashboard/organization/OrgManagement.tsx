@@ -7,7 +7,7 @@ import EditOrg from "./EditOrg";
 import CheckHMS from "./CheckHMS";
 import OrgBackupRestore from "./OrgBackupRestore";
 import Image from "next/image";
-import orgProfileImage from "./../../../../../public/assets/orgProfileImage.png";
+import orgProfileImage from "./../../../../../../public/assets/orgProfileImage.png";
 import { CloudIcon, WebIcon } from "@/components/icons/icon";
 
 interface OrgManagementProps {
