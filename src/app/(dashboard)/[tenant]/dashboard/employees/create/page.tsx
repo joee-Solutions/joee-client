@@ -101,7 +101,7 @@ export default function EmployeeRegistrationForm() {
       dob: "",
       employeeImage: undefined,
       bio: "",
-      hireDate: undefined,
+      hireDate: "",
       specialty: "",
     },
   });

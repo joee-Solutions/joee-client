@@ -29,18 +29,27 @@ const getColumnHeaders = function (data: Record<string, any>) {
 interface DataTableProps {
   tableDataObj: Record<string, any>;
   children: React.ReactNode;
+  bgHeader?: string;
 }
 
-export default function DataTable({ tableDataObj, children }: DataTableProps) {
+export default function DataTable({
+  tableDataObj,
+  bgHeader,
+  children,
+}: DataTableProps) {
   const columnHeaders = useMemo(
     () => getColumnHeaders(tableDataObj),
     [tableDataObj]
   );
 
   return (
-    <Table>
-      <TableHeader className="bg-[#003465] h-[38px]">
-        <TableRow className="text-white">
+    <Table className="min-w-[600px] overflow-auto">
+      <TableHeader
+        className={`${
+          bgHeader ? bgHeader : "bg-[#003465] text-white"
+        } h-[38px]`}
+      >
+        <TableRow className="">
           {columnHeaders.map((column) => {
             return (
               <TableHead key={column} className="font-semibold text-xs">
