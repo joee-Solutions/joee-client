@@ -1,9 +1,8 @@
-import {
-  ActiveUserIcon,
-  DashboardIcon,
-  OrgIcon,
-} from "@/components/icons/icon";
-import { icons, UserRoundMinusIcon } from "lucide-react";
+import { DashboardIcon, OrgIcon } from "@/components/icons/icon";
+import { CalendarClock, icons } from "lucide-react";
+import { FaUserNurse, FaUsers } from "react-icons/fa";
+import { IoIosListBox, IoMdSettings } from "react-icons/io";
+import { BsFillSendFill } from "react-icons/bs";
 
 export const sideNavigation = [
   {
@@ -18,18 +17,28 @@ export const sideNavigation = [
   },
   {
     name: "Employees",
-    icon: OrgIcon,
+    icon: FaUserNurse,
     href: "/dashboard/employees",
   },
   {
     name: "Patients",
-    icon: OrgIcon,
+    icon: FaUsers,
     href: "/dashboard/patients",
   },
   {
+    name: "Appointments",
+    icon: CalendarClock,
+    href: "/dashboard/appointments",
+  },
+  {
+    name: "Schedules",
+    icon: IoIosListBox,
+    href: "/dashboard/schedules",
+  },
+  {
     name: "Notifications",
-    icon: OrgIcon,
-    href: "/dashboard/notifcations",
+    icon: BsFillSendFill,
+    href: "/dashboard/notifications",
 
     children: [
       {
@@ -46,7 +55,7 @@ export const sideNavigation = [
   },
   {
     name: "Settings",
-    icon: OrgIcon,
+    icon: IoMdSettings,
     href: "/dashboard/settings",
 
     // children: [

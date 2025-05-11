@@ -56,6 +56,7 @@ const SideNavigation = () => {
                 >
                   {item.icon && (
                     <item.icon
+                      size={20}
                       className={cn(
                         "text-inherit",
                         isPathNameMatch(item.href)

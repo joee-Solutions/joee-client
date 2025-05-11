@@ -12,8 +12,10 @@ interface FieldFileInputProps<T extends FieldValues> {
   name: Path<T>;
   labelText?: string;
   hidden?: boolean;
+  showInline?: boolean;
   fileInputRef?: React.RefObject<HTMLInputElement | null>;
   setImagePreviewer?: React.Dispatch<React.SetStateAction<string>>;
+  disabled?: boolean;
 }
 
 function FieldFileInput<T extends FieldValues>({
@@ -21,8 +23,10 @@ function FieldFileInput<T extends FieldValues>({
   name,
   labelText,
   hidden,
+  showInline = false,
   fileInputRef,
   setImagePreviewer,
+  disabled,
 }: FieldFileInputProps<T>) {
   return (
     <FormField
@@ -31,7 +35,11 @@ function FieldFileInput<T extends FieldValues>({
       render={({ field }) => {
         return (
           <FormItem className="w-full">
-            {labelText && <FormLabel>{labelText}</FormLabel>}
+            {labelText && (
+              <FormLabel className="font-semibold text-base text-black">
+                {labelText}
+              </FormLabel>
+            )}
             <FormControl>
               <div className="w-full">
                 <input
@@ -51,17 +59,20 @@ function FieldFileInput<T extends FieldValues>({
                   }}
                   className={`${hidden && "hidden"}`}
                   ref={fileInputRef}
+                  disabled={disabled}
                 />
-                <div className={`relative ${!hidden && "hidden"}`}>
-                  <input
-                    type="text"
-                    placeholder="Choose file"
-                    className="border border-[#737373] bg-white rounded-[4px] h-[60px] px-10 w-full"
-                    disabled
-                    defaultValue={field.value && field.value.name}
-                  />
-                  <Link className="size-4 text-[#737373] absolute top-1/2 -translate-y-1/2 left-4" />
-                </div>
+                {showInline && (
+                  <div className={`relative ${!hidden && "hidden"}`}>
+                    <input
+                      type="text"
+                      placeholder="Choose file"
+                      className="border border-[#737373] bg-white rounded-[4px] h-[60px] px-10 w-full"
+                      disabled
+                      defaultValue={field.value && field.value.name}
+                    />
+                    <Link className="size-4 text-[#737373] absolute top-1/2 -translate-y-1/2 left-4" />
+                  </div>
+                )}
               </div>
             </FormControl>
           </FormItem>

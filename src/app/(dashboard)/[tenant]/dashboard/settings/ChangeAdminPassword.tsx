@@ -1,21 +1,9 @@
 import { DownloadIcon } from "@/components/icons/icon";
 import FieldBox from "@/components/shared/form/FieldBox";
-import FieldSelect from "@/components/shared/form/FieldSelect";
-import FieldTextBox from "@/components/shared/form/FieldTextBox";
 import FormComposer from "@/components/shared/form/FormComposer";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckCircle2, CircleArrowLeft, Edit, Trash2 } from "lucide-react";
+import { Edit } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -28,8 +16,8 @@ const ChangePasswordSchema = z.object({
 
 type ChangePasswordSchemaType = z.infer<typeof ChangePasswordSchema>;
 
-export default function ChangePassword() {
-  const [isDisabled, setIsDisabled] = useState(true);
+export default function ChangeAdminPassword() {
+  const [isDisable, setIsDisable] = useState(true);
 
   const form = useForm<ChangePasswordSchemaType>({
     resolver: zodResolver(ChangePasswordSchema),
@@ -44,11 +32,11 @@ export default function ChangePassword() {
   const onSubmit = (payload: ChangePasswordSchemaType) => {
     console.log(payload);
 
-    setIsDisabled(true);
+    setIsDisable(true);
   };
 
-  const handleDisbleForm = () => {
-    setIsDisabled(false);
+  const handleDisableForm = () => {
+    setIsDisable(false);
   };
 
   return (
@@ -65,7 +53,7 @@ export default function ChangePassword() {
             labelText="Old Password"
             type="text"
             placeholder="Enter here"
-            disabled={isDisabled}
+            disabled={isDisable}
           />
           <FieldBox
             bgInputClass="bg-[#D9EDFF] border-[#D9EDFF]"
@@ -74,7 +62,7 @@ export default function ChangePassword() {
             labelText="New Password"
             type="text"
             placeholder="Enter here"
-            disabled={isDisabled}
+            disabled={isDisable}
           />
           <FieldBox
             bgInputClass="bg-[#D9EDFF] border-[#D9EDFF]"
@@ -83,23 +71,26 @@ export default function ChangePassword() {
             control={form.control}
             labelText="Confirm Password"
             placeholder="Enter here"
-            disabled={isDisabled}
+            disabled={isDisable}
           />
 
           <div className="flex items-center gap-7">
-            {isDisabled ? (
-              <Button
-                type="button"
-                onClick={handleDisbleForm}
-                className="h-[60px] bg-[#003465] text-base font-medium text-white rounded w-full"
-              >
-                Edit <Edit size={20} />
-              </Button>
-            ) : (
-              <Button className="h-[60px] bg-[#003465] text-base font-medium text-white rounded w-full">
-                Save Changes <DownloadIcon />
-              </Button>
-            )}
+            <Button
+              type="button"
+              onClick={handleDisableForm}
+              className={`${
+                !isDisable && "hidden"
+              } h-[60px] bg-[#003465] text-base font-medium text-white rounded w-full`}
+            >
+              Edit <Edit size={20} />
+            </Button>
+            <Button
+              className={`${
+                isDisable && "hidden"
+              } h-[60px] bg-[#003465] text-base font-medium text-white rounded w-full`}
+            >
+              Save Changes <DownloadIcon />
+            </Button>
           </div>
         </div>
       </FormComposer>

@@ -290,6 +290,7 @@ export default function EmployeeRegistrationForm() {
                       fileInputRef={fileInputRef}
                       setImagePreviewer={setImagePreviewer}
                       hidden
+                      showInline
                     />
                     <Button
                       type="button"
