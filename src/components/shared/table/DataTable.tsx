@@ -1,13 +1,10 @@
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import Image from "next/image";
-import { Ellipsis } from "lucide-react";
 import React, { useMemo } from "react";
 
 const getColumnHeaders = function (data: Record<string, any>) {
@@ -32,24 +29,30 @@ const getColumnHeaders = function (data: Record<string, any>) {
 interface DataTableProps {
   tableDataObj: Record<string, any>;
   children: React.ReactNode;
+  bgHeader?: string;
 }
 
-export default function DataTable({ tableDataObj, children }: DataTableProps) {
+export default function DataTable({
+  tableDataObj,
+  bgHeader,
+  children,
+}: DataTableProps) {
   const columnHeaders = useMemo(
     () => getColumnHeaders(tableDataObj),
     [tableDataObj]
   );
 
   return (
-    <Table>
-      <TableHeader className="bg-[#EDF0F6] h-[38px]">
-        <TableRow>
+    <Table className="min-w-[600px] overflow-auto">
+      <TableHeader
+        className={`${
+          bgHeader ? bgHeader : "bg-[#003465] text-white"
+        } h-[38px]`}
+      >
+        <TableRow className="">
           {columnHeaders.map((column) => {
             return (
-              <TableHead
-                key={column}
-                className="font-semibold text-xs text-black"
-              >
+              <TableHead key={column} className="font-semibold text-xs">
                 {column}
               </TableHead>
             );
