@@ -1,6 +1,6 @@
 "use client";
 
-import DataTable, { Column } from "@/components/shared/table/DataTable";
+import DataTable from "@/components/shared/table/DataTable";
 import Pagination from "@/components/shared/table/pagination";
 import { useState } from "react";
 import { TableCell, TableRow } from "@/components/ui/table";
@@ -16,157 +16,96 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-type AppointmentDTO = {
-  date: string;
-  firstName: string;
-  lastName: string;
-  startTime: string;
-  endTime: string;
-  status: string;
-};
-
-const AppointmentTableData: AppointmentDTO[] = [
+const AppointmentTableData = [
   {
     date: "21 Jan 2024",
-    firstName: "Susan",
-    lastName: "Denilson",
-    startTime: "11:00 AM",
-    endTime: "12:00 PM",
+    patients: {
+      firstName: "Susan",
+      lastName: "Denilson",
+    },
+    time: { start: "11:00am", end: "12:00pm" },
     status: "Approved",
   },
   {
     date: "22 Jan 2024",
-    firstName: "Susan",
-    lastName: "Denilson",
-    startTime: "11:00 AM",
-    endTime: "12:00 PM",
+    patients: {
+      firstName: "Susan",
+      lastName: "Denilson",
+    },
+    time: { start: "11:00am", end: "12:00pm" },
     status: "Approved",
   },
   {
     date: "23 Jan 2024",
-    firstName: "Susan",
-    lastName: "Denilson",
-    startTime: "11:00 AM",
-    endTime: "12:00 PM",
+    patients: {
+      firstName: "Susan",
+      lastName: "Denilson",
+    },
+    time: { start: "11:00am", end: "12:00pm" },
     status: "Pending",
   },
   {
     date: "24 Jan 2024",
-    firstName: "Susan",
-    lastName: "Denilson",
-    startTime: "11:00 AM",
-    endTime: "12:00 PM",
+    patients: {
+      firstName: "Susan",
+      lastName: "Denilson",
+    },
+    time: { start: "11:00am", end: "12:00pm" },
     status: "Cancelled",
   },
   {
     date: "25 Jan 2024",
-    firstName: "Susan",
-    lastName: "Denilson",
-    startTime: "11:00 AM",
-    endTime: "12:00 PM",
+    patients: {
+      firstName: "Susan",
+      lastName: "Denilson",
+    },
+    time: { start: "11:00am", end: "12:00pm" },
     status: "Cancelled",
   },
   {
     date: "26 Jan 2024",
-    firstName: "Susan",
-    lastName: "Denilson",
-    startTime: "11:00 AM",
-    endTime: "12:00 PM",
+    patients: {
+      firstName: "Susan",
+      lastName: "Denilson",
+    },
+    time: { start: "11:00am", end: "12:00pm" },
     status: "Approved",
   },
   {
     date: "27 Jan 2024",
-    firstName: "Susan",
-    lastName: "Denilson",
-    startTime: "11:00 AM",
-    endTime: "12:00 PM",
+    patients: {
+      firstName: "Susan",
+      lastName: "Denilson",
+    },
+    time: { start: "11:00am", end: "12:00pm" },
     status: "Pending",
   },
   {
     date: "28 Jan 2024",
-    firstName: "Susan",
-    lastName: "Denilson",
-    startTime: "11:00 AM",
-    endTime: "12:00 PM",
+    patients: {
+      firstName: "Susan",
+      lastName: "Denilson",
+    },
+    time: { start: "11:00am", end: "12:00pm" },
     status: "Cancelled",
   },
   {
     date: "29 Jan 2024",
-    firstName: "Susan",
-    lastName: "Denilson",
-    startTime: "11:00 AM",
-    endTime: "12:00 PM",
+    patients: {
+      firstName: "Susan",
+      lastName: "Denilson",
+    },
+    time: { start: "11:00am", end: "12:00pm" },
     status: "Approved",
   },
   {
     date: "30 Jan 2024",
-    firstName: "Susan",
-    lastName: "Denilson",
-    startTime: "11:00 AM",
-    endTime: "12:00 PM",
+    patients: {
+      firstName: "Susan",
+      lastName: "Denilson",
+    },
+    time: { start: "11:00am", end: "12:00pm" },
     status: "Approved",
-  },
-];
-
-const columns: Column<AppointmentDTO>[] = [
-  {
-    header: "Date",
-    render(row) {
-      return <p>{row.date}</p>;
-    },
-  },
-  {
-    header: "Patients",
-    render(row) {
-      return (
-        <div className="flex items-center gap-[10px] py-[21px]">
-          <p className="font-medium text-xs text-black">
-            {row.firstName} {row.lastName}
-          </p>
-        </div>
-      );
-    },
-  },
-  {
-    header: "Time",
-    render(row) {
-      return (
-        <p className="font-semibold text-xs text-black">
-          {row.startTime} {row.endTime}
-        </p>
-      );
-    },
-  },
-  {
-    header: "Status",
-    render(row) {
-      return (
-        <div
-          className={`flex items-center justify-center font-medium text-xs h-[30px] w-[80px] rounded-[20px] ${
-            row.status.toLowerCase() === "approved"
-              ? "text-[#3FA907] bg-[#E5F8DA]"
-              : row.status.toLowerCase() === "pending"
-              ? "text-[#C8AE00] bg-[#FEF9D9]"
-              : "text-[#EC0909] bg-[#FDE6E6]"
-          }`}
-        >
-          {row.status}
-        </div>
-      );
-    },
-  },
-  {
-    header: "Action",
-    render(row) {
-      return (
-        <Button
-          type="button"
-          className="flex items-center justify-center px-2 h-6 rounded-[2px] border border-[#BFBFBF] bg-[#EDF0F6]"
-        >
-          <Ellipsis className="text-black size-5" />
-        </Button>
-      );
-    },
   },
 ];
 
@@ -246,10 +185,51 @@ export default function AppointmentPage() {
         </div>
       </div>
       <DataTable
-        columns={columns}
-        data={AppointmentTableData}
+        tableDataObj={AppointmentTableData[0]}
         bgHeader="bg-[#D9EDFF] text-black"
-      />
+      >
+        {AppointmentTableData.map((data, i) => {
+          return (
+            <TableRow
+              key={data.patients.firstName + data.date + i}
+              className="px-3"
+            >
+              <TableCell>{data.date}</TableCell>
+              <TableCell className="py-[21px]">
+                <div className="flex items-center gap-[10px]">
+                  <p className="font-medium text-xs text-black">
+                    {data.patients.firstName} {data.patients.lastName}
+                  </p>
+                </div>
+              </TableCell>
+              <TableCell className="font-semibold text-xs text-black">
+                {data.time.start} {data.time.end}
+              </TableCell>
+              <TableCell>
+                <div
+                  className={`flex items-center justify-center font-medium text-xs h-[30px] w-[69px] rounded-[20px] ${
+                    data.status.toLowerCase() === "approved"
+                      ? "text-[#3FA907] bg-[#E5F8DA]"
+                      : data.status.toLowerCase() === "pending"
+                      ? "text-[#C8AE00] bg-[#FEF9D9]"
+                      : "text-[#EC0909] bg-[#FDE6E6]"
+                  }`}
+                >
+                  {data.status}
+                </div>
+              </TableCell>
+              <TableCell>
+                <Link
+                  href={"/dashboard/organization/1234"}
+                  className="flex items-center justify-center px-2 h-6 rounded-[2px] border border-[#BFBFBF] bg-[#EDF0F6]"
+                >
+                  <Ellipsis className="text-black size-5" />
+                </Link>
+              </TableCell>
+            </TableRow>
+          );
+        })}
+      </DataTable>
       <Pagination
         dataLength={AppointmentTableData.length}
         numOfPages={1000}

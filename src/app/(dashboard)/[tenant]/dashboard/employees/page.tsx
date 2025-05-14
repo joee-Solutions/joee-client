@@ -1,7 +1,7 @@
 "use client";
 
 import SectionHeader from "@/components/shared/SectionHeader";
-import DataTable from "@/components/shared/table/DataTable";
+import DataTable, { Column } from "@/components/shared/table/DataTable";
 import { ListView } from "@/components/shared/table/DataTableFilter";
 import Pagination from "@/components/shared/table/pagination";
 import { Button } from "@/components/ui/button";
@@ -50,116 +50,183 @@ const employeeCards = [
   },
 ];
 
-const EmployeesTableData = [
+type EmployeeDTO = {
+  id: number;
+  profilePicture: string;
+  firstName: string;
+  lastName: string;
+  departmentName: string;
+  designation: string;
+  status: string;
+};
+
+const EmployeesTableData: EmployeeDTO[] = [
   {
     id: 1,
-    employee_Name: {
-      profilePicture: "/assets/imagePlaceholder.png",
-      firstName: "Susan",
-      lastName: "Denilson",
-    },
-    department_Name: "Opthamology",
+    profilePicture: "/assets/imagePlaceholder.png",
+    firstName: "Susan",
+    lastName: "Denilson",
+    departmentName: "Opthamology",
     designation: "Doctor",
     status: "active",
   },
   {
     id: 2,
-    employee_Name: {
-      profilePicture: "/assets/imagePlaceholder.png",
-      firstName: "Adeniyi",
-      lastName: "Samuel",
-    },
-    department_Name: "Nephrology",
+    profilePicture: "/assets/imagePlaceholder.png",
+    firstName: "Adeniyi",
+    lastName: "Samuel",
+    departmentName: "Nephrology",
     designation: "Nurse",
     status: "Active",
   },
   {
     id: 3,
-    employee_Name: {
-      profilePicture: "/assets/imagePlaceholder.png",
-      firstName: "Umaru",
-      lastName: "Newton",
-    },
-    department_Name: "Oncology",
+    profilePicture: "/assets/imagePlaceholder.png",
+    firstName: "Umaru",
+    lastName: "Newton",
+    departmentName: "Oncology",
     designation: "Doctor",
     status: "Inactive",
   },
   {
     id: 4,
-    employee_Name: {
-      profilePicture: "/assets/imagePlaceholder.png",
-      firstName: "Susan",
-      lastName: "Denilson",
-    },
-    department_Name: "Opthamology",
+    profilePicture: "/assets/imagePlaceholder.png",
+    firstName: "Susan",
+    lastName: "Denilson",
+    departmentName: "Opthamology",
     designation: "Doctor",
     status: "active",
   },
   {
     id: 5,
-    employee_Name: {
-      profilePicture: "/assets/imagePlaceholder.png",
-      firstName: "Susan",
-      lastName: "Denilson",
-    },
-    department_Name: "Opthamology",
+    profilePicture: "/assets/imagePlaceholder.png",
+    firstName: "Susan",
+    lastName: "Denilson",
+    departmentName: "Opthamology",
     designation: "Doctor",
     status: "active",
   },
   {
     id: 6,
-    employee_Name: {
-      profilePicture: "/assets/imagePlaceholder.png",
-      firstName: "Susan",
-      lastName: "Denilson",
-    },
-    department_Name: "Opthamology",
+    profilePicture: "/assets/imagePlaceholder.png",
+    firstName: "Susan",
+    lastName: "Denilson",
+    departmentName: "Opthamology",
     designation: "Doctor",
     status: "active",
   },
   {
     id: 7,
-    employee_Name: {
-      profilePicture: "/assets/imagePlaceholder.png",
-      firstName: "Susan",
-      lastName: "Denilson",
-    },
-    department_Name: "Opthamology",
+    profilePicture: "/assets/imagePlaceholder.png",
+    firstName: "Susan",
+    lastName: "Denilson",
+    departmentName: "Opthamology",
     designation: "Doctor",
     status: "active",
   },
   {
     id: 8,
-    employee_Name: {
-      profilePicture: "/assets/imagePlaceholder.png",
-      firstName: "Susan",
-      lastName: "Denilson",
-    },
-    department_Name: "Opthamology",
+    profilePicture: "/assets/imagePlaceholder.png",
+    firstName: "Susan",
+    lastName: "Denilson",
+    departmentName: "Opthamology",
     designation: "Doctor",
     status: "active",
   },
   {
     id: 9,
-    employee_Name: {
-      profilePicture: "/assets/imagePlaceholder.png",
-      firstName: "Susan",
-      lastName: "Denilson",
-    },
-    department_Name: "Opthamology",
+    profilePicture: "/assets/imagePlaceholder.png",
+    firstName: "Susan",
+    lastName: "Denilson",
+    departmentName: "Opthamology",
     designation: "Doctor",
     status: "active",
   },
   {
     id: 10,
-    employee_Name: {
-      profilePicture: "/assets/imagePlaceholder.png",
-      firstName: "Susan",
-      lastName: "Denilson",
-    },
-    department_Name: "Opthamology",
+    profilePicture: "/assets/imagePlaceholder.png",
+    firstName: "Susan",
+    lastName: "Denilson",
+    departmentName: "Opthamology",
     designation: "Doctor",
     status: "active",
+  },
+];
+
+const columns: Column<EmployeeDTO>[] = [
+  {
+    header: "#",
+    key: "id",
+  },
+  {
+    header: "Employee Name",
+    render(row) {
+      return (
+        <div className="flex items-center gap-[10px]">
+          <span className="w-[42px] h-42px rounded-full overflow-hidden">
+            <Image
+              src={row.profilePicture}
+              alt="employee image"
+              width={42}
+              height={42}
+              className="object-cover aspect-square w-full h-full rounded-full"
+            />
+          </span>
+          <p className="font-medium text-xs text-black">
+            {row.firstName} {row.lastName}
+          </p>
+        </div>
+      );
+    },
+  },
+  {
+    header: "Department Name",
+    render(row) {
+      return (
+        <p className="font-semibold text-xs text-[#737373]">
+          {row.departmentName}
+        </p>
+      );
+    },
+  },
+  {
+    header: "Designation",
+    render(row) {
+      return (
+        <p className="font-semibold text-xs text-[#737373]">
+          {row.designation}
+        </p>
+      );
+    },
+  },
+  {
+    header: "Status",
+    render(row) {
+      return (
+        <p
+          className={`font-semibold text-xs ${
+            row.status.toLowerCase() === "active"
+              ? "text-[#3FA907]"
+              : "text-[#EC0909]"
+          }`}
+        >
+          {row.status}
+        </p>
+      );
+    },
+  },
+  {
+    header: "Actions",
+    render(row) {
+      return (
+        <Link
+          href={`/dashboard/employees/${row.firstName}-${row.lastName}`}
+          className="flex items-center justify-center px-1 py-1 rounded-[2px] border-b border-[#BFBFBF]"
+        >
+          See Details <ChevronRight className="text-black size-5" />
+        </Link>
+      );
+    },
   },
 ];
 
@@ -247,56 +314,7 @@ export default function EmployeePage() {
                 <Search className="size-5 text-[#999999] absolute right-4 top-1/2 -translate-y-1/2" />
               </div>
             </div>
-            <DataTable tableDataObj={EmployeesTableData[0]}>
-              {EmployeesTableData.map((data) => {
-                return (
-                  <TableRow key={data.id} className="px-3">
-                    <TableCell>{data.id}</TableCell>
-                    <TableCell className="py-[21px]">
-                      <div className="flex items-center gap-[10px]">
-                        <span className="w-[42px] h-42px rounded-full overflow-hidden">
-                          <Image
-                            src={data.employee_Name.profilePicture}
-                            alt="employee image"
-                            width={42}
-                            height={42}
-                            className="object-cover aspect-square w-full h-full rounded-full"
-                          />
-                        </span>
-                        <p className="font-medium text-xs text-black">
-                          {data.employee_Name.firstName}{" "}
-                          {data.employee_Name.lastName}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-semibold text-xs text-[#737373]">
-                      {data.department_Name}
-                    </TableCell>
-                    <TableCell className="font-semibold text-xs text-[#737373]">
-                      {data.designation}
-                    </TableCell>
-                    <TableCell
-                      className={`font-semibold text-xs ${
-                        data.status.toLowerCase() === "active"
-                          ? "text-[#3FA907]"
-                          : "text-[#EC0909]"
-                      }`}
-                    >
-                      {data.status}
-                    </TableCell>
-                    <TableCell className="">
-                      <Link
-                        href={`/dashboard/employees/${data.employee_Name.firstName}-${data.employee_Name.lastName}`}
-                        className="flex items-center justify-center px-1 py-1 rounded-[2px] border-b border-[#BFBFBF]"
-                      >
-                        See Details{" "}
-                        <ChevronRight className="text-black size-5" />
-                      </Link>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </DataTable>
+            <DataTable columns={columns} data={EmployeesTableData} />
           </div>
           <Pagination
             dataLength={EmployeesTableData.length}

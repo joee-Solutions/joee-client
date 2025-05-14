@@ -1,6 +1,6 @@
 "use client";
 
-import DataTable, { Column } from "@/components/shared/table/DataTable";
+import DataTable from "@/components/shared/table/DataTable";
 import Pagination from "@/components/shared/table/pagination";
 import { useState } from "react";
 import { TableCell, TableRow } from "@/components/ui/table";
@@ -16,159 +16,105 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-type PatientDto = {
-  id: number;
-  profilePicture: string;
-  firstName: string;
-  lastName: string;
-  createdAt: string;
-  gender: string;
-};
-
-const columns: Column<PatientDto>[] = [
-  {
-    header: "#",
-    key: "id",
-  },
-  {
-    header: "Patients",
-    render(row) {
-      return (
-        <div className="flex items-center gap-[10px]">
-          <span className="w-[42px] h-42px rounded-full overflow-hidden">
-            <Image
-              src={row.profilePicture}
-              alt="patient image"
-              width={42}
-              height={42}
-              className="object-cover aspect-square w-full h-full"
-            />
-          </span>
-          <p className="font-medium text-xs text-black">
-            {row.firstName} {row.lastName}
-          </p>
-        </div>
-      );
-    },
-  },
-  {
-    header: "Created at",
-    render(row) {
-      return (
-        <p className="font-semibold text-xs text-[#737373]">{row.createdAt}</p>
-      );
-    },
-  },
-  {
-    header: "Gender",
-    render(row) {
-      return (
-        <div
-          className={`flex items-center justify-center font-medium text-xs h-[30px] w-[69px] rounded-[20px] ${
-            row.gender.toLowerCase() === "male"
-              ? "text-[#3FA907] bg-[#E5F8DA]"
-              : "text-[#EC0909] bg-[#FDE6E6]"
-          }`}
-        >
-          {row.gender[0].toUpperCase() + row.gender.slice(1)}
-        </div>
-      );
-    },
-  },
-  {
-    header: "Actions",
-    render(row) {
-      return (
-        <Link
-          href={"/dashboard/organization/1234"}
-          className="flex items-center justify-center px-2 h-6 rounded-[2px] border border-[#BFBFBF] bg-[#EDF0F6]"
-        >
-          <Ellipsis className="text-black size-5" />
-        </Link>
-      );
-    },
-  },
-];
-
 const PatientsTableData = [
   {
     id: 1,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
+    patients: {
+      profilePicture: "/assets/imagePlaceholder.png",
+      firstName: "Susan",
+      lastName: "Denilson",
+    },
+    created_at: "20 Jan 2024",
     gender: "male",
   },
   {
     id: 2,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
+    patients: {
+      profilePicture: "/assets/imagePlaceholder.png",
+      firstName: "Susan",
+      lastName: "Denilson",
+    },
+    created_at: "20 Jan 2024",
     gender: "female",
   },
   {
     id: 3,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
+    patients: {
+      profilePicture: "/assets/imagePlaceholder.png",
+      firstName: "Susan",
+      lastName: "Denilson",
+    },
+    created_at: "20 Jan 2024",
     gender: "male",
   },
   {
     id: 4,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
+    patients: {
+      profilePicture: "/assets/imagePlaceholder.png",
+      firstName: "Susan",
+      lastName: "Denilson",
+    },
+    created_at: "20 Jan 2024",
     gender: "male",
   },
   {
     id: 5,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
+    patients: {
+      profilePicture: "/assets/imagePlaceholder.png",
+      firstName: "Susan",
+      lastName: "Denilson",
+    },
+    created_at: "20 Jan 2024",
     gender: "male",
   },
   {
     id: 6,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
+    patients: {
+      profilePicture: "/assets/imagePlaceholder.png",
+      firstName: "Susan",
+      lastName: "Denilson",
+    },
+    created_at: "20 Jan 2024",
     gender: "male",
   },
   {
     id: 7,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
+    patients: {
+      profilePicture: "/assets/imagePlaceholder.png",
+      firstName: "Susan",
+      lastName: "Denilson",
+    },
+    created_at: "20 Jan 2024",
     gender: "male",
   },
   {
     id: 8,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
+    patients: {
+      profilePicture: "/assets/imagePlaceholder.png",
+      firstName: "Susan",
+      lastName: "Denilson",
+    },
+    created_at: "20 Jan 2024",
     gender: "male",
   },
   {
     id: 9,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
+    patients: {
+      profilePicture: "/assets/imagePlaceholder.png",
+      firstName: "Susan",
+      lastName: "Denilson",
+    },
+    created_at: "20 Jan 2024",
     gender: "male",
   },
   {
     id: 10,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
+    patients: {
+      profilePicture: "/assets/imagePlaceholder.png",
+      firstName: "Susan",
+      lastName: "Denilson",
+    },
+    created_at: "20 Jan 2024",
     gender: "male",
   },
 ];
@@ -249,10 +195,55 @@ export default function PatientPage() {
         </div>
       </div>
       <DataTable
-        columns={columns}
-        data={PatientsTableData}
+        tableDataObj={PatientsTableData[0]}
         bgHeader="bg-[#D9EDFF] text-black"
-      />
+      >
+        {PatientsTableData.map((data) => {
+          return (
+            <TableRow key={data.id} className="px-3">
+              <TableCell>{data.id}</TableCell>
+              <TableCell className="py-[21px]">
+                <div className="flex items-center gap-[10px]">
+                  <span className="w-[42px] h-42px rounded-full overflow-hidden">
+                    <Image
+                      src={data.patients.profilePicture}
+                      alt="patient image"
+                      width={42}
+                      height={42}
+                      className="object-cover aspect-square w-full h-full"
+                    />
+                  </span>
+                  <p className="font-medium text-xs text-black">
+                    {data.patients.firstName} {data.patients.lastName}
+                  </p>
+                </div>
+              </TableCell>
+              <TableCell className="font-semibold text-xs text-[#737373]">
+                {data.created_at}
+              </TableCell>
+              <TableCell>
+                <div
+                  className={`flex items-center justify-center font-medium text-xs h-[30px] w-[69px] rounded-[20px] ${
+                    data.gender.toLowerCase() === "male"
+                      ? "text-[#3FA907] bg-[#E5F8DA]"
+                      : "text-[#EC0909] bg-[#FDE6E6]"
+                  }`}
+                >
+                  {data.gender[0].toUpperCase() + data.gender.slice(1)}
+                </div>
+              </TableCell>
+              <TableCell>
+                <Link
+                  href={"/dashboard/organization/1234"}
+                  className="flex items-center justify-center px-2 h-6 rounded-[2px] border border-[#BFBFBF] bg-[#EDF0F6]"
+                >
+                  <Ellipsis className="text-black size-5" />
+                </Link>
+              </TableCell>
+            </TableRow>
+          );
+        })}
+      </DataTable>
       <Pagination
         dataLength={PatientsTableData.length}
         numOfPages={1000}
