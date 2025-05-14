@@ -1,6 +1,6 @@
 "use client";
 
-import DataTable from "@/components/shared/table/DataTable";
+import DataTable, { Column } from "@/components/shared/table/DataTable";
 import Pagination from "@/components/shared/table/pagination";
 import { useState } from "react";
 import { TableCell, TableRow } from "@/components/ui/table";
@@ -8,40 +8,103 @@ import { Ellipsis, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
-const ScheduleTableData = [
+type ScheduleDTO = {
+  availableDay: string;
+  startTime: string;
+  endTime: string;
+};
+
+const ScheduleTableData: ScheduleDTO[] = [
   {
-    available_days: "Monday",
-    time: { start: "11:00am", end: "12:00pm" },
+    availableDay: "Monday",
+    startTime: "11:00am",
+    endTime: "12:00pm",
   },
 
   {
-    available_days: "Tuesday",
-    time: { start: "11:00am", end: "12:00pm" },
+    availableDay: "Tuesday",
+    startTime: "11:00am",
+    endTime: "12:00pm",
   },
 
   {
-    available_days: "Wednesday",
-    time: { start: "11:00am", end: "12:00pm" },
+    availableDay: "Wednesday",
+    startTime: "11:00am",
+    endTime: "12:00pm",
   },
 
   {
-    available_days: "Thursday",
-    time: { start: "11:00am", end: "12:00pm" },
+    availableDay: "Thursday",
+    startTime: "11:00am",
+    endTime: "12:00pm",
   },
 
   {
-    available_days: "Friday",
-    time: { start: "11:00am", end: "12:00pm" },
+    availableDay: "Friday",
+    startTime: "11:00am",
+    endTime: "12:00pm",
   },
 
   {
-    available_days: "Saturday",
-    time: { start: "11:00am", end: "12:00pm" },
+    availableDay: "Saturday",
+    startTime: "11:00am",
+    endTime: "12:00pm",
   },
 
   {
-    available_days: "Sunday",
-    time: { start: "11:00am", end: "12:00pm" },
+    availableDay: "Sunday",
+    startTime: "11:00am",
+    endTime: "12:00pm",
+  },
+];
+
+const columns: Column<ScheduleDTO>[] = [
+  {
+    header: "Available days",
+    render(row) {
+      return (
+        <div
+          className={`flex items-center justify-center font-medium text-xs h-[30px] w-[80px] rounded-[20px] ${
+            row.availableDay.toLowerCase() === "monday"
+              ? "text-[#003465] bg-[#E6EBF0]"
+              : row.availableDay.toLowerCase() === "tuesday"
+              ? "text-[#3FA907] bg-[#E5F8DA]"
+              : row.availableDay.toLowerCase() === "wednesday"
+              ? "text-[#C8AE00] bg-[#FEF9D9]"
+              : row.availableDay.toLowerCase() === "thursday"
+              ? "text-[#3FA907] bg-[#E5F8DA]"
+              : row.availableDay.toLowerCase() === "friday"
+              ? "text-[#C8AE00] bg-[#FEF9D9]"
+              : "text-[#EC0909] bg-[#FDE6E6]"
+          }`}
+        >
+          {row.availableDay}
+        </div>
+      );
+    },
+  },
+  {
+    header: "Available Time",
+    render(row) {
+      return (
+        <p className="font-semibold text-xs text-black">
+          {row.startTime} - {row.endTime}
+        </p>
+      );
+    },
+  },
+  {
+    header: "Action",
+    render(row) {
+      return (
+        <Button
+          type="button"
+          className="flex items-center justify-center px-2 h-6 rounded-[2px] border border-[#BFBFBF] bg-[#EDF0F6]"
+        >
+          <Ellipsis className="text-black size-5" />
+        </Button>
+      );
+    },
   },
 ];
 
@@ -58,49 +121,10 @@ export default function SchedulePage() {
       </header>
 
       <DataTable
-        tableDataObj={ScheduleTableData[0]}
+        columns={columns}
+        data={ScheduleTableData}
         bgHeader="bg-[#D9EDFF] text-black"
-      >
-        {ScheduleTableData.map((data, i) => {
-          return (
-            <TableRow
-              key={data.available_days + data.time + i}
-              className="px-3"
-            >
-              <TableCell className="py-4">
-                <div
-                  className={`flex items-center justify-center font-medium text-xs h-[30px] w-[80px] rounded-[20px] ${
-                    data.available_days.toLowerCase() === "monday"
-                      ? "text-[#003465] bg-[#E6EBF0]"
-                      : data.available_days.toLowerCase() === "tuesday"
-                      ? "text-[#3FA907] bg-[#E5F8DA]"
-                      : data.available_days.toLowerCase() === "wednesday"
-                      ? "text-[#C8AE00] bg-[#FEF9D9]"
-                      : data.available_days.toLowerCase() === "thursday"
-                      ? "text-[#3FA907] bg-[#E5F8DA]"
-                      : data.available_days.toLowerCase() === "friday"
-                      ? "text-[#C8AE00] bg-[#FEF9D9]"
-                      : "text-[#EC0909] bg-[#FDE6E6]"
-                  }`}
-                >
-                  {data.available_days}
-                </div>
-              </TableCell>
-              <TableCell className="font-semibold text-xs text-black">
-                {data.time.start} {data.time.end}
-              </TableCell>
-              <TableCell>
-                <Link
-                  href={"/dashboard/organization/1234"}
-                  className="flex items-center justify-center px-2 h-6 rounded-[2px] border border-[#BFBFBF] bg-[#EDF0F6]"
-                >
-                  <Ellipsis className="text-black size-5" />
-                </Link>
-              </TableCell>
-            </TableRow>
-          );
-        })}
-      </DataTable>
+      />
       <Pagination
         dataLength={ScheduleTableData.length}
         numOfPages={1000}

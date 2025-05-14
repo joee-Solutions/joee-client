@@ -1,5 +1,21 @@
 import BackupTable from "./BackupTable";
 
+{
+  /* <TableHead key="Checkbox" className="px-4 w-2 font-medium text-base text-white">
+  <Checkbox
+    size={20}
+    onChange={() => toggleAllRowsSelection()}
+    checked={
+      rowSelectionIds.length < tableRows.length
+        ? false
+        : rowSelectionIds.length === tableRows.length
+        ? true
+        : false
+    }
+  />
+</TableHead>; */
+}
+
 const tableColumnNames = [
   "Date Deleted",
   "File name",
