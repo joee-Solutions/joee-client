@@ -1,66 +1,93 @@
 import {
   Table,
   TableBody,
+  TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 
-const getColumnHeaders = function (data: Record<string, any>) {
-  const headers = Object.keys(data).map((key) => {
-    if (key === "id") {
-      return "#";
-    } else if (key.includes("_")) {
-      const c = key.split("_");
-      const firstC = c[0][0].toUpperCase() + c[0].slice(1);
-      const secondC = c[1][0].toUpperCase() + c[1].slice(1);
-      c[0] = firstC;
-      c[1] = secondC;
+type Primitives = string | number | boolean;
 
-      return c.join(" ");
-    }
-    return key[0].toUpperCase() + key.slice(1);
-  });
-
-  return headers;
+export type Column<T> = {
+  header: string | (() => React.ReactNode);
+  key?: keyof T;
+  render?: (row: T) => React.ReactNode;
+  searchable?: boolean;
+  size?: number;
 };
 
-interface DataTableProps {
-  tableDataObj: Record<string, any>;
-  children: React.ReactNode;
+interface DataTableProps<T extends Record<string, Primitives>> {
+  data: T[];
+  columns: Column<T>[];
   bgHeader?: string;
+  rowSelectionIds?: number[];
+  searchableKeys?: (keyof T)[];
+  search?: string;
 }
 
-export default function DataTable({
-  tableDataObj,
+export default function DataTable<T extends Record<string, Primitives>>({
+  data,
+  columns,
   bgHeader,
-  children,
-}: DataTableProps) {
-  const columnHeaders = useMemo(
-    () => getColumnHeaders(tableDataObj),
-    [tableDataObj]
-  );
+  rowSelectionIds = [],
+  searchableKeys = [],
+  search,
+}: DataTableProps<T>) {
+  const filteredRows = useMemo(() => {
+    if (!search || searchableKeys.length === 0) return data;
+
+    return data.filter((row) => {
+      searchableKeys.some((k) =>
+        String(row[k]).toLowerCase().includes(search.toLowerCase())
+      );
+    });
+  }, [data, search]);
 
   return (
-    <Table className="min-w-[600px] overflow-auto">
+    <Table className="w-max min-w-[900px] overflow-x-auto">
       <TableHeader
-        className={`${
+        className={`h-10 border-y border-[#D9D9D9] ${
           bgHeader ? bgHeader : "bg-[#003465] text-white"
-        } h-[38px]`}
+        }`}
       >
-        <TableRow className="">
-          {columnHeaders.map((column) => {
+        <TableRow className="px-3">
+          {columns?.map((col, i) => {
             return (
-              <TableHead key={column} className="font-semibold text-xs">
-                {column}
+              <TableHead
+                key={i}
+                className="font-medium text-xs"
+                // style={{ width: `${col.size && `${col.size}px`}` }}
+              >
+                {typeof col.header === "string" ? col.header : col.header()}
               </TableHead>
             );
           })}
-          <TableHead>Action</TableHead>
         </TableRow>
       </TableHeader>
-      <TableBody>{children}</TableBody>
+      <TableBody>
+        {filteredRows.map((tr, idx) => (
+          <TableRow
+            key={idx}
+            className={`border-b border-[#D9D9D9] h-[90px] ${
+              rowSelectionIds.includes(idx) ? "bg-[#EDF0F6]" : ""
+            }`}
+          >
+            {columns?.map((col, colIndex) => {
+              return (
+                <TableCell
+                  key={colIndex}
+                  className="px-4"
+                  style={{ width: `${col.size && `${col.size}px`}` }}
+                >
+                  {col.render ? col.render(tr) : col.key ? tr[col.key] : null}
+                </TableCell>
+              );
+            })}
+          </TableRow>
+        ))}
+      </TableBody>
     </Table>
   );
 }
