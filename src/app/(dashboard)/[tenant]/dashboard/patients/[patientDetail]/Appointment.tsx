@@ -1,10 +1,17 @@
 "use client";
 
-import DataTable from "@/components/shared/table/DataTable";
+import DataTable, { Column } from "@/components/shared/table/DataTable";
 import Pagination from "@/components/shared/table/pagination";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { TableCell, TableRow } from "@/components/ui/table";
-import { ArrowDownUp, Ellipsis, Search, Settings2, Upload } from "lucide-react";
+import {
+  ArrowDownUp,
+  Ellipsis,
+  Plus,
+  Search,
+  Settings2,
+  Upload,
+} from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -16,111 +23,200 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const AppointmentTableData = [
+type PatientDto = {
+  id: number;
+  profilePicture: string;
+  firstName: string;
+  lastName: string;
+  createdAt: string;
+  gender: string;
+};
+
+const columns: Column<PatientDto>[] = [
   {
-    date: "21 Jan 2024",
-    patients: {
-      firstName: "Susan",
-      lastName: "Denilson",
-    },
-    time: { start: "11:00am", end: "12:00pm" },
-    status: "Approved",
+    header: "#",
+    key: "id",
   },
   {
-    date: "22 Jan 2024",
-    patients: {
-      firstName: "Susan",
-      lastName: "Denilson",
+    header: "Patients",
+    render(row) {
+      return (
+        <div className="flex items-center gap-[10px]">
+          <span className="w-[42px] h-42px rounded-full overflow-hidden">
+            <Image
+              src={row.profilePicture}
+              alt="patient image"
+              width={42}
+              height={42}
+              className="object-cover aspect-square w-full h-full"
+            />
+          </span>
+          <p className="font-medium text-xs text-black">
+            {row.firstName} {row.lastName}
+          </p>
+        </div>
+      );
     },
-    time: { start: "11:00am", end: "12:00pm" },
-    status: "Approved",
   },
   {
-    date: "23 Jan 2024",
-    patients: {
-      firstName: "Susan",
-      lastName: "Denilson",
+    header: "Created at",
+    render(row) {
+      return (
+        <p className="font-semibold text-xs text-[#737373]">{row.createdAt}</p>
+      );
     },
-    time: { start: "11:00am", end: "12:00pm" },
-    status: "Pending",
   },
   {
-    date: "24 Jan 2024",
-    patients: {
-      firstName: "Susan",
-      lastName: "Denilson",
+    header: "Gender",
+    render(row) {
+      return (
+        <div
+          className={`flex items-center justify-center font-medium text-xs h-[30px] w-[69px] rounded-[20px] ${
+            row.gender.toLowerCase() === "male"
+              ? "text-[#3FA907] bg-[#E5F8DA]"
+              : "text-[#EC0909] bg-[#FDE6E6]"
+          }`}
+        >
+          {row.gender[0].toUpperCase() + row.gender.slice(1)}
+        </div>
+      );
     },
-    time: { start: "11:00am", end: "12:00pm" },
-    status: "Cancelled",
   },
   {
-    date: "25 Jan 2024",
-    patients: {
-      firstName: "Susan",
-      lastName: "Denilson",
+    header: "Actions",
+    render(row) {
+      return (
+        <Link
+          href={"/dashboard/organization/1234"}
+          className="flex items-center justify-center px-2 h-6 rounded-[2px] border border-[#BFBFBF] bg-[#EDF0F6]"
+        >
+          <Ellipsis className="text-black size-5" />
+        </Link>
+      );
     },
-    time: { start: "11:00am", end: "12:00pm" },
-    status: "Cancelled",
-  },
-  {
-    date: "26 Jan 2024",
-    patients: {
-      firstName: "Susan",
-      lastName: "Denilson",
-    },
-    time: { start: "11:00am", end: "12:00pm" },
-    status: "Approved",
-  },
-  {
-    date: "27 Jan 2024",
-    patients: {
-      firstName: "Susan",
-      lastName: "Denilson",
-    },
-    time: { start: "11:00am", end: "12:00pm" },
-    status: "Pending",
-  },
-  {
-    date: "28 Jan 2024",
-    patients: {
-      firstName: "Susan",
-      lastName: "Denilson",
-    },
-    time: { start: "11:00am", end: "12:00pm" },
-    status: "Cancelled",
-  },
-  {
-    date: "29 Jan 2024",
-    patients: {
-      firstName: "Susan",
-      lastName: "Denilson",
-    },
-    time: { start: "11:00am", end: "12:00pm" },
-    status: "Approved",
-  },
-  {
-    date: "30 Jan 2024",
-    patients: {
-      firstName: "Susan",
-      lastName: "Denilson",
-    },
-    time: { start: "11:00am", end: "12:00pm" },
-    status: "Approved",
   },
 ];
 
-export default function AppointmentPage() {
+const PatientsTableData = [
+  {
+    id: 1,
+    profilePicture: "/assets/imagePlaceholder.png",
+    firstName: "Susan",
+    lastName: "Denilson",
+    createdAt: "20 Jan 2024",
+    gender: "male",
+  },
+  {
+    id: 2,
+    profilePicture: "/assets/imagePlaceholder.png",
+    firstName: "Susan",
+    lastName: "Denilson",
+    createdAt: "20 Jan 2024",
+    gender: "female",
+  },
+  {
+    id: 3,
+    profilePicture: "/assets/imagePlaceholder.png",
+    firstName: "Susan",
+    lastName: "Denilson",
+    createdAt: "20 Jan 2024",
+    gender: "male",
+  },
+  {
+    id: 4,
+    profilePicture: "/assets/imagePlaceholder.png",
+    firstName: "Susan",
+    lastName: "Denilson",
+    createdAt: "20 Jan 2024",
+    gender: "male",
+  },
+  {
+    id: 5,
+    profilePicture: "/assets/imagePlaceholder.png",
+    firstName: "Susan",
+    lastName: "Denilson",
+    createdAt: "20 Jan 2024",
+    gender: "male",
+  },
+  {
+    id: 6,
+    profilePicture: "/assets/imagePlaceholder.png",
+    firstName: "Susan",
+    lastName: "Denilson",
+    createdAt: "20 Jan 2024",
+    gender: "male",
+  },
+  {
+    id: 7,
+    profilePicture: "/assets/imagePlaceholder.png",
+    firstName: "Susan",
+    lastName: "Denilson",
+    createdAt: "20 Jan 2024",
+    gender: "male",
+  },
+  {
+    id: 8,
+    profilePicture: "/assets/imagePlaceholder.png",
+    firstName: "Susan",
+    lastName: "Denilson",
+    createdAt: "20 Jan 2024",
+    gender: "male",
+  },
+  {
+    id: 9,
+    profilePicture: "/assets/imagePlaceholder.png",
+    firstName: "Susan",
+    lastName: "Denilson",
+    createdAt: "20 Jan 2024",
+    gender: "male",
+  },
+  {
+    id: 10,
+    profilePicture: "/assets/imagePlaceholder.png",
+    firstName: "Susan",
+    lastName: "Denilson",
+    createdAt: "20 Jan 2024",
+    gender: "male",
+  },
+];
+
+export default function Appointment() {
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("");
   const [filterBy, setFilterBy] = useState("");
 
+  let payload = {
+    page: 1,
+    pageSize: 10,
+    sortOrder: "",
+    type: "upcoming",
+  };
+
+  useEffect(() => {
+    // probably use the payload above to call the api for data for the first time
+    // or when the value of sortBy changes
+  }, []);
+
+  const handlePageClick = (event: { selected: number }) => {
+    const newPage = event.selected + 1;
+
+    payload = {
+      page: newPage,
+      pageSize: 10,
+      sortOrder: "",
+      type: sortBy,
+    };
+
+    // call the API
+  };
+
   return (
     <section className="">
       <header className="flex items-center justify-between gap-5 mb-10">
-        <h2 className="font-semibold text-xl text-black">Appointments</h2>
+        <h2 className="font-semibold text-xl text-black">Medical Records</h2>
         <Button className="font-normal text-base text-white bg-[#003465] w-[130px] h-[50px]">
-          Export <Upload />
+          New record <Plus />
         </Button>
       </header>
       <div className="flex flex-wrap mb-5 gap-3">
@@ -185,55 +281,15 @@ export default function AppointmentPage() {
         </div>
       </div>
       <DataTable
-        tableDataObj={AppointmentTableData[0]}
+        columns={columns}
+        data={PatientsTableData}
         bgHeader="bg-[#D9EDFF] text-black"
-      >
-        {AppointmentTableData.map((data, i) => {
-          return (
-            <TableRow
-              key={data.patients.firstName + data.date + i}
-              className="px-3"
-            >
-              <TableCell>{data.date}</TableCell>
-              <TableCell className="py-[21px]">
-                <div className="flex items-center gap-[10px]">
-                  <p className="font-medium text-xs text-black">
-                    {data.patients.firstName} {data.patients.lastName}
-                  </p>
-                </div>
-              </TableCell>
-              <TableCell className="font-semibold text-xs text-black">
-                {data.time.start} {data.time.end}
-              </TableCell>
-              <TableCell>
-                <div
-                  className={`flex items-center justify-center font-medium text-xs h-[30px] w-[69px] rounded-[20px] ${
-                    data.status.toLowerCase() === "approved"
-                      ? "text-[#3FA907] bg-[#E5F8DA]"
-                      : data.status.toLowerCase() === "pending"
-                      ? "text-[#C8AE00] bg-[#FEF9D9]"
-                      : "text-[#EC0909] bg-[#FDE6E6]"
-                  }`}
-                >
-                  {data.status}
-                </div>
-              </TableCell>
-              <TableCell>
-                <Link
-                  href={"/dashboard/organization/1234"}
-                  className="flex items-center justify-center px-2 h-6 rounded-[2px] border border-[#BFBFBF] bg-[#EDF0F6]"
-                >
-                  <Ellipsis className="text-black size-5" />
-                </Link>
-              </TableCell>
-            </TableRow>
-          );
-        })}
-      </DataTable>
+      />
       <Pagination
-        dataLength={AppointmentTableData.length}
+        dataLength={PatientsTableData.length}
         numOfPages={1000}
         pageSize={pageSize}
+        handlePageClick={handlePageClick}
       />
     </section>
   );

@@ -2,7 +2,7 @@
 
 import DataTable, { Column } from "@/components/shared/table/DataTable";
 import Pagination from "@/components/shared/table/pagination";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { ArrowDownUp, Ellipsis, Search, Settings2, Upload } from "lucide-react";
 import Image from "next/image";
@@ -179,6 +179,31 @@ export default function PatientPage() {
   const [sortBy, setSortBy] = useState("");
   const [filterBy, setFilterBy] = useState("");
 
+  let payload = {
+    page: 1,
+    pageSize: 10,
+    sortOrder: "",
+    type: "upcoming",
+  };
+
+  useEffect(() => {
+    // probably use the payload above to call the api for data for the first time
+    // or when the value of sortBy changes
+  }, []);
+
+  const handlePageClick = (event: { selected: number }) => {
+    const newPage = event.selected + 1;
+
+    payload = {
+      page: newPage,
+      pageSize: 10,
+      sortOrder: "",
+      type: sortBy,
+    };
+
+    // call the API
+  };
+
   return (
     <section className="">
       <header className="flex items-center justify-between gap-5 mb-10">
@@ -257,6 +282,7 @@ export default function PatientPage() {
         dataLength={PatientsTableData.length}
         numOfPages={1000}
         pageSize={pageSize}
+        handlePageClick={handlePageClick}
       />
     </section>
   );
