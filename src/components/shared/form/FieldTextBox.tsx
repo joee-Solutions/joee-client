@@ -32,7 +32,7 @@ function FieldTextBox<T extends FieldValues>({
       name={name}
       render={({ field }) => (
         <FormItem className="w-full flex flex-col gap-1">
-          <FormLabel className="font-medium text-base text-black">
+          <FormLabel className="font-medium text-sm text-gray-600">
             {labelText}
           </FormLabel>
           <FormControl>

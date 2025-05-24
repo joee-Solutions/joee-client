@@ -9,7 +9,7 @@ import { ChevronRight, EllipsisVertical, Plus, Search } from "lucide-react";
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const patientCards = [
   {
@@ -266,6 +266,31 @@ export default function PatientPage() {
     setRowSelectionIds(ids);
   };
 
+  let payload = {
+    page: 1,
+    pageSize: 10,
+    sortOrder: "",
+    type: "upcoming",
+  };
+
+  useEffect(() => {
+    // probably use the payload above to call the api for data for the first time
+    // or when the value of sortBy changes
+  }, []);
+
+  const handlePageClick = (event: { selected: number }) => {
+    const newPage = event.selected + 1;
+
+    payload = {
+      page: newPage,
+      pageSize: 10,
+      sortOrder: "",
+      type: "name",
+    };
+
+    // call the API
+  };
+
   return (
     <section>
       <SectionHeader
@@ -350,6 +375,7 @@ export default function PatientPage() {
             dataLength={PatientsTableData.length}
             numOfPages={1000}
             pageSize={10}
+            handlePageClick={handlePageClick}
           />
         </section>
         <Link

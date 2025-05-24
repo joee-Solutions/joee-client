@@ -6,16 +6,15 @@ interface PaginationProps {
   dataLength: number;
   pageSize: number;
   numOfPages: number;
+  handlePageClick: (event: { selected: number }) => void;
 }
 
 export default function Pagination({
   dataLength,
   pageSize,
   numOfPages,
+  handlePageClick,
 }: PaginationProps) {
-  const handlePageClick = (event: { selected: number }) => {
-    const newOffset = (event.selected * pageSize) % dataLength;
-  };
   return (
     <div className="pt-4 border-[#D8E7F2] border-t">
       <div className="flex items-center justify-between h-[62px] gap-5 flex-wrap py-3 px-4">
