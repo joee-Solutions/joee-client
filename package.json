@@ -3,7 +3,7 @@
   "version": "0.1.29",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3600",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
@@ -21,6 +21,7 @@
     "chart.js": "^4.4.8",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "framer-motion": "^12.12.1",
     "iconsax-react": "^0.0.8",
     "input-otp": "^1.4.2",
     "js-cookie": "^3.0.5",
