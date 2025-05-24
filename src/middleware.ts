@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTenantConfig } from "./lib/tenant";
 
-const rootDomain = process.env.NEXT_PUBLIC_SITE_URL || "localhost:3600";
+const rootDomain = process.env.NEXT_PUBLIC_SITE_URL || "localhost:4100";
 export async function middleware(request: NextRequest) {
   const pathName = request.nextUrl.pathname;
   const domainObj = request.nextUrl.clone();
