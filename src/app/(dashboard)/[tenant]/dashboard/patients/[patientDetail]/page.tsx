@@ -1,60 +1,58 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { CircleArrowLeft } from "lucide-react";
+import {
+  CalendarClock,
+  CircleArrowLeft,
+  FilePlus,
+  HeartPulse,
+  Upload,
+} from "lucide-react";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import userProfileImage from "./../../../../../../../public/assets/doctorMale.png";
 import { useState } from "react";
-import {
-  AppointmentIcon,
-  PasswordLockIcon,
-  PatientsIcon,
-  RoleIcon,
-  ScheduleIcon,
-  UserIcon,
-} from "@/components/icons/icon";
+import { AppointmentIcon, ScheduleIcon } from "@/components/icons/icon";
 import PersonalInfo from "./PersonalInfo";
-import ChangePassword from "./ChangePassword";
-import PatientPage from "./Patients";
 import AppointmentPage from "./Appointment";
-import SchedulePage from "./Schedules";
-import AssignRolePage from "./AssignRole";
+import SchedulePage from "./Uploads";
+import PatientPage from "../page";
+import { FaUser } from "react-icons/fa";
+import MedicalInfo from "./MedicalInfo";
+import Patients from "./MedicalRecords";
+import Uploads from "./Uploads";
+import Appointment from "./Appointment";
+import MedicalRecords from "./MedicalRecords";
 
 const tabBtns = [
   {
-    icon: UserIcon,
+    icon: FaUser,
     label: "Personal Information",
     currTab: 1,
   },
   {
-    icon: PasswordLockIcon,
-    label: "Change Password",
+    icon: HeartPulse,
+    label: "Medical Information",
     currTab: 2,
   },
   {
-    icon: PatientsIcon,
-    label: "Patients",
+    icon: FilePlus,
+    label: "Medical Records",
     currTab: 3,
   },
   {
-    icon: AppointmentIcon,
+    icon: CalendarClock,
     label: "Appointments",
     currTab: 4,
   },
   {
-    icon: ScheduleIcon,
-    label: "Schedules",
+    icon: Upload,
+    label: "Uploads",
     currTab: 5,
-  },
-  {
-    icon: RoleIcon,
-    label: "Assign roles",
-    currTab: 6,
   },
 ];
 
-export default function EmployeeDetailPage() {
+export default function MedicalInformationPage() {
   const [currTab, setCurrTab] = useState<number>(1);
 
   const path = usePathname().split("/");
@@ -104,9 +102,7 @@ export default function EmployeeDetailPage() {
                       : "text-[#737373] bg-[#F3F3F3]"
                   } gap-1 py-[18px] px-7`}
                 >
-                  <tab.icon
-                    fill={currTab === tab.currTab ? "#003465" : "#737373"}
-                  />
+                  <tab.icon />
                   {tab.label}
                 </Button>
               ))}
@@ -116,15 +112,13 @@ export default function EmployeeDetailPage() {
             {currTab === 1 ? (
               <PersonalInfo />
             ) : currTab === 2 ? (
-              <ChangePassword />
+              <MedicalInfo />
             ) : currTab === 3 ? (
-              <PatientPage />
+              <MedicalRecords />
             ) : currTab === 4 ? (
-              <AppointmentPage />
-            ) : currTab === 5 ? (
-              <SchedulePage />
+              <Appointment />
             ) : (
-              <AssignRolePage />
+              <Uploads />
             )}
           </div>
         </div>

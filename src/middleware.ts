@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTenantConfig } from "./lib/tenant";
 
-const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "localhost:3200";
+const rootDomain = process.env.NEXT_PUBLIC_SITE_URL || "localhost:3600";
 export async function middleware(request: NextRequest) {
   const pathName = request.nextUrl.pathname;
   const domainObj = request.nextUrl.clone();
@@ -32,7 +32,6 @@ export async function middleware(request: NextRequest) {
     !pathName.startsWith("/api") &&
     !pathName.startsWith("/_next")
   ) {
-
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-tenant-id", subdomain);
     const tenantConfig = await getTenantConfig(subdomain, requestHeaders);
