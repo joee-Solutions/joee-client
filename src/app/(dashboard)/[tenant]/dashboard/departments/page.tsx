@@ -2,19 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import DepartmentCarousel from '@/components/Org/Departments/DepartmentCarousel';
-<<<<<<< HEAD
 import DepartmentList from '@/components/Org/Departments/DepartmentList';
 import AddDepartmentForm from '@/components/Org/Departments/AddDepartmentForm';
-=======
 // import DepartmentList from '@/components/Org/Departments/DepartmentList';
-import AddDepartmentForm from '@/components/Org/Departments/AddDepartmentForm';
 import DataTable, { Column } from '@/components/shared/table/DataTable';
 import Pagination from '@/components/shared/table/pagination';
 import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
 import { ListView } from '@/components/shared/table/DataTableFilter';
 
->>>>>>> 80695ed (schedule and department)
 
 interface Department {
   id: string;
@@ -32,11 +28,7 @@ interface Department {
 // Sample department data - replace with your actual data source
 const initialDepartments: Department[] = [
   {
-<<<<<<< HEAD
-    id: 'opthamology',
-=======
     id: '1',
->>>>>>> 80695ed (schedule and department)
     code: 'OP',
     name: 'Opthamology',
     color: 'bg-blue-800',
@@ -48,11 +40,7 @@ const initialDepartments: Department[] = [
     image: '/images/opthamology.jpg',
   },
   {
-<<<<<<< HEAD
-    id: 'neurology',
-=======
     id: '2',
->>>>>>> 80695ed (schedule and department)
     code: 'NE',
     name: 'Neurology',
     color: 'bg-green-600',
@@ -64,11 +52,7 @@ const initialDepartments: Department[] = [
     image: '/images/neurology.jpg',
   },
   {
-<<<<<<< HEAD
-    id: 'oncology',
-=======
     id: '3',
->>>>>>> 80695ed (schedule and department)
     code: 'ON',
     name: 'Oncology',
     color: 'bg-red-600',
@@ -80,11 +64,7 @@ const initialDepartments: Department[] = [
     image: '/images/oncology.jpg',
   },
   {
-<<<<<<< HEAD
-    id: 'radiology',
-=======
     id: '4',
->>>>>>> 80695ed (schedule and department)
     code: 'RA',
     name: 'Radiology',
     color: 'bg-yellow-500',
@@ -96,11 +76,7 @@ const initialDepartments: Department[] = [
     image: '/images/radiology.jpg',
   },
   {
-<<<<<<< HEAD
-    id: 'nephrology',
-=======
     id: '5',
->>>>>>> 80695ed (schedule and department)
     code: 'NP',
     name: 'Nephrology',
     color: 'bg-purple-600',
@@ -112,11 +88,7 @@ const initialDepartments: Department[] = [
     image: '/images/nephrology.jpg',
   },
   {
-<<<<<<< HEAD
-    id: 'orthopedics',
-=======
     id: '6',
->>>>>>> 80695ed (schedule and department)
     code: 'OR',
     name: 'Orthopedics',
     color: 'bg-indigo-600',
@@ -128,11 +100,7 @@ const initialDepartments: Department[] = [
     image: '/images/orthopedics.jpg',
   },
   {
-<<<<<<< HEAD
-    id: 'dentistry',
-=======
     id: '7',
->>>>>>> 80695ed (schedule and department)
     code: 'DE',
     name: 'Dentistry',
     color: 'bg-pink-600',
@@ -145,8 +113,6 @@ const initialDepartments: Department[] = [
   },
 ];
 
-<<<<<<< HEAD
-=======
 const columns: Column<Department>[] = [
   { header: "ID", key: "id" },
   { header: "Department Name", key: "name" },
@@ -155,16 +121,12 @@ const columns: Column<Department>[] = [
   { header: "Status", key: "status" },
 ];
 
->>>>>>> 80695ed (schedule and department)
 export default function DepartmentPage() {
   const [departments, setDepartments] = useState<Department[]>(initialDepartments);
   const [showForm, setShowForm] = useState(false);
   const [recentlyViewedDepartment, setRecentlyViewedDepartment] = useState<string | null>(null);
-<<<<<<< HEAD
-=======
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");
->>>>>>> 80695ed (schedule and department)
 
   // Load recently viewed department from localStorage on component mount
   useEffect(() => {
@@ -180,7 +142,7 @@ export default function DepartmentPage() {
     setDepartments(prevDepartments => {
       const recentDept = prevDepartments.find(dept => dept.id === departmentId);
       if (!recentDept) return prevDepartments;
-      
+
       const otherDepts = prevDepartments.filter(dept => dept.id !== departmentId);
       return [recentDept, ...otherDepts];
     });
@@ -197,16 +159,6 @@ export default function DepartmentPage() {
     setShowForm(true);
   };
 
-<<<<<<< HEAD
-  const handleFormSubmit = (newDepartment: Omit<Department, 'id'> ) => {
-    const department: Department = {
-      ...newDepartment,
-      id: newDepartment.name.toLowerCase().replace(/\s+/g, '-'),
-  
-    };
-    
-    setDepartments(prev => [...prev, department]);
-=======
   const handleFormSubmit = (newDepartment: Omit<Department, 'id' | 'dateCreated'>) => {
     const department: Department = {
       ...newDepartment,
@@ -217,9 +169,8 @@ export default function DepartmentPage() {
         year: 'numeric',
       }),
     };
-  
+
     setDepartments((prev) => [...prev, department]);
->>>>>>> 80695ed (schedule and department)
     setShowForm(false);
   };
 
@@ -243,72 +194,58 @@ export default function DepartmentPage() {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
         <h2 className="text-3xl font-bold mb-8">Departments</h2>
-        
+
         {/* Department Cards Carousel */}
-        <DepartmentCarousel 
-          departments={departments} 
+        <DepartmentCarousel
+          departments={departments}
           onDepartmentClick={handleDepartmentClick}
           recentlyViewedId={recentlyViewedDepartment}
         />
 
-<<<<<<< HEAD
-        {/* Department List/Form Section */}
-        <div className="mt-16">
-=======
 
         {/* Department List/Form Section */}
         <div className="px-[27px] pb-[35px]">
-        
->>>>>>> 80695ed (schedule and department)
-           {showForm ? (
-            <AddDepartmentForm 
+
+          {showForm ? (
+            <AddDepartmentForm
               onSubmit={handleFormSubmit}
               onCancel={handleFormCancel}
             />
           ) : (
-<<<<<<< HEAD
-            <DepartmentList 
-              departments={departments}
-              onCreateClick={handleCreateDepartment}
-            />
-          )} 
-        </div>
-=======
             <section className="py-8 p-[29px_14px_30px_24px] my-8 shadow-[0px_0px_4px_1px_#0000004D] mx-8">
-        <header className="flex items-center justify-between  gap-5 border-b border-[#D9D9D9] h-[90px] ">
-          <h2 className="text-xl font-semibold text-black">Department List</h2>
-          <Button 
-            onClick={handleCreateDepartment} 
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            Add Department
-          </Button>
-        </header>
-        <div className="py-[30px] flex justify-between gap-10">
-                        <ListView pageSize={pageSize} setPageSize={setPageSize} />
-                        <div className="relative">
-                          <input
-                            type="text"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Search data..."
-                            className="py-[10px] px-5 pr-11 rounded-[30px] min-w-[318px] bg-[#E6EBF0] w-full font-medium text-sm text-[#4F504F] border-[0.2px] border-[#F9F9F9] outline-none"
-                          />
-                          <Search className="size-5 text-[#999999] absolute right-4 top-1/2 -translate-y-1/2" />
-                        </div>
-                      </div>
-                    <DataTable columns={columns} data={departments} />
-                    <Pagination
-                               dataLength={departments.length}
-                               numOfPages={1000}
-                               pageSize={10}
-                               />
-          </section>
-            
-          )} 
+              <header className="flex items-center justify-between  gap-5 border-b border-[#D9D9D9] h-[90px] ">
+                <h2 className="text-xl font-semibold text-black">Department List</h2>
+                <Button
+                  onClick={handleCreateDepartment}
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  Add Department
+                </Button>
+              </header>
+              <div className="py-[30px] flex justify-between gap-10">
+                <ListView pageSize={pageSize} setPageSize={setPageSize} />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search data..."
+                    className="py-[10px] px-5 pr-11 rounded-[30px] min-w-[318px] bg-[#E6EBF0] w-full font-medium text-sm text-[#4F504F] border-[0.2px] border-[#F9F9F9] outline-none"
+                  />
+                  <Search className="size-5 text-[#999999] absolute right-4 top-1/2 -translate-y-1/2" />
+                </div>
+              </div>
+              <DataTable columns={columns} data={departments} />
+              <Pagination
+                dataLength={departments.length}
+                numOfPages={1000}
+                pageSize={10}
+              />
+            </section>
+
+          )}
         </div>
 
->>>>>>> 80695ed (schedule and department)
       </div>
     </div>
   );

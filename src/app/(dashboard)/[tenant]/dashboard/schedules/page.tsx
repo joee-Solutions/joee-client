@@ -40,8 +40,8 @@ interface TableDataItem {
   endTime: string;
 }
 
- // Sample data for doctor schedules
- const schedules: Schedule[] = [
+// Sample data for doctor schedules
+const schedules: Schedule[] = [
   {
     id: '1',
     code: 'DH',
@@ -130,7 +130,7 @@ const SchedulesPage: React.FC = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");
- 
+
 
   const handleViewSchedule = (schedule: Schedule): void => {
     setSelectedSchedule(schedule);
@@ -167,7 +167,7 @@ const SchedulesPage: React.FC = () => {
   // const handleAddSchedule = (): void => {
   //   setIsAddModalOpen(true);
   // };
- 
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
@@ -183,7 +183,7 @@ const SchedulesPage: React.FC = () => {
         <div className="mb-12">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Schedules</h2>
           <p className="text-blue-600 mb-6">Top Search</p>
-          
+
           <ScheduleCarousel
             schedules={schedules}
             onViewSchedule={handleViewSchedule}
@@ -191,45 +191,45 @@ const SchedulesPage: React.FC = () => {
           />
         </div>
         <section className="mt-10 shadow-[0px_0px_4px_1px_#0000004D]">
-        <header className="flex items-center justify-between gap-5 border-b border-[#D9D9D9] h-[90px]">
-        <h2 className="font-semibold text-xl text-black">Schedule List</h2>
+          <header className="flex items-center justify-between gap-5 border-b border-[#D9D9D9] h-[90px]">
+            <h2 className="font-semibold text-xl text-black">Schedule List</h2>
 
-<Button
-  onClick={handleCreateSchedule}
-  className="text-base text-[#4E66A8] font-normal"
->
-  Add Schedule
-</Button>
+            <Button
+              onClick={handleCreateSchedule}
+              className="text-base text-[#4E66A8] font-normal"
+            >
+              Add Schedule
+            </Button>
           </header>
-              <div className="px-[27px] pb-[35px]">
-                      <div className="py-[30px] flex justify-between gap-10">
-                        <ListView pageSize={pageSize} setPageSize={setPageSize} />
-                        <div className="relative">
-                          <input
-                            type="text"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Search data..."
-                            className="py-[10px] px-5 pr-11 rounded-[30px] min-w-[318px] bg-[#E6EBF0] w-full font-medium text-sm text-[#4F504F] border-[0.2px] border-[#F9F9F9] outline-none"
-                          />
-                          <Search className="size-5 text-[#999999] absolute right-4 top-1/2 -translate-y-1/2" />
-                        </div>
-                      </div>
-        <DataTable columns={columns} data={tableData} />
-                    </div>
- <Pagination
+          <div className="px-[27px] pb-[35px]">
+            <div className="py-[30px] flex justify-between gap-10">
+              <ListView pageSize={pageSize} setPageSize={setPageSize} />
+              <div className="relative">
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search data..."
+                  className="py-[10px] px-5 pr-11 rounded-[30px] min-w-[318px] bg-[#E6EBF0] w-full font-medium text-sm text-[#4F504F] border-[0.2px] border-[#F9F9F9] outline-none"
+                />
+                <Search className="size-5 text-[#999999] absolute right-4 top-1/2 -translate-y-1/2" />
+              </div>
+            </div>
+            <DataTable columns={columns} data={tableData} />
+          </div>
+          <Pagination
             dataLength={tableData.length}
             numOfPages={1000}
             pageSize={10}
-            />
+          />
         </section>
         <Button
-  onClick={handleCreateSchedule}
+          onClick={handleCreateSchedule}
           className="flex justify-center items-center font-normal text-base text-white bg-[#003465] hover:bg-[#003465]/90 w-[306px] h-[60px] mt-7 self-end"
         >
           Create Schedule <Plus size={24} />
         </Button>
-            </div>
+      </div>
       {/* Modals */}
       {selectedSchedule && (
         <ScheduleModal
@@ -242,7 +242,7 @@ const SchedulesPage: React.FC = () => {
           setIsEditMode={setIsEditMode}
         />
       )}
-      
+
       {isAddModalOpen && (
         <AddScheduleModal
           onClose={handleCloseModal}
