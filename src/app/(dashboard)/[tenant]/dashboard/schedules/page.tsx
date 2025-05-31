@@ -129,7 +129,7 @@ interface TableDataItem {
     textColor: 'text-red-600',
     borderColor: 'border-red-600',
     image: '/api/placeholder/80/80',
-    description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cursus nec amet lorem in.',
+    description: 'Lorem ipvsum dolor sit amet, consectetur adipiscing elit. Cursus nec amet lorem in.',
     status: 'Active' as const
   },
   {
