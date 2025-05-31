@@ -1,3 +1,5 @@
+// src/components/DataTable.tsx
+
 import {
   Table,
   TableBody,
@@ -38,32 +40,30 @@ export default function DataTable<T extends Record<string, Primitives>>({
   const filteredRows = useMemo(() => {
     if (!search || searchableKeys.length === 0) return data;
 
-    return data.filter((row) => {
+    return data.filter((row) =>
       searchableKeys.some((k) =>
         String(row[k]).toLowerCase().includes(search.toLowerCase())
-      );
-    });
-  }, [data, search]);
+      )
+    );
+  }, [data, search, searchableKeys]);
 
   return (
-    <Table className="w-max min-w-[900px] overflow-x-auto">
+    <Table className="w-max-full min-w-[900px] overflow-x-auto">
       <TableHeader
-        className={`h-10 border-y border-[#D9D9D9] ${
+        className={`h-10 border-y-2 border-[#D9D9D9] ${
           bgHeader ? bgHeader : "bg-[#003465] text-white"
         }`}
       >
         <TableRow className="px-3">
-          {columns?.map((col, i) => {
-            return (
-              <TableHead
-                key={i}
-                className="font-medium text-xs"
-                // style={{ width: `${col.size && `${col.size}px`}` }}
-              >
-                {typeof col.header === "string" ? col.header : col.header()}
-              </TableHead>
-            );
-          })}
+          {columns.map((col, i) => (
+            <TableHead
+              key={i}
+              className="font-medium text-xs"
+              style={col.size ? { width: `${col.size}px` } : undefined}
+            >
+              {typeof col.header === "string" ? col.header : col.header()}
+            </TableHead>
+          ))}
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -74,17 +74,15 @@ export default function DataTable<T extends Record<string, Primitives>>({
               rowSelectionIds.includes(idx) ? "bg-[#EDF0F6]" : ""
             }`}
           >
-            {columns?.map((col, colIndex) => {
-              return (
-                <TableCell
-                  key={colIndex}
-                  className="px-4"
-                  style={{ width: `${col.size && `${col.size}px`}` }}
-                >
-                  {col.render ? col.render(tr) : col.key ? tr[col.key] : null}
-                </TableCell>
-              );
-            })}
+            {columns.map((col, colIndex) => (
+              <TableCell
+                key={colIndex}
+                className="px-4"
+                style={col.size ? { width: `${col.size}px` } : undefined}
+              >
+                {col.render ? col.render(tr) : col.key ? tr[col.key] : null}
+              </TableCell>
+            ))}
           </TableRow>
         ))}
       </TableBody>

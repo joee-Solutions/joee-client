@@ -53,4 +53,8 @@ export default function DepartmentCarousel({
       </div>
     </div>
   );
+<<<<<<< HEAD
+=======
+  
+>>>>>>> 80695ed (schedule and department)
 }

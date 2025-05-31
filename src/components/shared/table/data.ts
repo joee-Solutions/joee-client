@@ -468,7 +468,7 @@ export const AppointmentData: {
   },
 ];
 
-export const ScheduleList: {
+export const ScheduleData: {
   id: number;
   schedule: {
     doctor_name: string;
