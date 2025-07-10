@@ -14,6 +14,7 @@ import { SearchInput } from "@/components/ui/search";
 
 export default function AdminList() {
   const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
   const [isAddOrg, setIsAddOrg] = useState<"add" | "none" | "edit">("none");
 
   return (
@@ -78,8 +79,10 @@ export default function AdminList() {
           </DataTable>
           <Pagination
             dataLength={AppointmentData.length}
-            numOfPages={1000}
+            numOfPages={Math.max(1, Math.ceil(AppointmentData.length / pageSize))}
             pageSize={pageSize}
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
           />
         </section>
       </>
