@@ -7,6 +7,7 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import {
   ArrowDownUp,
   Ellipsis,
+  Eye,
   Plus,
   Search,
   Settings2,
@@ -23,160 +24,139 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-type PatientDto = {
+type AppointmentDto = {
   id: number;
-  profilePicture: string;
-  firstName: string;
-  lastName: string;
-  createdAt: string;
-  gender: string;
+  date: string;
+  doctor: string;
+  status: "Approved" | "Pending" | "Cancelled";
+  scheduleAt: string;
 };
 
-const columns: Column<PatientDto>[] = [
+const columns: Column<AppointmentDto>[] = [
   {
-    header: "#",
-    key: "id",
-  },
-  {
-    header: "Patients",
+    header: "Date",
     render(row) {
-      return (
-        <div className="flex items-center gap-[10px]">
-          <span className="w-[42px] h-42px rounded-full overflow-hidden">
-            <Image
-              src={row.profilePicture}
-              alt="patient image"
-              width={42}
-              height={42}
-              className="object-cover aspect-square w-full h-full"
-            />
-          </span>
-          <p className="font-medium text-xs text-black">
-            {row.firstName} {row.lastName}
-          </p>
-        </div>
-      );
+      return <p className="font-semibold text-xs text-black">{row.date}</p>;
     },
   },
   {
-    header: "Created at",
+    header: "Doctor",
     render(row) {
-      return (
-        <p className="font-semibold text-xs text-[#737373]">{row.createdAt}</p>
-      );
+      return <p className="font-medium text-xs text-black">{row.doctor}</p>;
     },
   },
   {
-    header: "Gender",
+    header: "Status",
     render(row) {
       return (
         <div
-          className={`flex items-center justify-center font-medium text-xs h-[30px] w-[69px] rounded-[20px] ${
-            row.gender.toLowerCase() === "male"
+          className={`flex items-center justify-center font-medium text-xs h-[30px] w-[80px] rounded-[20px] ${
+            row.status.toLowerCase() === "approved"
               ? "text-[#3FA907] bg-[#E5F8DA]"
-              : "text-[#EC0909] bg-[#FDE6E6]"
+              : row.status.toLowerCase() === "cancelled"
+              ? "text-[#EC0909] bg-[#FDE6E6]"
+              : "text-[#C8AE00] bg-[#FEF9D9]"
           }`}
         >
-          {row.gender[0].toUpperCase() + row.gender.slice(1)}
+          {row.status}
         </div>
+      );
+    },
+  },
+  {
+    header: "Time",
+    render(row) {
+      return (
+        <p className="font-semibold text-xs text-black">{row.scheduleAt}</p>
       );
     },
   },
   {
     header: "Actions",
     render(row) {
+      const pathname = window.location.pathname;
       return (
         <Link
-          href={"/dashboard/organization/1234"}
-          className="flex items-center justify-center px-2 h-6 rounded-[2px] border border-[#BFBFBF] bg-[#EDF0F6]"
+          href={pathname + "/appointment"}
+          className="size-9 shadow-[0px_4px_25px_0px_#0000001A] flex items-center justify-center px-2 rounded-[4px] border border-[#BFBFBF] bg-[#EDF0F6]"
         >
-          <Ellipsis className="text-black size-5" />
+          <Eye size={20} className="text-[#003465]" />
         </Link>
       );
     },
   },
 ];
 
-const PatientsTableData = [
+const PatientsTableData: AppointmentDto[] = [
   {
     id: 1,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
-    gender: "male",
+    date: "17 Jul 2024",
+    doctor: "Susan Denilson",
+    status: "Approved",
+    scheduleAt: "11:00am - 12:00pm",
   },
   {
     id: 2,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
-    gender: "female",
+    date: "17 Jul 2024",
+    doctor: "Susan Denilson",
+    status: "Approved",
+    scheduleAt: "11:00am - 12:00pm",
   },
   {
     id: 3,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
-    gender: "male",
+    date: "17 Jul 2024",
+    doctor: "Susan Denilson",
+    status: "Pending",
+    scheduleAt: "11:00am - 12:00pm",
   },
   {
     id: 4,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
-    gender: "male",
+    date: "17 Jul 2024",
+    doctor: "Susan Denilson",
+    status: "Cancelled",
+    scheduleAt: "11:00am - 12:00pm",
   },
   {
     id: 5,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
-    gender: "male",
+    date: "17 Jul 2024",
+    doctor: "Susan Denilson",
+    status: "Approved",
+    scheduleAt: "11:00am - 12:00pm",
   },
   {
     id: 6,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
-    gender: "male",
+    date: "17 Jul 2024",
+    doctor: "Susan Denilson",
+    status: "Cancelled",
+    scheduleAt: "11:00am - 12:00pm",
   },
   {
     id: 7,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
-    gender: "male",
+    date: "17 Jul 2024",
+    doctor: "Susan Denilson",
+    status: "Pending",
+    scheduleAt: "11:00am - 12:00pm",
   },
   {
     id: 8,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
-    gender: "male",
+    date: "17 Jul 2024",
+    doctor: "Susan Denilson",
+    status: "Pending",
+    scheduleAt: "11:00am - 12:00pm",
   },
   {
     id: 9,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
-    gender: "male",
+    date: "17 Jul 2024",
+    doctor: "Susan Denilson",
+    status: "Approved",
+    scheduleAt: "11:00am - 12:00pm",
   },
   {
     id: 10,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
-    gender: "male",
+    date: "17 Jul 2024",
+    doctor: "Susan Denilson",
+    status: "Cancelled",
+    scheduleAt: "11:00am - 12:00pm",
   },
 ];
 
@@ -189,8 +169,8 @@ export default function Appointment() {
   let payload = {
     page: 1,
     pageSize: 10,
-    sortOrder: "",
-    type: "upcoming",
+    sortOrder: "asc",
+    type: "Approved",
   };
 
   useEffect(() => {
@@ -204,8 +184,8 @@ export default function Appointment() {
     payload = {
       page: newPage,
       pageSize: 10,
-      sortOrder: "",
-      type: sortBy,
+      sortOrder: sortBy,
+      type: filterBy,
     };
 
     // call the API
@@ -214,9 +194,9 @@ export default function Appointment() {
   return (
     <section className="">
       <header className="flex items-center justify-between gap-5 mb-10">
-        <h2 className="font-semibold text-xl text-black">Medical Records</h2>
+        <h2 className="font-semibold text-xl text-black">Appointments</h2>
         <Button className="font-normal text-base text-white bg-[#003465] w-[130px] h-[50px]">
-          New record <Plus />
+          Export <Upload size={16} />
         </Button>
       </header>
       <div className="flex flex-wrap mb-5 gap-3">
@@ -225,7 +205,7 @@ export default function Appointment() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search data..."
+            placeholder="Search..."
             className="py-4 px-5 pr-11 min-w-[274px] bg-white w-full font-medium text-sm text-[#4F504F] border border-[#BFBFBF] outline-none"
           />
           <Search className="size-5 text-[#999999] absolute right-4 top-1/2 -translate-y-1/2" />
@@ -287,7 +267,7 @@ export default function Appointment() {
       />
       <Pagination
         dataLength={PatientsTableData.length}
-        numOfPages={1000}
+        numOfPages={10}
         pageSize={pageSize}
         handlePageClick={handlePageClick}
       />
