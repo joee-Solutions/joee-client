@@ -1,4 +1,4 @@
-import { CalendarIcon } from "lucide-react";
+import { Clock4 } from "lucide-react";
 import {
   FormControl,
   FormField,
@@ -13,9 +13,8 @@ import {
 } from "@/components/ui/popover";
 import { Control, FieldValues, Path, useController } from "react-hook-form";
 import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
 import { useEffect, useState } from "react";
-import { Calendar } from "@/components/ui/calendar";
+import TimePicker from "@/components/ui/timePicker";
 
 interface FieldDatePickerProps<TFieldValues extends FieldValues> {
   control: Control<TFieldValues>;
@@ -23,20 +22,20 @@ interface FieldDatePickerProps<TFieldValues extends FieldValues> {
   labelText?: string;
 }
 
-function FieldDateTimePicker<TFieldValues extends FieldValues>({
+function FieldTimePicker<TFieldValues extends FieldValues>({
   control,
   name,
   labelText,
 }: FieldDatePickerProps<TFieldValues>) {
-  const [date, setDate] = useState<Date>();
+  const [time, setTime] = useState<string>("05:20 PM");
 
   const { field } = useController({ control, name });
 
   useEffect(() => {
-    if (date) {
-      field.onChange(date);
+    if (time) {
+      field.onChange(time);
     }
-  }, [date]);
+  }, [time]);
 
   return (
     <FormField
@@ -55,12 +54,12 @@ function FieldDateTimePicker<TFieldValues extends FieldValues>({
                 <Button
                   variant="outline"
                   className={`
-                    pl-5 text-left text-base font-normal border border-[#BFBFBF] flex justify-start gap-2 w-full h-[60px]
-                    ${!date && "text-muted-foreground"}
+                    pl-5 text-left text-base font-normal border border-[#CCCCCC] text-[#737373] flex justify-start gap-2 w-full h-[60px]
+                    ${!time && "text-muted-foreground"}
                   `}
                 >
-                  <CalendarIcon className="h-4 w-4" />
-                  {date ? format(date, "PPP") : <span>Pick a date</span>}
+                  <Clock4 className="h-4 w-4" />
+                  {time ? time : <span>Pick a time</span>}
                 </Button>
               </PopoverTrigger>
               <PopoverContent
@@ -68,10 +67,9 @@ function FieldDateTimePicker<TFieldValues extends FieldValues>({
                 align="start"
               >
                 <FormControl>
-                  <Calendar
-                    mode="single"
-                    selected={date}
-                    onSelect={setDate}
+                  <TimePicker
+                    selected={time}
+                    onSelect={setTime}
                     className="bg-white"
                   />
                 </FormControl>
@@ -84,4 +82,4 @@ function FieldDateTimePicker<TFieldValues extends FieldValues>({
     />
   );
 }
-export default FieldDateTimePicker;
+export default FieldTimePicker;

@@ -46,7 +46,7 @@ export default function DataTable<T extends Record<string, Primitives>>({
   }, [data, search]);
 
   return (
-    <Table className="w-max min-w-[900px] overflow-x-auto">
+    <Table className="min-w-[900px] w-full overflow-x-auto">
       <TableHeader
         className={`h-10 border-y border-[#D9D9D9] ${
           bgHeader ? bgHeader : "bg-[#003465] text-white"

@@ -9,7 +9,7 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import { ChevronRight, Ellipsis, Plus, Search } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const employeeCards = [
   {
@@ -234,6 +234,31 @@ export default function EmployeePage() {
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");
 
+  let payload = {
+    page: 1,
+    pageSize: 10,
+    sortOrder: "",
+    type: "upcoming",
+  };
+
+  useEffect(() => {
+    // probably use the payload above to call the api for data for the first time
+    // or when the value of sortBy changes
+  }, []);
+
+  const handlePageClick = (event: { selected: number }) => {
+    const newPage = event.selected + 1;
+
+    payload = {
+      page: newPage,
+      pageSize: 10,
+      sortOrder: "",
+      type: "sortBy",
+    };
+
+    // call the API
+  };
+
   return (
     <section>
       <SectionHeader
@@ -320,6 +345,7 @@ export default function EmployeePage() {
             dataLength={EmployeesTableData.length}
             numOfPages={1000}
             pageSize={10}
+            handlePageClick={handlePageClick}
           />
         </section>
         <Link

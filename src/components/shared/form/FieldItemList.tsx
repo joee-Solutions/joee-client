@@ -1,4 +1,4 @@
-import { Control } from "react-hook-form";
+import { Control, FieldValues, Path } from "react-hook-form";
 import { Input } from "@/components/ui/inputShad";
 import { X } from "lucide-react";
 import {
@@ -9,21 +9,21 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 
-interface FieldItemListProps {
+interface FieldItemListProps<T extends FieldValues> {
   placeholder: string;
   labelText?: string;
-  name: string;
+  name: Path<T>;
   showRequiredSymbol?: boolean;
-  control: Control<any>;
+  control: Control<T>;
 }
 
-function FieldItemList({
+function FieldItemList<T extends FieldValues>({
   placeholder,
   labelText,
   name,
   showRequiredSymbol,
   control,
-}: FieldItemListProps) {
+}: FieldItemListProps<T>) {
   const hanldeOnKeyPress = (
     e: React.KeyboardEvent<HTMLInputElement>,
     prevValues: string[] = [],
@@ -62,7 +62,7 @@ function FieldItemList({
             </FormLabel>
           )}
           <FormControl>
-            <ul className="flex items-center flex-wrap gap-3 rounded-[8px] p-[10px] border border-[#D0D5DD] focus:border-primary-light">
+            <ul className="flex items-center flex-wrap gap-3 rounded-[8px] p-[10px] border border-[#737373]">
               {field.value?.map((val: any) => (
                 <li
                   key={crypto.randomUUID()}
@@ -79,7 +79,7 @@ function FieldItemList({
               ))}
               <li className="grow">
                 <Input
-                  className="rounded-[6px] py-2 pl-3 h-full w-full pr-3 border-none focus:border-transparent"
+                  className="rounded-[6px] py-2 pl-3 h-full w-full pr-3 focus-visible:ring-0 border-transparent focus:border-transparent"
                   placeholder={placeholder}
                   type="text"
                   name={name}

@@ -13,9 +13,10 @@ interface FieldTextBoxProps<T extends FieldValues> {
   control: Control<T>;
   name: Path<T>;
   placeholder?: string;
-  labelText: string;
+  labelText?: string;
   fieldDescription?: string;
   bgInputClass?: string;
+  disabled?: boolean;
 }
 
 function FieldTextBox<T extends FieldValues>({
@@ -25,6 +26,7 @@ function FieldTextBox<T extends FieldValues>({
   labelText,
   fieldDescription,
   bgInputClass,
+  disabled,
 }: FieldTextBoxProps<T>) {
   return (
     <FormField
@@ -32,11 +34,14 @@ function FieldTextBox<T extends FieldValues>({
       name={name}
       render={({ field }) => (
         <FormItem className="w-full flex flex-col gap-1">
-          <FormLabel className="font-medium text-sm text-gray-600">
-            {labelText}
-          </FormLabel>
+          {labelText && (
+            <FormLabel className="font-medium text-sm text-gray-600">
+              {labelText}
+            </FormLabel>
+          )}
           <FormControl>
             <Textarea
+              disabled={disabled}
               className={`focus-visible:ring-0 text-sm font-normal text-[#737373] border border-[#737373] h-[60px] focus:ring-transparent rounded px-[21px] ${
                 bgInputClass ? bgInputClass : "bg-white"
               }`}

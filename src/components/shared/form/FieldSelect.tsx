@@ -54,7 +54,7 @@ function FieldSelect<T extends FieldValues>({
           >
             <FormControl>
               <SelectTrigger
-                className={`h-[60px] border border-[#737373] focus:ring-transparent text-[#737373] text-xs font-normal ${
+                className={`h-[60px] border border-[#737373] focus:ring-transparent text-[#737373] text-sm font-normal ${
                   bgSelectClass ? bgSelectClass : "bg-white"
                 }`}
               >

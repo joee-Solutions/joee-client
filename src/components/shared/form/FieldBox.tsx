@@ -13,11 +13,12 @@ interface FieldBoxProps<T extends FieldValues> {
   control: Control<T>;
   name: Path<T>;
   placeholder?: string;
-  labelText: string;
+  labelText?: string;
   type: React.HTMLInputTypeAttribute;
   iconText?: string;
   fieldDescription?: string;
   bgInputClass?: string;
+  height?: string;
   disabled?: boolean;
 }
 
@@ -30,6 +31,7 @@ function FieldBox<T extends FieldValues>({
   iconText,
   fieldDescription,
   bgInputClass,
+  height,
   disabled,
 }: FieldBoxProps<T>) {
   return (
@@ -38,9 +40,11 @@ function FieldBox<T extends FieldValues>({
       name={name}
       render={({ field }) => (
         <FormItem className="w-full">
-          <FormLabel className="font-medium text-sm text-gray-600">
-            {labelText}
-          </FormLabel>
+          {labelText && (
+            <FormLabel className="font-medium text-sm text-gray-600">
+              {labelText}
+            </FormLabel>
+          )}
           <FormControl>
             <div className="relative">
               <Input
@@ -49,9 +53,9 @@ function FieldBox<T extends FieldValues>({
                 {...field}
                 className={`${
                   iconText ? "pl-10" : ""
-                } text-sm font-normal text-[#737373] border border-[#737373] h-[50px] focus:ring-transparent rounded px-[21px] ${
+                } text-sm font-normal text-[#737373] border border-[#CCCCCC] focus:ring-transparent rounded px-[21px] ${
                   bgInputClass ? bgInputClass : "bg-white"
-                }`}
+                } ${height ? height : "h-[50px]"}`}
                 disabled={disabled}
               />
               {iconText && (
