@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Checkbox } from "@/components/ui/Checkbox";
+import DepartmentList from "@/app/(dashboard)/[tenant]/dashboard/departments/page";
 
 const DepartmentSchema = z.object({
   departmentName: z.string().min(1, "Department name is required"),
@@ -22,7 +23,9 @@ type DepartmentSchemaType = z.infer<typeof DepartmentSchema>;
 export default function AddDepartment() {
   const router = useRouter();
   const [fileSelected, setFileSelected] = useState<string>("");
-  
+  const [showList, setShowList] = useState(false);
+
+
   const form = useForm<DepartmentSchemaType>({
     resolver: zodResolver(DepartmentSchema),
     mode: "onChange",
@@ -39,12 +42,22 @@ export default function AddDepartment() {
     // Handle form submission
   };
 
+  const handleListDepartment = () => {
+    setShowList(false);
+  };
+
   return (
+    <div className="px-[27px] pb-[35px]">
+
+    {showList ? (
+      <DepartmentList 
+      />
+    ) : (
     <div className="py-8 p-[29px_14px_30px_24px] my-8 shadow-[0px_0px_4px_1px_#0000004D] mx-8">
       <div className="flex justify-between items-center border-b-2  py-4 mb-8">
         <h1 className="font-semibold text-xl text-black">Add Department</h1>
           <Button
-                      onClick={() =>("add")}
+      onClick={handleListDepartment} 
                       className="text-base text-[#003465] font-normal"
                     >
                       Department List
@@ -149,5 +162,7 @@ export default function AddDepartment() {
         </div>
       </form>
     </div>
+  )} 
+  </div>
   );
 }

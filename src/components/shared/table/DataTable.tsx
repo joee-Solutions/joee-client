@@ -1,3 +1,5 @@
+// src/components/DataTable.tsx
+
 import {
   Table,
   TableBody,
@@ -79,7 +81,7 @@ export default function DataTable<T extends Record<string, Primitives>>({
                 <TableCell
                   key={colIndex}
                   className="px-4"
-                  style={{ width: `${col.size && `${col.size}px`}` }}
+                  style={col.size ? { width: `${col.size}px` } : {}}
                 >
                   {col.render ? col.render(tr) : col.key ? tr[col.key] : null}
                 </TableCell>

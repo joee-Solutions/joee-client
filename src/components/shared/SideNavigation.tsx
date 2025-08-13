@@ -32,6 +32,7 @@ const SideNavigation = () => {
           src="/assets/logo/logo.png"
           alt=""
           className="w-16 h-16"
+          priority
         />
         <p>LociCare by Joee</p>
       </div>
