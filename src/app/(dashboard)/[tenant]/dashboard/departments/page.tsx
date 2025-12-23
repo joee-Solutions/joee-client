@@ -12,7 +12,7 @@ import { Search } from 'lucide-react';
 import { ListView } from '@/components/shared/table/DataTableFilter';
 
 
-interface Department {
+interface Department extends Record<string, string | number> {
   id: string;
   code: string;
   name: string;
@@ -37,7 +37,7 @@ const initialDepartments: Department[] = [
     employeeCount: 30,
     dateCreated: '20 Jan 2024',
     status: 'Active',
-    image: '/images/opthamology.jpg',
+    image: '/assets/department/opthamology.jpg',
   },
   {
     id: '2',
@@ -49,7 +49,7 @@ const initialDepartments: Department[] = [
     employeeCount: 32,
     dateCreated: '20 Jan 2024',
     status: 'Active',
-    image: '/images/neurology.jpg',
+    image: '/assets/department/neurology.png',
   },
   {
     id: '3',
@@ -61,7 +61,7 @@ const initialDepartments: Department[] = [
     employeeCount: 38,
     dateCreated: '20 Jan 2024',
     status: 'Inactive',
-    image: '/images/oncology.jpg',
+    image: '/assets/department/oncology.png',
   },
   {
     id: '4',
@@ -73,7 +73,7 @@ const initialDepartments: Department[] = [
     employeeCount: 36,
     dateCreated: '20 Jan 2024',
     status: 'Active',
-    image: '/images/radiology.jpg',
+    image: '/assets/department/radiology.png',
   },
   {
     id: '5',
@@ -85,7 +85,7 @@ const initialDepartments: Department[] = [
     employeeCount: 24,
     dateCreated: '20 Jan 2024',
     status: 'Active',
-    image: '/images/nephrology.jpg',
+    image: '/assets/department/department-bg.jpg',
   },
   {
     id: '6',
@@ -97,7 +97,7 @@ const initialDepartments: Department[] = [
     employeeCount: 36,
     dateCreated: '20 Jan 2024',
     status: 'Active',
-    image: '/images/orthopedics.jpg',
+    image: '/assets/department/department-bg.jpg',
   },
   {
     id: '7',
@@ -109,7 +109,7 @@ const initialDepartments: Department[] = [
     employeeCount: 46,
     dateCreated: '20 Jan 2024',
     status: 'Active',
-    image: '/images/dentistry.jpg',
+    image: '/assets/department/department-bg.jpg',
   },
 ];
 
@@ -127,6 +127,11 @@ export default function DepartmentPage() {
   const [recentlyViewedDepartment, setRecentlyViewedDepartment] = useState<string | null>(null);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(0);
+
+  const handlePageClick = (event: { selected: number }) => {
+    setCurrentPage(event.selected);
+  };
 
   // Load recently viewed department from localStorage on component mount
   useEffect(() => {
@@ -159,10 +164,18 @@ export default function DepartmentPage() {
     setShowForm(true);
   };
 
-  const handleFormSubmit = (newDepartment: Omit<Department, 'id' | 'dateCreated'>) => {
+  const handleFormSubmit = (newDepartment: any) => {
+    const departmentName = String(newDepartment.name);
     const department: Department = {
-      ...newDepartment,
-      id: newDepartment.name.toLowerCase().replace(/\s+/g, '-'),
+      code: String(newDepartment.code),
+      name: String(newDepartment.name),
+      color: String(newDepartment.color),
+      textColor: String(newDepartment.textColor),
+      borderColor: String(newDepartment.borderColor),
+      employeeCount: Number(newDepartment.employeeCount),
+      status: newDepartment.status as 'Active' | 'Inactive',
+      image: String(newDepartment.image),
+      id: departmentName.toLowerCase().replace(/\s+/g, '-'),
       dateCreated: new Date().toLocaleDateString('en-GB', {
         day: '2-digit',
         month: 'short',
@@ -181,9 +194,15 @@ export default function DepartmentPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <div className="relative bg-blue-900 h-64">
-        <div className="absolute inset-0 bg-blue-900 bg-opacity-80"></div>
-        <div className="relative container mx-auto px-4 h-full flex flex-col justify-center">
+      <div 
+        className="relative h-64 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: `url('/assets/department/department-bg.jpg')`,
+          backgroundColor: '#003465',
+        }}
+      >
+        <div className="absolute inset-0 bg-[#003465] bg-opacity-80"></div>
+        <div className="relative w-full px-4 md:px-6 lg:px-8 h-full flex flex-col justify-center">
           <h1 className="text-white text-4xl font-bold text-center">Departments</h1>
           <p className="text-white text-center mt-2">
             Employees are the foundation for ensuring good health
@@ -192,7 +211,7 @@ export default function DepartmentPage() {
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-12">
+      <div className="w-full px-4 md:px-6 lg:px-8 py-12">
         <h2 className="text-3xl font-bold mb-8">Departments</h2>
 
         {/* Department Cards Carousel */}
@@ -238,8 +257,9 @@ export default function DepartmentPage() {
               <DataTable columns={columns} data={departments} />
               <Pagination
                 dataLength={departments.length}
-                numOfPages={1000}
-                pageSize={10}
+                numOfPages={Math.ceil(departments.length / pageSize)}
+                pageSize={pageSize}
+                handlePageClick={handlePageClick}
               />
             </section>
 

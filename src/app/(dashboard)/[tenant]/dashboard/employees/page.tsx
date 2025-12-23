@@ -233,6 +233,11 @@ const columns: Column<EmployeeDTO>[] = [
 export default function EmployeePage() {
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(0);
+
+  const handlePageClick = (event: { selected: number }) => {
+    setCurrentPage(event.selected);
+  };
 
   return (
     <section>
@@ -314,13 +319,22 @@ export default function EmployeePage() {
                 <Search className="size-5 text-[#999999] absolute right-4 top-1/2 -translate-y-1/2" />
               </div>
             </div>
-            <DataTable columns={columns} data={EmployeesTableData} />
+            {EmployeesTableData.length > 0 ? (
+              <DataTable columns={columns} data={EmployeesTableData} />
+            ) : (
+              <div className="flex items-center justify-center py-20 text-gray-500">
+                <p className="text-lg">No employees found</p>
+              </div>
+            )}
           </div>
-          <Pagination
-            dataLength={EmployeesTableData.length}
-            numOfPages={1000}
-            pageSize={10}
-          />
+          {EmployeesTableData.length > 0 && (
+            <Pagination
+              dataLength={EmployeesTableData.length}
+              numOfPages={Math.ceil(EmployeesTableData.length / pageSize)}
+              pageSize={pageSize}
+              handlePageClick={handlePageClick}
+            />
+          )}
         </section>
         <Link
           href="/dashboard/employees/create"

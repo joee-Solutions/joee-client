@@ -1,5 +1,4 @@
 import { siteConfig } from "./site-config";
-import * as jwt from 'jsonwebtoken';
 import { UAParser } from 'ua-parser-js';
 
 interface ClientInfo {

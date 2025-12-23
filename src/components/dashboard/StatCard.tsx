@@ -3,6 +3,7 @@
 import React, { FC } from 'react';
 import { ResponsiveContainer, AreaChart, Area } from "recharts";
 import { ChartNoAxesColumn } from "lucide-react";
+import Link from "next/link";
 
 
 interface StatCardProps {
@@ -11,9 +12,10 @@ interface StatCardProps {
   growth: number | null;
   color: 'blue' | 'green' | 'yellow' | 'red';
   icon: React.ReactElement;
+  href?: string;
 }
 
-const StatCard: FC<StatCardProps> = ({ title, value, growth, color, icon }) => {
+const StatCard: FC<StatCardProps> = ({ title, value, growth, color, icon, href }) => {
   const colorMap = {
     blue: {
       bg: 'bg-blue-50',
@@ -60,13 +62,21 @@ const StatCard: FC<StatCardProps> = ({ title, value, growth, color, icon }) => {
     { value: 35 },
   ];
 
+  const TitleComponent = href ? (
+    <Link href={href} className="text-black text-[16px] font-medium hover:underline hover:text-[#003465] transition-colors cursor-pointer">
+      {title}
+    </Link>
+  ) : (
+    <h3 className="text-black text-[16px] font-medium">{title}</h3>
+  );
+
   return (
 
 
     <div className=" rounded-lg my-8 shadow-xl hover:shadow-2xl relative overflow-hidden bg-white h-[300px] p-0">
 
     <div className=" p-4 flex flex-col space-y-4">
-      <h3 className="text-black text-[16px] font-medium">{title}</h3>
+      {TitleComponent}
       <div className="flex items-center justify-between">
         <p className={`text-[32px] font-medium ${colors.text}`}>{value}</p>
         <div className={`rounded-full  h-[36px] w-[36px] flex items-center justify-center ${colors.bgColor}`}>

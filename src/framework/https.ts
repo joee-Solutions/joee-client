@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable prefer-const */
-import { siteConfig } from "@/framework/site-config";
 import axios from "axios";
 import { getRefreshToken, getToken } from "./get-token";
 import Cookies from "js-cookie";
@@ -17,23 +16,16 @@ export const resetController = () => {
 
 const getBaseURL = () => {
   if (typeof window === "undefined") return "";
-  const { hostname } = window.location;
-  const subdomain = hostname.split(".")[0];
-  if (process.env.NODE_ENV === "production") {
-    // Extract the subdomain (if any) from the hostname
-
-    // Construct the base URL dynamically based on the subdomain
-    return `https://${subdomain}.joee.com.ng/api`;
-  }
-
-  // Use localhost for development
-  return `http://${subdomain}.localhost:3600/api`;
+  
+  // Use Next.js API proxy route - route.ts will handle proxying to backend
+  // This enables client info headers, better logging, and avoids CORS issues
+  return "/api";
 };
 
 const baseURL = getBaseURL();
 console.log("baseURL -->", baseURL);
 
-if (typeof window !== undefined) {
+if (typeof window !== "undefined") {
   httpNoAuth = axios.create({
     baseURL: baseURL,
     headers: {
@@ -55,7 +47,7 @@ httpNoAuth.interceptors.request.use(
 );
 
 let httpAuth: any;
-if (typeof window !== undefined) {
+if (typeof window !== "undefined") {
   httpAuth = axios.create({
     baseURL: baseURL,
     headers: {
@@ -210,14 +202,15 @@ const refreshUser = async () => {
       );
       if (tResponse) {
         Cookies.set("auth_token", tResponse.token, { expires: 1 / 48 });
-        Cookies.set("customer", JSON.stringify(tResponse.user), {
+        Cookies.set("refresh_token", tResponse.refresh_token || getRefreshToken(), { expires: 1 / 48 });
+        Cookies.set("user", JSON.stringify(tResponse.user), {
           expires: 1 / 48,
         });
         return tResponse;
       } else {
         Cookies.remove("refresh_token");
         Cookies.remove("auth_token");
-        Cookies.remove("customer");
+        Cookies.remove("user");
       }
     }
   } finally {

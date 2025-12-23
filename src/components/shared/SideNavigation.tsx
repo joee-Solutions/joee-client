@@ -6,14 +6,20 @@ import React from "react";
 import Cookies from "js-cookie";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { X } from "lucide-react";
 
-const SideNavigation = () => {
+interface SideNavigationProps {
+  onClose?: () => void;
+}
+
+const SideNavigation = ({ onClose }: SideNavigationProps) => {
   const router = useRouter();
   const handleLogout = async () => {
     try {
       Cookies.remove("auth_token");
       Cookies.remove("user");
-      // Cookies.remove()
+      Cookies.remove("refresh_token");
+      Cookies.remove("otp_verified");
       router.push("/login");
     } catch (error) {
       console.log("Logout error:", error);
@@ -23,14 +29,31 @@ const SideNavigation = () => {
   const isPathNameMatch = (path: string) => {
     return pathName === path;
   };
+
+  const handleLinkClick = () => {
+    // Close mobile menu when a link is clicked
+    if (onClose) {
+      onClose();
+    }
+  };
+
   return (
-    <div className="lg:fixed lg:w-72 bg-[#003465] overflow-y-scroll z-[100] min-h-screen lg:inset-y-0">
-      <div className=" text-white py-12 flex flex-col items-center justify-center gap-2 border-b border-white mb-[59px]">
+    <div className="w-72 bg-[#003465] overflow-y-scroll z-[100] min-h-screen lg:fixed lg:inset-y-0 relative">
+      {/* Mobile Close Button */}
+      <button
+        onClick={onClose}
+        className="lg:hidden absolute top-4 right-4 text-white hover:bg-white/10 p-2 rounded-full transition-colors z-10"
+        aria-label="Close menu"
+      >
+        <X size={24} />
+      </button>
+
+      <div className="text-white py-12 flex flex-col items-center justify-center gap-2 border-b border-white mb-[59px]">
         <Image
           width={200}
           height={200}
           src="/assets/logo/logo.png"
-          alt=""
+          alt="LociCare Logo"
           className="w-16 h-16"
           priority
         />
@@ -42,7 +65,7 @@ const SideNavigation = () => {
             {item.href && (
               <div
                 className={cn(
-                  " w-full",
+                  "w-full",
                   isPathNameMatch(item.href) ? "pl-8" : "pl-16"
                 )}
               >
@@ -54,6 +77,7 @@ const SideNavigation = () => {
                       : ""
                   )}
                   href={item.href}
+                  onClick={handleLinkClick}
                 >
                   {item.icon && (
                     <item.icon
@@ -68,7 +92,7 @@ const SideNavigation = () => {
                   )}
                   {item.name}
                   {isPathNameMatch(item.href) && (
-                    <span className="bg-black  h-1.5 w-1.5 rounded-full"></span>
+                    <span className="bg-black h-1.5 w-1.5 rounded-full"></span>
                   )}
                 </Link>
               </div>

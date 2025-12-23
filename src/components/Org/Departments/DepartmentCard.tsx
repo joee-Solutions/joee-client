@@ -38,9 +38,17 @@ export default function DepartmentCard({
       }`}
     >
       <Link href={`/dashboard/department/${department.id}`} onClick={handleCardClick}>
-        <div className={`h-32 ${department.color} relative`}>
+        <div 
+          className={`h-32 relative bg-cover bg-center bg-no-repeat ${department.color}`}
+          style={{
+            backgroundImage: `url('/assets/department/department-bg.jpg')`,
+          }}
+        >
+          {/* Overlay */}
+          <div className={`absolute inset-0 ${department.color} bg-opacity-70`}></div>
+          
           {/* Department Code Badge */}
-          <div className="absolute top-4 left-4 w-12 h-12 bg-white rounded-md flex items-center justify-center shadow-sm">
+          <div className="absolute top-4 left-4 w-12 h-12 bg-white rounded-md flex items-center justify-center shadow-sm z-10">
             <span className={`font-bold text-lg ${department.textColor}`}>
               {department.code}
             </span>
@@ -48,7 +56,7 @@ export default function DepartmentCard({
 
           {/* Recently Viewed Badge */}
           {isRecentlyViewed && (
-            <div className="absolute top-4 right-4 bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
+            <div className="absolute top-4 right-4 bg-blue-500 text-white text-xs px-2 py-1 rounded-full z-10">
               Recent
             </div>
           )}
@@ -58,23 +66,12 @@ export default function DepartmentCard({
           {/* Profile Image Circle */}
           <div className={`relative -mt-16 w-24 h-24 mx-auto rounded-full overflow-hidden border-4 ${department.borderColor} bg-white`}>
             <div className="w-full h-full relative">
-              {/* Placeholder for actual image */}
-              <div className={`w-full h-full ${department.color} opacity-20 flex items-center justify-center`}>
-                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
-                  <span className={`text-2xl font-bold ${department.textColor}`}>
-                    {department.code}
-                  </span>
-                </div>
-              </div>
-              {/* 
-                In production, replace the above with:
-                <Image
-                  src={department.image}
-                  alt={department.name}
-                  fill
-                  className="object-cover"
-                />
-              */}
+              <Image
+                src={department.image}
+                alt={department.name}
+                fill
+                className="object-cover"
+              />
             </div>
           </div>
           
@@ -85,7 +82,7 @@ export default function DepartmentCard({
           
           {/* Description */}
           <p className="text-center text-gray-500 text-sm mt-2">
-            Lorem ipsum dolor sit amet consectetur. Cursus nec amet ipsum a.
+            Providing specialized medical care and services with a dedicated team of healthcare professionals.
           </p>
 
           {/* Employee Count (Optional) */}

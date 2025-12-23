@@ -55,15 +55,19 @@ export default function DataTable<T extends Record<string, Primitives>>({
         }`}
       >
         <TableRow className="px-3">
-          {columns.map((col, i) => (
-            <TableHead
-              key={i}
-              className="font-medium text-xs"
-              style={col.size ? { width: `${col.size}px` } : undefined}
-            >
-              {typeof col.header === "string" ? col.header : col.header()}
-            </TableHead>
-          ))}
+          {columns && columns.length > 0 ? (
+            columns.map((col, i) => (
+              <TableHead
+                key={i}
+                className="font-medium text-xs"
+                style={col.size ? { width: `${col.size}px` } : undefined}
+              >
+                {typeof col.header === "string" ? col.header : col.header()}
+              </TableHead>
+            ))
+          ) : (
+            <TableHead className="font-medium text-xs">No columns</TableHead>
+          )}
         </TableRow>
       </TableHeader>
       <TableBody>

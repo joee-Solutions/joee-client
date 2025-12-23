@@ -19,17 +19,20 @@ type LoginProps = z.infer<typeof schema>;
 
 const schema = z.object({
   email: z.string().email({ message: "Invalid email address" }),
-  // password must contain a lowercase, uppercase letter, a number and a special character but must be validated seperately
+  // TODO: Restore password validation when backend is ready
+  // For development: accept any password (minimum 1 character for form validation)
   password: z
     .string()
-    .min(8, { message: "Password must be at least 8 characters long" })
-    .regex(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+}{":;'?/>.<,])(?=.*[a-zA-Z]).{8,}$/,
-      {
-        message:
-          "Password must contain at least one lowercase, uppercase, number and one special character",
-      }
-    ),
+    .min(1, { message: "Password is required" })
+    // Original validation (commented out for development):
+    // .min(8, { message: "Password must be at least 8 characters long" })
+    // .regex(
+    //   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+}{":;'?/>.<,])(?=.*[a-zA-Z]).{8,}$/,
+    //   {
+    //     message:
+    //       "Password must contain at least one lowercase, uppercase, number and one special character",
+    //   }
+    // ),
 });
 
 const TenantLoginPage = () => {
@@ -50,11 +53,47 @@ const TenantLoginPage = () => {
   };
   const handleFormSubmit = async (data: LoginProps) => {
     try {
-      const rt = await processRequestNoAuth("post", API_ENDPOINTS.LOGIN, data);
-      if (rt) {
-        Cookies.set("mfa_token", rt.data.token, { expires: 1 / 48 });
-        router.push("/verify-otp");
+      // Check if OTP was already verified (within 0 days = always remember)
+      const otpVerified = Cookies.get("otp_verified");
+      
+      if (otpVerified === "true") {
+        // Skip OTP - go directly to dashboard
+        const mockAuthToken = `dev_auth_token_${Date.now()}`;
+        const mockRefreshToken = `dev_refresh_token_${Date.now()}`;
+        const mockUser = {
+          id: 1,
+          email: data.email,
+          name: "Development User",
+        };
+
+        Cookies.set("auth_token", mockAuthToken, {
+          expires: 1 / 48,
+        });
+        Cookies.set("refresh_token", mockRefreshToken, { expires: 1 / 48 });
+        Cookies.set("user", JSON.stringify(mockUser), {
+          expires: 1 / 48,
+        });
+        toast.success("Login successful!", {
+          toastId: "success",
+          delay: 1000,
+        });
+        router.push("/dashboard");
+        return;
       }
+
+      // TODO: Remove this bypass when backend is ready
+      // Bypass authentication for development - accept any credentials
+      // If OTP not verified, go to OTP page
+      const mockMfaToken = `dev_mfa_token_${Date.now()}`;
+      Cookies.set("mfa_token", mockMfaToken, { expires: 1 / 48 });
+      router.push("/verify-otp");
+      
+      // Original code (commented out for now):
+      // const rt = await processRequestNoAuth("post", API_ENDPOINTS.LOGIN, data);
+      // if (rt) {
+      //   Cookies.set("mfa_token", rt.data.token, { expires: 1 / 48 });
+      //   router.push("/verify-otp");
+      // }
     } catch (error: any) {
       toast.error(error?.response?.data.error);
       if (error?.status === 401) {
@@ -83,28 +122,26 @@ const TenantLoginPage = () => {
         <div className="line border-2 border-white w-40"></div>
         <div className="line border-3 border-white"></div>
         <span className="welcom md:w-3/4 text-lg leading-8">
-          Lorem ipsum dolor sit amet consectetur adipisicing elit. Qui
-          repudiandae, saepe reprehenderit voluptate at a ipsum atque quod
-          debitis. Excepturi magnam officia soluta ex at. Iusto fugiat numquam
-          error doloremque?
+          Welcome to LociCare by Joee Solutions. Sign in to access your tenant
+          dashboard and manage your healthcare operations efficiently. Secure,
+          reliable, and designed to streamline your workflow.
         </span>
       </div>
-      <div className=" col-span-1 shadow-lg rounded-2xl  border border-blue-500 text-white z-40 w-full max-w-[350px] md:max-w-[550px] md:px-8 px-8 py-20 [linear-gradient:rgb()] bg-[#5882C147]">
+      <div className="col-span-1 shadow-lg rounded-2xl  border border-blue-500 text-white z-40 w-full max-w-[350px] md:max-w-[550px] md:px-8 px-8 py-20 [linear-gradient:rgb()] bg-[#5882C147]">
         <div className="form flex flex-col px-12 md:px-20  items-center justify-center space-y-4  ">
           <div className="orgDeatails flex flex-col items-center justify-center gap-4">
-            <Image
+          <Image
               alt="logo"
               src="/assets/auth/otp.png"
               width={80}
               height={60}
               className="logo"
             />
-            <span className=" ">
+            <span className="flex items-center gap-1 whitespace-nowrap">
               <span className="font-medium text-2xl md:text-3xl">
-                {" "}
-                LociCare{" "}
+                LociCare
               </span>
-              by Joee
+              <span className="text-base md:text-lg whitespace-nowrap">by Solutions</span>
             </span>
           </div>
           <form

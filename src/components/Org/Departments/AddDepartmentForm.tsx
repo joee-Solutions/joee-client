@@ -20,7 +20,12 @@ const DepartmentSchema = z.object({
 
 type DepartmentSchemaType = z.infer<typeof DepartmentSchema>;
 
-export default function AddDepartment() {
+interface AddDepartmentProps {
+  onSubmit?: (data: any) => void;
+  onCancel?: () => void;
+}
+
+export default function AddDepartment({ onSubmit: onSubmitProp, onCancel: onCancelProp }: AddDepartmentProps) {
   const router = useRouter();
   const [fileSelected, setFileSelected] = useState<string>("");
   const [showList, setShowList] = useState(false);
@@ -38,8 +43,30 @@ export default function AddDepartment() {
   });
 
   const onSubmit = (data: DepartmentSchemaType) => {
-    console.log(data);
-    // Handle form submission
+    if (onSubmitProp) {
+      // Transform data to match parent's expected format
+      const transformedData = {
+        name: data.departmentName,
+        code: data.departmentName.substring(0, 2).toUpperCase(),
+        color: 'bg-blue-600',
+        textColor: 'text-blue-600',
+        borderColor: 'border-blue-600',
+        employeeCount: 0,
+        status: data.status ? 'Inactive' : 'Active',
+        image: data.departmentImage || '/images/default.jpg',
+      };
+      onSubmitProp(transformedData);
+    } else {
+      console.log(data);
+    }
+  };
+
+  const handleCancel = () => {
+    if (onCancelProp) {
+      onCancelProp();
+    } else {
+      router.back();
+    }
   };
 
   const handleListDepartment = () => {
@@ -149,7 +176,7 @@ export default function AddDepartment() {
           <Button
             type="button"
             className=" border border-[#EC0909] text-[#EC0909] hover:bg-[#ec090922] py-8 px-16 text-md rounded"
-            onClick={() => router.back()}
+            onClick={handleCancel}
           >
             Cancel
           </Button>

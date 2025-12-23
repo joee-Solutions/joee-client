@@ -41,26 +41,62 @@ const VerifyOtpLoginClient = ({ token }: { token: string }) => {
     }
     console.log(data);
     try {
-      const rt = await processRequestNoAuth(
-        "post",
-        API_ENDPOINTS.VERIFY_LOGIN,
-        {
-          otp: data.otp,
-          token,
-        }
-      );
-      console.log(rt, "token");
-      if (rt.status === true && rt?.data?.token) {
-        Cookies.remove("mfa_token");
-        Cookies.set("auth_token", rt.data.token, {
-          expires: 1 / 48,
-        });
-        //   Cookies.set("refresh_token", rt.data.refresh_token, { expires: 1 });
-        Cookies.set("user", JSON.stringify(rt.data.user), {
-          expires: 1 / 48,
-        });
-        router.push(`/dashboard`);
-      }
+      // TODO: Remove this bypass when backend is ready
+      // Bypass OTP verification for development - accept any OTP
+      const mockAuthToken = `dev_auth_token_${Date.now()}`;
+      const mockRefreshToken = `dev_refresh_token_${Date.now()}`;
+      const mockUser = {
+        id: 1,
+        email: "dev@example.com",
+        name: "Development User",
+      };
+
+      Cookies.remove("mfa_token");
+      Cookies.set("auth_token", mockAuthToken, {
+        expires: 1 / 48,
+      });
+      Cookies.set("refresh_token", mockRefreshToken, { expires: 1 / 48 });
+      Cookies.set("user", JSON.stringify(mockUser), {
+        expires: 1 / 48,
+      });
+      // Set OTP verified cookie (0 days = always remember, so use long expiration)
+      Cookies.set("otp_verified", "true", {
+        expires: 365, // 1 year (effectively "always" for 0 days requirement)
+      });
+      toast.success("Login successful!", {
+        toastId: "success",
+        delay: 1000,
+      });
+      router.push(`/dashboard`);
+
+      // Original code (commented out for now):
+      // const rt = await processRequestNoAuth(
+      //   "post",
+      //   API_ENDPOINTS.VERIFY_LOGIN,
+      //   {
+      //     otp: data.otp,
+      //     token,
+      //   }
+      // );
+      // console.log(rt, "token");
+      // if (rt.status === true && rt?.data?.token) {
+      //   Cookies.remove("mfa_token");
+      //   Cookies.set("auth_token", rt.data.token, {
+      //     expires: 1 / 48,
+      //   });
+      //   // Save refresh token if provided in response
+      //   if (rt.data.refresh_token) {
+      //     Cookies.set("refresh_token", rt.data.refresh_token, { expires: 1 / 48 });
+      //   }
+      //   Cookies.set("user", JSON.stringify(rt.data.user), {
+      //     expires: 1 / 48,
+      //   });
+      //   // Set OTP verified cookie (0 days = always remember)
+      //   Cookies.set("otp_verified", "true", {
+      //     expires: 365, // 1 year (effectively "always" for 0 days requirement)
+      //   });
+      //   router.push(`/dashboard`);
+      // }
     } catch (error: any) {
       console.log(error, "ekekek");
       if (

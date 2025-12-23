@@ -34,8 +34,8 @@ const DashboardPage: NextPage = () => {
     networkTab: { icon: <></> },
   };
   return (
-    <div className="min-h-screen w-full  mb-10">
-      <main className="container mx-auto  py-6 px-[30px]">
+    <div className="min-h-screen w-full mb-10">
+      <main className="w-full py-6 px-4 md:px-6 lg:px-8">
         <div className="flex flex-col items-center md:items-start gap-1 py-2">
           <div className="flex md:flex-col items-center md:items-start gap-1">
             <h1 className="text-[18px] md:text-[20px] font-medium text-[#595959]">
@@ -57,6 +57,7 @@ const DashboardPage: NextPage = () => {
             growth={stats.allOrganizations.growth}
             color="blue"
             icon={stats.allOrganizations.icon}
+            href="/dashboard/organization"
           />
           <StatCard
             title="Active Organizations"
@@ -64,6 +65,7 @@ const DashboardPage: NextPage = () => {
             growth={stats.activeOrganizations.growth}
             color="green"
             icon={stats.activeOrganizations.icon}
+            href="/dashboard/organization/active"
           />
           <StatCard
             title="Inactive Organizations"
@@ -71,6 +73,7 @@ const DashboardPage: NextPage = () => {
             growth={stats.inactiveOrganizations.growth}
             color="yellow"
             icon={stats.inactiveOrganizations.icon}
+            href="/dashboard/organization/inactive"
           />
           <StatCard
             title="Deactived Organizations"
@@ -78,6 +81,7 @@ const DashboardPage: NextPage = () => {
             growth={stats.deactivatedOrganizations.growth}
             color="red"
             icon={stats.deactivatedOrganizations.icon}
+            href="/dashboard/organization/deactivated"
           />
         </div>
 

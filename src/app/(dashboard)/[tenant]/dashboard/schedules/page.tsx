@@ -172,13 +172,13 @@ const SchedulesPage: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-16">
-        <div className="container mx-auto px-4">
+        <div className="w-full px-4 md:px-6 lg:px-8">
           <h1 className="text-4xl font-bold text-center">Schedules</h1>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-8">
+      <div className="w-full px-4 md:px-6 lg:px-8 py-8">
         {/* Schedules Section */}
         <div className="mb-12">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Schedules</h2>
