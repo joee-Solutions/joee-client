@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/Textarea";
-import { Calendar } from "lucide-react";
 
 // Define the type for a visit entry
 type VisitEntry = {
