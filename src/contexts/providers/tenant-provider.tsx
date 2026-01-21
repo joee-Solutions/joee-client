@@ -4,7 +4,7 @@
 import { type ReactNode, createContext, useRef, useContext } from 'react'
 import { useStore } from 'zustand'
 
-import { type TenantStore, createTenantStore } from '@context/stores/tenant-store'
+import { type TenantStore, createTenantStore } from '@/contexts/stores/tenant-store'
 
 export type TenantStoreApi = ReturnType<typeof createTenantStore>
 

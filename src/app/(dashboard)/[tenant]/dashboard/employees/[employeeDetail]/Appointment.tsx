@@ -175,6 +175,11 @@ export default function AppointmentPage() {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("");
   const [filterBy, setFilterBy] = useState("");
+  const [currentPage, setCurrentPage] = useState(0);
+
+  const handlePageClick = (event: { selected: number }) => {
+    setCurrentPage(event.selected);
+  };
 
   return (
     <section className="">
@@ -254,6 +259,7 @@ export default function AppointmentPage() {
         dataLength={AppointmentTableData.length}
         numOfPages={1000}
         pageSize={pageSize}
+        handlePageClick={handlePageClick}
       />
     </section>
   );

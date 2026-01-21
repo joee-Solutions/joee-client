@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-/* eslint-disable prefer-const */
+
 import axios from "axios";
 import { getRefreshToken, getToken } from "./get-token";
 import Cookies from "js-cookie";

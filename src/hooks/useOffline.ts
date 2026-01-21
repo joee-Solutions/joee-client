@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { offlineDB } from '@/lib/offline-db';
+import { offlineDB, type JoeeOfflineDB } from '@/lib/offline-db';
 import { localStorageUtils } from '@/utils/localstorage';
 
 export interface OfflineStatus {
@@ -139,7 +139,7 @@ export const useOffline = () => {
 
   // Get cached data with offline fallback
   const getCachedData = useCallback(async <T>(
-    storeName: keyof any,
+    storeName: keyof JoeeOfflineDB,
     tenantId: string,
     fetchFromAPI?: () => Promise<T[]>
   ): Promise<OfflineData<T>> => {

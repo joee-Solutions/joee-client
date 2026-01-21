@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/Textarea";
 import {
   Select,
@@ -144,10 +143,11 @@ export default function PatientDischargeForm() {
                 >
                   Discharged Date
                 </label>
-                <Input
+                <input
                   type="date"
+                  name={`dischargedDate-${entry.id}`}
                   value={entry.dischargedDate}
-            className="w-full h-14 p-3 border border-[#737373] rounded"
+                  className="w-full h-14 p-3 border border-[#737373] rounded"
                   onChange={(e) =>
                     updateDischargeEntry(entry.id, "dischargedDate", e.target.value)
                   }

@@ -1,5 +1,4 @@
 import { formatDate } from "date-fns";
-import { LoanTenure } from "./types";
 
 export const timeFormatter = (date: Date | string) => {
   const loanCreatedDate = new Date(date);

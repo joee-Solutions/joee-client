@@ -2,20 +2,66 @@
 
 import { AdminListData, AppointmentData } from "@/components/shared/table/data";
 
-import DataTable from "@/components/shared/table/DataTable";
+import DataTable, { Column } from "@/components/shared/table/DataTable";
 import { ListView } from "@/components/shared/table/DataTableFilter";
 import Pagination from "@/components/shared/table/pagination";
 import { useState } from "react";
-import { TableCell, TableRow } from "@/components/ui/table";
 import { Ellipsis } from "lucide-react";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search";
 
+type AdminData = typeof AdminListData[0];
+
 export default function AdminList() {
   const [pageSize, setPageSize] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(0);
   const [isAddOrg, setIsAddOrg] = useState<"add" | "none" | "edit">("none");
+
+  const handlePageClick = (event: { selected: number }) => {
+    setCurrentPage(event.selected);
+  };
+
+  const columns: Column<AdminData>[] = [
+    {
+      header: "ID",
+      key: "ID" as keyof AdminData,
+      size: 100,
+    },
+    {
+      header: "Name",
+      key: "name" as keyof AdminData,
+      size: 200,
+    },
+    {
+      header: "Role",
+      key: "role" as keyof AdminData,
+      size: 150,
+    },
+    {
+      header: "Address",
+      key: "address" as keyof AdminData,
+      size: 250,
+    },
+    {
+      header: "Phone Number",
+      key: "phoneNumber" as keyof AdminData,
+      size: 150,
+    },
+    {
+      header: "Email",
+      key: "email" as keyof AdminData,
+      size: 200,
+    },
+    {
+      header: "Actions",
+      render: () => (
+        <button className="flex items-center justify-center px-2 h-6 rounded-[2px] border border-[#BFBFBF] bg-[#EDF0F6]">
+          <Ellipsis className="text-black size-5" />
+        </button>
+      ),
+      size: 100,
+    },
+  ];
 
   return (
     <section className="px-[30px] mb-10">
@@ -30,59 +76,16 @@ export default function AdminList() {
               onSearch={(query) => console.log("Searching:", query)}
             />
           </header>
-          <DataTable tableDataObj={AdminListData[0]}>
-            {AdminListData.map((data) => {
-              return (
-                <TableRow
-                  key={data.ID}
-                  className="px-3 odd:bg-white even:bg-gray-50  hover:bg-gray-100 py-4"
-                >
-                  <TableCell>{data.ID}</TableCell>
-                  {/* <TableCell className="py-[21px]">
-                      <div className="flex items-center gap-[10px]">
-                        <span className="w-[42px] h-42px rounded-full overflow-hidden">
-                          <Image
-                            src={data.appointment.image}
-                            alt="employee image"
-                            className="object-cover aspect-square w-full h-full"
-                          />
-                        </span>
-                        <p className="font-medium text-xs text-black">
-                          {data.appointment.patient_name}
-                        </p>
-                      </div>
-                    </TableCell> */}
-                  <TableCell className="font-semibold text-xs text-[#737373] py-8">
-                    {data.name}
-                  </TableCell>
-                  <TableCell className="font-semibold text-xs text-[#737373]">
-                    {data.role}
-                  </TableCell>
-                  <TableCell className="font-semibold text-xs text-[#737373]">
-                    {data.address}
-                  </TableCell>
-                  <TableCell className="font-semibold text-xs text-[#737373]">
-                    {data.phoneNumber}
-                  </TableCell>
-                  <TableCell className="font-semibold text-xs text-[#737373]">
-                    {data.email}
-                  </TableCell>
-
-                  <TableCell>
-                    <button className="flex items-center justify-center px-2 h-6 rounded-[2px] border border-[#BFBFBF] bg-[#EDF0F6]">
-                      <Ellipsis className="text-black size-5" />
-                    </button>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </DataTable>
+          <DataTable
+            columns={columns as any}
+            data={AdminListData as any}
+            bgHeader="bg-[#003465] text-white"
+          />
           <Pagination
-            dataLength={AppointmentData.length}
-            numOfPages={Math.max(1, Math.ceil(AppointmentData.length / pageSize))}
+            dataLength={AdminListData.length}
+            numOfPages={Math.max(1, Math.ceil(AdminListData.length / pageSize))}
             pageSize={pageSize}
-            currentPage={currentPage}
-            setCurrentPage={setCurrentPage}
+            handlePageClick={handlePageClick}
           />
         </section>
       </>

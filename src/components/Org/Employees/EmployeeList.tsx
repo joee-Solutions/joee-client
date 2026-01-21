@@ -2,20 +2,87 @@
 
 import { EmployeesData } from "@/components/shared/table/data";
 
-import DataTable from "@/components/shared/table/DataTable";
+import DataTable, { Column } from "@/components/shared/table/DataTable";
 import { ListView} from "@/components/shared/table/DataTableFilter";
 import Pagination from "@/components/shared/table/pagination";
 import { useState } from "react";
-import { TableCell, TableRow } from "@/components/ui/table";
 import { Ellipsis } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search";
 
+type EmployeeData = typeof EmployeesData[0];
+
 export default function Page() {
   const [pageSize, setPageSize] = useState(10);
   const [isAddOrg, setIsAddOrg] = useState<"add" | "none" | "edit">("none");
+  const [currentPage, setCurrentPage] = useState(0);
 
+  const handlePageClick = (event: { selected: number }) => {
+    setCurrentPage(event.selected);
+  };
+
+  const columns: Column<EmployeeData>[] = [
+    {
+      header: "ID",
+      key: "id" as keyof EmployeeData,
+      size: 80,
+    },
+    {
+      header: "Employee",
+      render: (row) => (
+        <div className="flex items-center gap-[10px] py-[21px]">
+          <span className="w-[42px] h-[42px] rounded-full overflow-hidden">
+            <Image
+              src={row.employee.image}
+              alt="employee image"
+              width={42}
+              height={42}
+              className="object-cover aspect-square w-full h-full"
+            />
+          </span>
+          <p className="font-medium text-xs text-black">
+            {row.employee.employee_name}
+          </p>
+        </div>
+      ),
+      size: 200,
+    },
+    {
+      header: "Department",
+      key: "department" as keyof EmployeeData,
+      size: 150,
+    },
+    {
+      header: "Designation",
+      key: "designation" as keyof EmployeeData,
+      size: 150,
+    },
+    {
+      header: "Status",
+      render: (row) => (
+        <span
+          className={`font-semibold text-xs ${
+            row.status.toLowerCase() === "active"
+              ? "text-[#3FA907]"
+              : "text-[#EC0909]"
+          }`}
+        >
+          {row.status}
+        </span>
+      ),
+      size: 120,
+    },
+    {
+      header: "Actions",
+      render: () => (
+        <button className="flex items-center justify-center px-2 h-6 rounded-[2px] border border-[#BFBFBF] bg-[#EDF0F6]">
+          <Ellipsis className="text-black size-5" />
+        </button>
+      ),
+      size: 100,
+    },
+  ];
 
   return (
     <section className="px-[30px] mb-10">
@@ -40,53 +107,16 @@ export default function Page() {
 
               
             </header>
-            <DataTable tableDataObj={EmployeesData[0]}>
-              {EmployeesData.map((data) => {
-                return (
-                  <TableRow key={data.id} className="px-3 odd:bg-white even:bg-gray-50  hover:bg-gray-100">
-                    <TableCell>{data.id}</TableCell>
-                    <TableCell className="py-[21px]">
-                      <div className="flex items-center gap-[10px]">
-                        <span className="w-[42px] h-42px rounded-full overflow-hidden">
-                          <Image
-                            src={data.employee.image}
-                            alt="employee image"
-                            className="object-cover aspect-square w-full h-full"
-                          />
-                        </span>
-                        <p className="font-medium text-xs text-black">
-                          {data.employee.employee_name}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-semibold text-xs text-[#737373]">
-                      {data.department}
-                    </TableCell>
-                    <TableCell className="font-semibold text-xs text-[#737373]">
-                      {data.designation}
-                    </TableCell>
-                    <TableCell
-                      className={`font-semibold text-xs ${
-                        data.status.toLowerCase() === "active"
-                          ? "text-[#3FA907]"
-                          : "text-[#EC0909]"
-                      }`}
-                    >
-                      {data.status}
-                    </TableCell>
-                    <TableCell>
-                      <button className="flex items-center justify-center px-2 h-6 rounded-[2px] border border-[#BFBFBF] bg-[#EDF0F6]">
-                        <Ellipsis className="text-black size-5" />
-                      </button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </DataTable>
+            <DataTable
+              columns={columns as any}
+              data={EmployeesData as any}
+              bgHeader="bg-[#003465] text-white"
+            />
             <Pagination
               dataLength={EmployeesData.length}
               numOfPages={1000}
               pageSize={pageSize}
+              handlePageClick={handlePageClick}
             />
           </section>
         </>

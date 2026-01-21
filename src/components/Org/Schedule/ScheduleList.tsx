@@ -4,19 +4,73 @@ import { ScheduleData } from "@/components/shared/table/data";
 import NewOrg from "@/app/(dashboard)/[tenant]/dashboard/organization/NewOrg";
 import OrgManagement from "@/app/(dashboard)/[tenant]/dashboard/organization/OrgManagement";
 
-import DataTable from "@/components/shared/table/DataTable";
+import DataTable, { Column } from "@/components/shared/table/DataTable";
 import { ListView } from "@/components/shared/table/DataTableFilter";
 import Pagination from "@/components/shared/table/pagination";
 import { useState } from "react";
-import { TableCell, TableRow } from "@/components/ui/table";
 import { Ellipsis } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search";
+
+type ScheduleDataItem = typeof ScheduleData[0];
 
 
 export default function ScheduleList() {
   const [pageSize, setPageSize] = useState(10);
   const [isAddOrg, setIsAddOrg] = useState<"add" | "none" | "edit">("none");
+  const [currentPage, setCurrentPage] = useState(0);
+
+  const handlePageClick = (event: { selected: number }) => {
+    setCurrentPage(event.selected);
+  };
+
+  const columns: Column<ScheduleDataItem>[] = [
+    {
+      header: "ID",
+      key: "id" as keyof ScheduleDataItem,
+      size: 80,
+    },
+    {
+      header: "Doctor Name",
+      render: (row) => (
+        <div className="py-[21px]">
+          <p className="font-medium text-xs text-black">
+            {row.schedule.doctor_name}
+          </p>
+        </div>
+      ),
+      size: 200,
+    },
+    {
+      header: "Department",
+      key: "department" as keyof ScheduleDataItem,
+      size: 150,
+    },
+    {
+      header: "Day",
+      key: "day" as keyof ScheduleDataItem,
+      size: 120,
+    },
+    {
+      header: "Start Time",
+      key: "start_time" as keyof ScheduleDataItem,
+      size: 120,
+    },
+    {
+      header: "End Time",
+      key: "end_time" as keyof ScheduleDataItem,
+      size: 120,
+    },
+    {
+      header: "Actions",
+      render: () => (
+        <button className="flex items-center justify-center px-2 h-6 rounded-[2px] border border-[#BFBFBF] bg-[#EDF0F6]">
+          <Ellipsis className="text-black size-5" />
+        </button>
+      ),
+      size: 100,
+    },
+  ];
 
   return (
     <section className="px-[30px] mb-10">
@@ -43,44 +97,16 @@ export default function ScheduleList() {
                 onSearch={(query) => console.log("Searching:", query)}
               />
             </header>
-            <DataTable tableDataObj={ScheduleData}>
-              {ScheduleData.map((data) => (
-                <TableRow
-                  key={data.id}
-                  className="px-3 odd:bg-white even:bg-gray-50 hover:bg-gray-100"
-                >
-                  <TableCell>{data.id}</TableCell>
-                  <TableCell className="py-[21px]">
-                    <div className="flex items-center gap-[10px]">
-                      <p className="font-medium text-xs text-black">
-                        {data.schedule.doctor_name}
-                      </p>
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-semibold text-xs text-[#737373]">
-                    {data.department}
-                  </TableCell>
-                  <TableCell className="font-semibold text-xs text-[#737373]">
-                    {data.day}
-                  </TableCell>
-                  <TableCell className="font-semibold text-xs text-[#737373]">
-                    {data.start_time}
-                  </TableCell>
-                  <TableCell className="font-semibold text-xs text-[#737373]">
-                    {data.end_time}
-                  </TableCell>
-                  <TableCell>
-                    <button className="flex items-center justify-center px-2 h-6 rounded-[2px] border border-[#BFBFBF] bg-[#EDF0F6]">
-                      <Ellipsis className="text-black size-5" />
-                    </button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </DataTable>
+            <DataTable
+              columns={columns as any}
+              data={ScheduleData as any}
+              bgHeader="bg-[#003465] text-white"
+            />
             <Pagination
               dataLength={ScheduleData.length}
               numOfPages={Math.ceil(ScheduleData.length / pageSize)}
               pageSize={pageSize}
+              handlePageClick={handlePageClick}
             />
           </section>
         </>

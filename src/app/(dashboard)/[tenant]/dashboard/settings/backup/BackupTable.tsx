@@ -52,6 +52,11 @@ export default function BackupTable<T extends Record<string, Primitives>>({
   >();
   const [sortBy, setSortBy] = useState("");
   const [rowSelectionIds, setRowSelectionIds] = useState<number[]>([]);
+  const [currentPage, setCurrentPage] = useState(0);
+
+  const handlePageClick = (event: { selected: number }) => {
+    setCurrentPage(event.selected);
+  };
 
   const handleColumnSort = (sortVal: `${string} ASC` | `${string} DESC`) => {
     setColumnSort(sortVal);
@@ -232,7 +237,12 @@ export default function BackupTable<T extends Record<string, Primitives>>({
             ))}
           </TableBody>
         </Table>
-        <Pagination dataLength={5} numOfPages={7} pageSize={5} />
+        <Pagination 
+          dataLength={5} 
+          numOfPages={7} 
+          pageSize={5} 
+          handlePageClick={handlePageClick}
+        />
       </div>
     </section>
   );

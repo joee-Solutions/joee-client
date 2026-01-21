@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/RadioGroup";
@@ -80,8 +79,9 @@ export default function MedicationForm() {
             Start Date
           </label>
           <div className="relative">
-            <Input
+            <input
               id="startDate"
+              name="startDate"
               type="date"
               placeholder="DD/MM/YYYY"
               className="w-full h-14 p-3 border border-[#737373] rounded"
@@ -95,8 +95,9 @@ export default function MedicationForm() {
           <label htmlFor="prescriberName" className="block text-base text-black font-normal mb-2">
             Prescriber Name
           </label>
-          <Input
+          <input
             id="prescriberName"
+            name="prescriberName"
             type="text"
             placeholder="Enter here"
             className="w-full h-14 p-3 border border-[#737373] rounded"
@@ -111,8 +112,9 @@ export default function MedicationForm() {
           <label htmlFor="dosage" className="block text-base text-black font-normal mb-2">
             Dosage
           </label>
-          <Input
+          <input
             id="dosage"
+            name="dosage"
             type="text"
             placeholder="Enter here"
             className="w-full h-14 p-3 border border-[#737373] rounded"
@@ -125,8 +127,9 @@ export default function MedicationForm() {
           <label htmlFor="directions" className="block text-base text-black font-normal mb-2">
             Directions
           </label>
-          <Input
+          <input
             id="directions"
+            name="directions"
             type="text"
             placeholder="Enter here"
             className="w-full h-14 p-3 border border-[#737373] rounded"

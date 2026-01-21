@@ -86,7 +86,7 @@ export default function DynamicTabCompContent({
       <div className="mt-4">
   {/* Departments */}
   {tabName === "Departments" && activeTab === "List" && <DepartmentList />}
-  {tabName === "Departments" && activeTab === "Add" && <AddDepartmentForm setIsAddOrg={setIsAddOrg} />}
+  {tabName === "Departments" && activeTab === "Add" && <AddDepartmentForm onCancel={() => setIsAddOrg("none")} />}
   {/* {tabName === "Departments" && activeTab === "Backup" && <div>Backup Departments</div>} */}
 
   {/* Employees */}
@@ -98,12 +98,24 @@ export default function DynamicTabCompContent({
   {tabName === "Patients" && activeTab === "Add" && <AddPatience />}
 
   {/* Appointments */}
-  {tabName === "Appointments" && activeTab === "List" && <AppointmentList />}
+  {tabName === "Appointments" && activeTab === "List" && (
+    <AppointmentList
+      appointments={[]}
+      onViewAppointment={() => {}}
+      onEditAppointment={() => {}}
+    />
+  )}
   {tabName === "Appointments" && activeTab === "Add" && <AddAppointment />}
 
   {/* Schedule */}
   {tabName === "Schedule" && activeTab === "List" && <ScheduleList />}
-  {tabName === "Schedule" && activeTab === "Add" && <AddSchedule />}
+  {tabName === "Schedule" && activeTab === "Add" && (
+    <AddSchedule
+      onClose={() => {}}
+      onSave={() => {}}
+      employees={[]}
+    />
+  )}
 
   {/* Manage Organization */}
   {tabName === "Manage Organization" && activeTab === "Details" && <OrgDetails />}

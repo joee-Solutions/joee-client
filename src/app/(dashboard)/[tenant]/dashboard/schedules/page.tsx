@@ -22,13 +22,12 @@ interface Schedule {
   description: string;
   status: "Active" | "Inactive";
 }
-interface FormData {
-  name: string;
+interface ScheduleFormData {
+  employeeName: string;
   role: string;
   department: string;
-  startTime: string;
-  endTime: string;
-  date: string;
+  selectedDays: string[];
+  schedules: { day: string; startTime: string; endTime: string }[];
 }
 
 interface TableDataItem {
@@ -130,6 +129,11 @@ const SchedulesPage: React.FC = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(0);
+
+  const handlePageClick = (event: { selected: number }) => {
+    setCurrentPage(event.selected);
+  };
 
 
   const handleViewSchedule = (schedule: Schedule): void => {
@@ -158,7 +162,7 @@ const SchedulesPage: React.FC = () => {
     setIsAddModalOpen(false);
   };
 
-  const handleSave = (formData: FormData): void => {
+  const handleSave = (formData: ScheduleFormData): void => {
     // Handle save logic
     console.log('Save data:', formData);
     handleCloseModal();
@@ -215,12 +219,13 @@ const SchedulesPage: React.FC = () => {
                 <Search className="size-5 text-[#999999] absolute right-4 top-1/2 -translate-y-1/2" />
               </div>
             </div>
-            <DataTable columns={columns} data={tableData} />
+             <DataTable columns={columns as any} data={tableData as any} />
           </div>
           <Pagination
             dataLength={tableData.length}
             numOfPages={1000}
             pageSize={10}
+            handlePageClick={handlePageClick}
           />
         </section>
         <Button

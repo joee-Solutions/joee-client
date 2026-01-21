@@ -4,19 +4,25 @@ import { DepartmentList } from "@/components/shared/table/data";
 import AddDepartmentForm from "@/components/Org/Departments/AddDepartmentForm";
 import OrgManagement from "@/app/(dashboard)/[tenant]/dashboard/organization/OrgManagement";
 
-import DataTable from "@/components/shared/table/DataTable";
+import DataTable, { Column } from "@/components/shared/table/DataTable";
 import { ListView } from "@/components/shared/table/DataTableFilter";
 import Pagination from "@/components/shared/table/pagination";
 import { useState } from "react";
-import { TableCell, TableRow } from "@/components/ui/table";
 import { Ellipsis } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search";
-import { useRouter } from "next/navigation"; 
+import { useRouter } from "next/navigation";
+
+type DepartmentData = typeof DepartmentList[0]; 
 export default function Page() {
   const [pageSize, setPageSize] = useState(10);
   const [isAddOrg, setIsAddOrg] = useState<"add" | "none" | "edit">("none");
+  const [currentPage, setCurrentPage] = useState(0);
   const router = useRouter(); 
+
+  const handlePageClick = (event: { selected: number }) => {
+    setCurrentPage(event.selected);
+  };
 
   const handleDepartmentClick = (departmentName: string) => {
     // Format the department name for the URL
@@ -25,10 +31,66 @@ export default function Page() {
     router.push(`/dashboard/departments/${formattedName}`);
   };
 
+  const columns: Column<DepartmentData>[] = [
+    {
+      header: "ID",
+      key: "id" as keyof DepartmentData,
+      size: 80,
+    },
+    {
+      header: "Department",
+      render: (row) => (
+        <div className="py-[21px]">
+          <p
+            className="font-medium text-xs text-black cursor-pointer hover:underline"
+            onClick={() => handleDepartmentClick(row.department.department_name)}
+          >
+            {row.department.department_name}
+          </p>
+        </div>
+      ),
+      size: 200,
+    },
+    {
+      header: "No. of Employees",
+      key: "no_of_empployees" as keyof DepartmentData,
+      size: 150,
+    },
+    {
+      header: "Date Created",
+      key: "date_created" as keyof DepartmentData,
+      size: 150,
+    },
+    {
+      header: "Status",
+      render: (row) => (
+        <span
+          className={`font-semibold text-xs ${
+            row.status.toLowerCase() === "active"
+              ? "text-[#3FA907]"
+              : "text-[#EC0909]"
+          }`}
+        >
+          {row.status}
+        </span>
+      ),
+      size: 120,
+    },
+    {
+      header: "Actions",
+      render: () => (
+        <button className="flex items-center justify-center px-2 h-6 rounded-[2px] border border-[#BFBFBF] bg-[#EDF0F6]">
+          <Ellipsis className="text-black size-5" />
+        </button>
+      ),
+      size: 100,
+    },
+  ];
+
   return (
     <section className="px-[30px] mb-10">
       {isAddOrg === "add" ? (
-        <AddDepartmentForm setIsAddOrg={setIsAddOrg} />
+        <AddDepartmentForm onCancel={() => setIsAddOrg("none")} />
       ) : isAddOrg === "edit" ? (
         <OrgManagement setIsAddOrg={setIsAddOrg} />
       ) : (
@@ -52,55 +114,16 @@ export default function Page() {
                 onSearch={(query) => console.log("Searching:", query)}
               />
             </header>
-            <DataTable tableDataObj={DepartmentList[0]}>
-              {DepartmentList.map((data) => {
-                return (
-                  <TableRow
-                    key={data.id}
-                    className="px-3 odd:bg-white even:bg-gray-50 hover:bg-gray-100"
-                  >
-                    <TableCell>{data.id}</TableCell>
-                    <TableCell className="py-[21px]">
-                      <div className="flex items-center gap-[10px]">
-                        {/* Add onClick to navigate to the department page */}
-                        <p
-                          className="font-medium text-xs text-black cursor-pointer hover:underline"
-                          onClick={() =>
-                            handleDepartmentClick(data.department.department_name)
-                          }
-                        >
-                          {data.department.department_name}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-semibold text-xs text-[#737373]">
-                      {data.no_of_empployees}
-                    </TableCell>
-                    <TableCell className="font-semibold text-xs text-[#737373]">
-                      {data.date_created}
-                    </TableCell>
-                    <TableCell
-                      className={`font-semibold text-xs ${
-                        data.status.toLowerCase() === "active"
-                          ? "text-[#3FA907]"
-                          : "text-[#EC0909]"
-                      }`}
-                    >
-                      {data.status}
-                    </TableCell>
-                    <TableCell>
-                      <button className="flex items-center justify-center px-2 h-6 rounded-[2px] border border-[#BFBFBF] bg-[#EDF0F6]">
-                        <Ellipsis className="text-black size-5" />
-                      </button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </DataTable>
+            <DataTable
+              columns={columns as any}
+              data={DepartmentList as any}
+              bgHeader="bg-[#003465] text-white"
+            />
             <Pagination
               dataLength={DepartmentList.length}
               numOfPages={1000}
               pageSize={pageSize}
+              handlePageClick={handlePageClick}
             />
           </section>
         </>

@@ -1,12 +1,13 @@
 import { useState, useRef } from "react";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
+import Image from "next/image";
 
 export default function ProfileImageUploader() {
-  const [image, setImage] = useState(null);
+  const [image, setImage] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
-  const fileInputRef = useRef(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleDragEnter = (e) => {
     e.preventDefault();
@@ -68,7 +69,7 @@ export default function ProfileImageUploader() {
       setTimeout(() => {
         const reader = new FileReader();
         reader.onload = () => {
-          setImage(reader.result);
+          setImage(reader.result as string);
           setUploading(false);
         };
         reader.readAsDataURL(file);
@@ -85,7 +86,7 @@ export default function ProfileImageUploader() {
   };
 
   const openFileDialog = () => {
-    fileInputRef.current.click();
+    fileInputRef.current?.click();
   };
 
   return (
@@ -114,9 +115,11 @@ export default function ProfileImageUploader() {
         >
           {image ? (
             <div className="relative w-full h-full flex items-center justify-center">
-              <img
+              <Image
                 src={image}
                 alt="Profile preview"
+                fill
+                unoptimized
                 className="max-w-full max-h-full object-contain rounded"
               />
               <button

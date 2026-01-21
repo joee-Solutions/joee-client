@@ -1,9 +1,8 @@
 "use client";
 
-import DataTable from "@/components/shared/table/DataTable";
+import DataTable, { Column } from "@/components/shared/table/DataTable";
 import Pagination from "@/components/shared/table/pagination";
 import { useState } from "react";
-import { TableCell, TableRow } from "@/components/ui/table";
 import { Search, Upload, ArrowDownUp, Settings2, Ellipsis } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -16,64 +15,72 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const employees = [
-    {
-      id: 1,
-      employee_name: {
-        name: "Johnson Raymond",
-        picture: "/assets/imagePlaceholder.png",
-      },
-      designation: "Doctor",
-      gender: "Male",
-    },
-    {
-      id: 2,
-      employee_name: {
-          name: "Susan Denilson",
-        picture: "/assets/imagePlaceholder.png",
-      },
-      designation: "Doctor",
-      gender: "Female",
-    },
-    {
-      id: 3,
-      employee_name: {
-        name: "Lazarus Jennifer",
-        picture: "/assets/imagePlaceholder.png",
-      },
-      designation: "Nurse",
-      gender: "Female",
-     
-    },
-    {
-      id: 4,
-      employee_name: {
-          name: "Larry Denilson",
-        picture: "/assets/imagePlaceholder.png",
-      },
-      designation: "Doctor",
-      gender: "Male",
-     
-    },
-    {
-      id: 5,
-      employee_name: {
-        name: "John Janeth Esther",
+type Employee = {
+  id: number;
+  employee_name: {
+    name: string;
+    picture: string;
+  };
+  designation: string;
+  gender: string;
+};
+
+const employees: Employee[] = [
+  {
+    id: 1,
+    employee_name: {
+      name: "Johnson Raymond",
       picture: "/assets/imagePlaceholder.png",
     },
-      designation: "Receptionist",
-      gender: "Female",
-    },
-    {
-      id: 6,
-      employee_name: {
-        name: "Paul Jameson",
+    designation: "Doctor",
+    gender: "Male",
+  },
+  {
+    id: 2,
+    employee_name: {
+      name: "Susan Denilson",
       picture: "/assets/imagePlaceholder.png",
     },
-      designation: "Nurse",
-      gender: "Male",
-    }
-  ];
+    designation: "Doctor",
+    gender: "Female",
+  },
+  {
+    id: 3,
+    employee_name: {
+      name: "Lazarus Jennifer",
+      picture: "/assets/imagePlaceholder.png",
+    },
+    designation: "Nurse",
+    gender: "Female",
+  },
+  {
+    id: 4,
+    employee_name: {
+      name: "Larry Denilson",
+      picture: "/assets/imagePlaceholder.png",
+    },
+    designation: "Doctor",
+    gender: "Male",
+  },
+  {
+    id: 5,
+    employee_name: {
+      name: "John Janeth Esther",
+      picture: "/assets/imagePlaceholder.png",
+    },
+    designation: "Receptionist",
+    gender: "Female",
+  },
+  {
+    id: 6,
+    employee_name: {
+      name: "Paul Jameson",
+      picture: "/assets/imagePlaceholder.png",
+    },
+    designation: "Nurse",
+    gender: "Male",
+  },
+];
 
 
 export default function DepartmentEmployeesPage() {
@@ -81,6 +88,71 @@ export default function DepartmentEmployeesPage() {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("");
   const [filterBy, setFilterBy] = useState("");
+  const [currentPage, setCurrentPage] = useState(0);
+
+  const handlePageClick = (event: { selected: number }) => {
+    setCurrentPage(event.selected);
+  };
+
+  const columns: Column<Employee>[] = [
+    {
+      header: "ID",
+      key: "id" as keyof Employee,
+      size: 80,
+    },
+    {
+      header: "Employee Name",
+      render: (row) => (
+        <div className="flex items-center gap-[10px] py-[21px]">
+          <span className="w-[42px] h-[42px] rounded-full overflow-hidden">
+            <Image
+              src={row.employee_name.picture}
+              alt="employee image"
+              width={42}
+              height={42}
+              className="object-cover aspect-square w-full h-full"
+            />
+          </span>
+          <p className="font-medium text-xs text-black">
+            {row.employee_name.name}
+          </p>
+        </div>
+      ),
+      size: 250,
+    },
+    {
+      header: "Designation",
+      key: "designation" as keyof Employee,
+      size: 150,
+    },
+    {
+      header: "Gender",
+      render: (row) => (
+        <div
+          className={`flex items-center justify-center font-medium text-xs h-[30px] w-[69px] rounded-[20px] ${
+            row.gender.toLowerCase() === "male"
+              ? "text-[#3FA907] bg-[#E5F8DA]"
+              : "text-[#EC0909] bg-[#FDE6E6]"
+          }`}
+        >
+          {row.gender[0].toUpperCase() + row.gender.slice(1)}
+        </div>
+      ),
+      size: 120,
+    },
+    {
+      header: "Actions",
+      render: () => (
+        <Link
+          href={"/dashboard/organization/1234"}
+          className="flex items-center justify-center px-2 h-6 rounded-[2px] border border-[#BFBFBF] bg-[#EDF0F6]"
+        >
+          <Ellipsis className="text-black size-5" />
+        </Link>
+      ),
+      size: 100,
+    },
+  ];
 
   return (
     <section className="">
@@ -152,59 +224,17 @@ export default function DepartmentEmployeesPage() {
         </div>
       </div>
       <DataTable
-        tableDataObj={employees[0]}
+        columns={columns as any}
+        data={employees as any}
         bgHeader="bg-[#D9EDFF] text-black"
-      >
-        {employees.map((data) => {
-          return (
-            <TableRow key={data.id} className="px-3">
-              <TableCell>{data.id}</TableCell>
-              <TableCell className="py-[21px]">
-                <div className="flex items-center gap-[10px]">
-                  <span className="w-[42px] h-42px rounded-full overflow-hidden">
-                    <Image
-                      src={data.employee_name.picture}
-                      alt="patient image"
-                      width={42}
-                      height={42}
-                      className="object-cover aspect-square w-full h-full"
-                    />
-                  </span>
-                  <p className="font-medium text-xs text-black">
-                    {data.employee_name.name}
-                  </p>
-                </div>
-              </TableCell>
-              <TableCell className="font-semibold text-xs text-[#737373]">
-                {data.designation}
-              </TableCell>
-              <TableCell>
-                <div
-                  className={`flex items-center justify-center font-medium text-xs h-[30px] w-[69px] rounded-[20px] ${
-                    data.gender.toLowerCase() === "male"
-                      ? "text-[#3FA907] bg-[#E5F8DA]"
-                      : "text-[#EC0909] bg-[#FDE6E6]"
-                  }`}
-                >
-                  {data.gender[0].toUpperCase() + data.gender.slice(1)}
-                </div>
-              </TableCell>
-              <TableCell>
-                <Link
-                  href={"/dashboard/organization/1234"}
-                  className="flex items-center justify-center px-2 h-6 rounded-[2px] border border-[#BFBFBF] bg-[#EDF0F6]"
-                >
-                  <Ellipsis className="text-black size-5" />
-                </Link>
-              </TableCell>
-            </TableRow>
-          );
-        })}
-      </DataTable>
+        search={search}
+        searchableKeys={["designation", "gender"] as any}
+      />
       <Pagination
         dataLength={employees.length}
         numOfPages={1000}
         pageSize={pageSize}
+        handlePageClick={handlePageClick}
       />
     </section>
   );
