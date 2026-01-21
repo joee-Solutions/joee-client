@@ -110,6 +110,11 @@ const columns: Column<ScheduleDTO>[] = [
 
 export default function SchedulePage() {
   const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(0);
+
+  const handlePageClick = (event: { selected: number }) => {
+    setCurrentPage(event.selected);
+  };
 
   return (
     <section className="">
@@ -129,6 +134,7 @@ export default function SchedulePage() {
         dataLength={ScheduleTableData.length}
         numOfPages={1000}
         pageSize={pageSize}
+        handlePageClick={handlePageClick}
       />
     </section>
   );

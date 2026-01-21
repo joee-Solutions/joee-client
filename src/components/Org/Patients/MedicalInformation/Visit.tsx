@@ -6,8 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Textarea } from "@/components/ui/Textarea";
 import { Calendar } from "lucide-react";
 
 // Define the type for a visit entry
@@ -185,9 +184,10 @@ export default function MedicalVisitForm() {
                   Date of Service
                 </label>
                 <div className="relative">
-                  <Input
+                  <input
                     type="date"
-            className="w-full h-14 p-3 border border-[#737373] rounded"
+                    name={`dateOfService-${entry.id}`}
+                    className="w-full h-14 p-3 border border-[#737373] rounded"
                     value={entry.dateOfService}
                     onChange={(e) =>
                       handleInputChange(entry.id, "dateOfService", e.target.value)
@@ -249,9 +249,10 @@ export default function MedicalVisitForm() {
                     Onset date
                   </label>
                   <div className="relative">
-                    <Input
+                    <input
                       type="date"
-            className="w-full h-14 p-3 border border-[#737373] rounded"
+                      name={`hpiOnsetDate-${entry.id}`}
+                      className="w-full h-14 p-3 border border-[#737373] rounded"
                       value={entry.hpiOnsetDate}
                       onChange={(e) =>
                         handleInputChange(entry.id, "hpiOnsetDate", e.target.value)
@@ -394,9 +395,10 @@ export default function MedicalVisitForm() {
                     Onset date
                   </label>
                   <div className="relative">
-                    <Input
+                    <input
                       type="date"
-                        className="w-full h-14 p-3 border border-[#737373] rounded"
+                      name={`diagnosisOnsetDate-${entry.id}`}
+                      className="w-full h-14 p-3 border border-[#737373] rounded"
                       value={entry.diagnosisOnsetDate}
                       onChange={(e) =>
                         handleInputChange(entry.id, "diagnosisOnsetDate", e.target.value)
@@ -433,9 +435,10 @@ export default function MedicalVisitForm() {
                 <label className="block text-base text-black font-normal mb-2">
                   Provider name
                 </label>
-                <Input
+                <input
                   type="text"
-            className="w-full h-14 p-3 border border-[#737373] rounded"
+                  name={`providerName-${entry.id}`}
+                  className="w-full h-14 p-3 border border-[#737373] rounded"
                   value={entry.providerName}
                   onChange={(e) =>
                     handleInputChange(entry.id, "providerName", e.target.value)

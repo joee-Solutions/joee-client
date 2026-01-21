@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { CircleArrowLeft, Building2, Users } from "lucide-react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import DepartmentOverview from "./DepartmentOverview";
 import DepartmentEmployees from "./DepartmentEmployees";
 import userProfileImage from "./../../../../../../../public/assets/doctorMale.png";
@@ -34,16 +35,12 @@ const departmentData = {
   status: "Active"
 };
 
-export default function DepartmentDetailPage({ onNavigateBack }) {
+export default function DepartmentDetailPage() {
   const [currTab, setCurrTab] = useState(1);
+  const router = useRouter();
 
   const handleBack = () => {
-    if (onNavigateBack) {
-      onNavigateBack(); // Navigate back to departments list
-    } else {
-      // Fallback - you can replace with your routing logic
-      console.log("Navigate back to departments list");
-    }
+    router.back();
   };
 
   return (

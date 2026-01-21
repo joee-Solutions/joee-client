@@ -15,11 +15,11 @@ import { useForm } from "react-hook-form";
 
 export default function MedicalInfo() {
   const mult = useMultiStepForm([
-    <MedicalStatusAlergy />,
-    <MedicationHistory />,
-    <SurgeryImmunizationHistory />,
-    <SocialHistory />,
-    <ReviewAndPrescription />,
+    <MedicalStatusAlergy key="medical-status-allergy" />,
+    <MedicationHistory key="medication-history" />,
+    <SurgeryImmunizationHistory key="surgery-immunization-history" />,
+    <SocialHistory key="social-history" />,
+    <ReviewAndPrescription key="review-and-prescription" />,
     // <Visit />,
   ]);
 

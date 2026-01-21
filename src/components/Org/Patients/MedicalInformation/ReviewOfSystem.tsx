@@ -90,7 +90,6 @@ export default function MedicalSymptomForm() {
           className="w-full h-32 p-3 border border-[#737373] rounded"
           value={formData[detailsName] as string}
           onChange={(e) => handleTextChange(detailsName, e.target.value)}
-          className="w-full border border-gray-300 rounded p-2 h-32"
         />
       </div>
     </div>

@@ -76,7 +76,7 @@ export default function NewMedicalRecord() {
             </div>
           </aside>
           <div className="px-[25px] pt-[32px] pb-[56px] shadow-[0px_0px_4px_1px_#0000004D] rounded-md overflow-hidden">
-            <FormComposer form={form} onSubmit={form.handleSubmit(onSubmit)}>
+            <FormComposer form={form} onSubmit={onSubmit}>
               <div className="grid gap-[30px] mb-10">
                 <FieldDateTimePicker
                   control={form.control}

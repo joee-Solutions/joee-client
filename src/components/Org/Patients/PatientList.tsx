@@ -2,20 +2,102 @@
 
 import { PatientData } from "@/components/shared/table/data";
 
-import DataTable from "@/components/shared/table/DataTable";
+import DataTable, { Column } from "@/components/shared/table/DataTable";
 import { ListView,} from "@/components/shared/table/DataTableFilter";
 import Pagination from "@/components/shared/table/pagination";
 import { useState } from "react";
-import { TableCell, TableRow } from "@/components/ui/table";
 import { Ellipsis } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search";
 
+type PatientDataItem = typeof PatientData[0];
+
 export default function Page() {
   const [pageSize, setPageSize] = useState(10);
   const [isAddOrg, setIsAddOrg] = useState<"add" | "none" | "edit">("none");
+  const [currentPage, setCurrentPage] = useState(0);
 
+  const handlePageClick = (event: { selected: number }) => {
+    setCurrentPage(event.selected);
+  };
+
+  const columns: Column<PatientDataItem>[] = [
+    {
+      header: "ID",
+      key: "id" as keyof PatientDataItem,
+      size: 80,
+    },
+    {
+      header: "Patient",
+      render: (row) => (
+        <div className="flex items-center gap-[10px] py-[21px]">
+          <span className="w-[42px] h-[42px] rounded-full overflow-hidden">
+            <Image
+              src={row.patience.image}
+              alt="patient image"
+              width={42}
+              height={42}
+              className="object-cover aspect-square w-full h-full"
+            />
+          </span>
+          <p className="font-medium text-xs text-black">
+            {row.patience.name}
+          </p>
+        </div>
+      ),
+      size: 200,
+    },
+    {
+      header: "Address",
+      key: "address" as keyof PatientDataItem,
+      size: 200,
+    },
+    {
+      header: "Gender",
+      key: "gender" as keyof PatientDataItem,
+      size: 100,
+    },
+    {
+      header: "Age",
+      key: "age" as keyof PatientDataItem,
+      size: 80,
+    },
+    {
+      header: "Phone",
+      key: "phone" as keyof PatientDataItem,
+      size: 150,
+    },
+    {
+      header: "Email",
+      key: "email" as keyof PatientDataItem,
+      size: 200,
+    },
+    {
+      header: "Status",
+      render: (row) => (
+        <span
+          className={`font-semibold text-xs ${
+            row.status.toLowerCase() === "active"
+              ? "text-[#3FA907]"
+              : "text-[#EC0909]"
+          }`}
+        >
+          {row.status}
+        </span>
+      ),
+      size: 120,
+    },
+    {
+      header: "Actions",
+      render: () => (
+        <button className="flex items-center justify-center px-2 h-6 rounded-[2px] border border-[#BFBFBF] bg-[#EDF0F6]">
+          <Ellipsis className="text-black size-5" />
+        </button>
+      ),
+      size: 100,
+    },
+  ];
 
   return (
     <section className="px-[30px] mb-10">
@@ -40,62 +122,16 @@ export default function Page() {
 
               
             </header>
-            <DataTable tableDataObj={PatientData[0]}>
-              {PatientData.map((data) => {
-                return (
-                  <TableRow key={data.id} className="px-3 odd:bg-white even:bg-gray-50  hover:bg-gray-100">
-                    <TableCell>{data.id}</TableCell>
-                    <TableCell className="py-[21px]">
-                      <div className="flex items-center gap-[10px]">
-                        <span className="w-[42px] h-42px rounded-full overflow-hidden">
-                          <Image
-                            src={data.patience.image}
-                            alt="employee image"
-                            className="object-cover aspect-square w-full h-full"
-                          />
-                        </span>
-                        <p className="font-medium text-xs text-black">
-                          {data.patience.name}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-semibold text-xs text-[#737373]">
-                      {data.address}
-                    </TableCell>
-                    <TableCell className="font-semibold text-xs text-[#737373]">
-                      {data.gender}
-                    </TableCell>
-                    <TableCell className="font-semibold text-xs text-[#737373]">
-                      {data.age}
-                    </TableCell>
-                    <TableCell className="font-semibold text-xs text-[#737373]">
-                      {data.phone}
-                    </TableCell>
-                    <TableCell className="font-semibold text-xs text-[#737373]">
-                      {data.email}
-                    </TableCell>
-                    <TableCell
-                      className={`font-semibold text-xs ${
-                        data.status.toLowerCase() === "active"
-                          ? "text-[#3FA907]"
-                          : "text-[#EC0909]"
-                      }`}
-                    >
-                      {data.status}
-                    </TableCell>
-                    <TableCell>
-                      <button className="flex items-center justify-center px-2 h-6 rounded-[2px] border border-[#BFBFBF] bg-[#EDF0F6]">
-                        <Ellipsis className="text-black size-5" />
-                      </button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </DataTable>
+            <DataTable
+              columns={columns as any}
+              data={PatientData as any}
+              bgHeader="bg-[#003465] text-white"
+            />
             <Pagination
               dataLength={PatientData.length}
               numOfPages={1000}
               pageSize={pageSize}
+              handlePageClick={handlePageClick}
             />
           </section>
         </>

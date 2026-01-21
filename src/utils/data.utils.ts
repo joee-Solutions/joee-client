@@ -1,4 +1,4 @@
-/* eslint-disable prefer-const */
+
 export const getResponseErrorMessage = (e:any, noStatusCode = false) => {
     console.error('error', e)
     let errMsg = e.response?.data?.message || e.response?.data?.error;

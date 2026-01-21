@@ -7,6 +7,7 @@ import FormComposer from "@/components/shared/form/FormComposer";
 import { Button } from "@/components/ui/button";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CloudUpload, Edit, Plus } from "lucide-react";
+import Image from "next/image";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -74,7 +75,6 @@ export default function Settings() {
 
     const fileKind = event.dataTransfer.items[0].kind;
     const fileType = event.dataTransfer.items[0].type;
-    event.dataTransfer;
 
     if (fileKind !== "file" || fileType.includes("video")) {
       form.setError("systemLogo", { message: "Unsupported file type" });
@@ -173,10 +173,12 @@ export default function Settings() {
                 hidden
               />
               {logoPreview && (
-                <img
+                <Image
                   src={logoPreview}
                   alt="logo previewer"
-                  className="aspect-square object-cover w-full h-full absolute inset-0 z-10 cursor-pointer"
+                  fill
+                  unoptimized
+                  className="aspect-square object-cover absolute inset-0 z-10 cursor-pointer"
                 />
               )}
               {logoPreview && (
