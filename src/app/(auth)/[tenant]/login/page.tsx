@@ -53,46 +53,41 @@ const TenantLoginPage = () => {
   };
   const handleFormSubmit = async (data: LoginProps) => {
     try {
-      // Check if OTP was already verified (within 0 days = always remember)
-      const otpVerified = Cookies.get("otp_verified");
-      
-      if (otpVerified === "true") {
-        // Skip OTP - go directly to dashboard
-        const mockAuthToken = `dev_auth_token_${Date.now()}`;
-        const mockRefreshToken = `dev_refresh_token_${Date.now()}`;
-        const mockUser = {
-          id: 1,
-          email: data.email,
-          name: "Development User",
-        };
-
-        Cookies.set("auth_token", mockAuthToken, {
-          expires: 1 / 48,
-        });
-        Cookies.set("refresh_token", mockRefreshToken, { expires: 1 / 48 });
-        Cookies.set("user", JSON.stringify(mockUser), {
-          expires: 1 / 48,
-        });
-        toast.success("Login successful!", {
-          toastId: "success",
-          delay: 1000,
-        });
-        router.push("/dashboard");
-        return;
-      }
-
       // TODO: Remove this bypass when backend is ready
       // Bypass authentication for development - accept any credentials
-      // If OTP not verified, go to OTP page
-      const mockMfaToken = `dev_mfa_token_${Date.now()}`;
-      Cookies.set("mfa_token", mockMfaToken, { expires: 1 / 48 });
-      router.push("/verify-otp");
+      // Go directly to dashboard without OTP verification
+      const mockAuthToken = `dev_auth_token_${Date.now()}`;
+      const mockRefreshToken = `dev_refresh_token_${Date.now()}`;
+      const mockUser = {
+        id: 1,
+        email: data.email,
+        name: "Development User",
+      };
+
+      Cookies.set("auth_token", mockAuthToken, {
+        expires: 1 / 48,
+      });
+      Cookies.set("refresh_token", mockRefreshToken, { expires: 1 / 48 });
+      Cookies.set("user", JSON.stringify(mockUser), {
+        expires: 1 / 48,
+      });
+      toast.success("Login successful!", {
+        toastId: "success",
+        delay: 1000,
+      });
+      router.push("/dashboard");
       
       // Original code (commented out for now):
       // const rt = await processRequestNoAuth("post", API_ENDPOINTS.LOGIN, data);
       // if (rt) {
-      //   Cookies.set("mfa_token", rt.data.token, { expires: 1 / 48 });
-      //   router.push("/verify-otp");
+      //   Cookies.set("auth_token", rt.data.token, { expires: 1 / 48 });
+      //   if (rt.data.refresh_token) {
+      //     Cookies.set("refresh_token", rt.data.refresh_token, { expires: 1 / 48 });
+      //   }
+      //   Cookies.set("user", JSON.stringify(rt.data.user), {
+      //     expires: 1 / 48,
+      //   });
+      //   router.push("/dashboard");
       // }
     } catch (error: any) {
       toast.error(error?.response?.data.error);
