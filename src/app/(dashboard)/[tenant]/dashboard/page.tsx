@@ -1,5 +1,6 @@
 "use client";
 import { NextPage } from "next";
+import { Hospital } from "lucide-react";
 // import Head from 'next/head';
 import StatCard from "@/components/dashboard/StatCard";
 import AppointmentsChart from "@/components/dashboard/AppointmentsChart";
@@ -19,17 +20,17 @@ import {
 
 const DashboardPage: NextPage = () => {
   const stats = {
-    allOrganizations: { count: 490, growth: null, icon: <></> },
-    activeOrganizations: { count: 250, growth: 2.45, icon: <></>},
+    allOrganizations: { count: 490, growth: null, icon: <Hospital className="text-white size-5" /> },
+    activeOrganizations: { count: 250, growth: 2.45, icon: <Hospital className="text-white size-5" />},
     inactiveOrganizations: {
       count: 100,
       growth: 2.45,
-      icon: <></>,
+      icon: <Hospital className="text-white size-5" />,
     },
     deactivatedOrganizations: {
       count: 140,
       growth: -2.45,
-      icon: <></>,
+      icon: <Hospital className="text-white size-5" />,
     },
     networkTab: { icon: <></> },
   };
