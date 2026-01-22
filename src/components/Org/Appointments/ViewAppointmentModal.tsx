@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/Textarea";
 import { X, Edit } from "lucide-react";
 
@@ -47,7 +46,9 @@ export default function ViewAppointmentModal({
             {/* Patient Name */}
             <div>
               <label className="block text-base text-black font-normal mb-2">Patient name</label>
-              <Input
+              <input
+                type="text"
+                name="patientName"
                 value={appointment.patientName}
                 disabled
                 className="w-full p-3 border border-[#737373] h-14 rounded bg-gray-50"
@@ -57,7 +58,9 @@ export default function ViewAppointmentModal({
             {/* Appointment With */}
             <div>
               <label className="block text-base text-black font-normal mb-2">Appointment with</label>
-              <Input
+              <input
+                type="text"
+                name="doctorName"
                 value={appointment.doctorName}
                 disabled
                 className="w-full p-3 border border-[#737373] h-14 rounded bg-gray-50"
@@ -67,7 +70,9 @@ export default function ViewAppointmentModal({
             {/* Appointment Date */}
             <div>
               <label className="block text-base text-black font-normal mb-2">Appointment Date</label>
-              <Input
+              <input
+                type="text"
+                name="date"
                 value={appointment.date}
                 disabled
                 className="w-full p-3 border border-[#737373] h-14 rounded bg-gray-50"
@@ -77,7 +82,9 @@ export default function ViewAppointmentModal({
             {/* Appointment Time */}
             <div>
               <label className="block text-base text-black font-normal mb-2">Appointment Time</label>
-              <Input
+              <input
+                type="text"
+                name="time"
                 value={appointment.time}
                 disabled
                 className="w-full p-3 border border-[#737373] h-14 rounded bg-gray-50"
@@ -87,7 +94,9 @@ export default function ViewAppointmentModal({
             {/* Status */}
             <div>
               <label className="block text-base text-black font-normal mb-2">Status</label>
-              <Input
+              <input
+                type="text"
+                name="status"
                 value={appointment.status}
                 disabled
                 className="w-full p-3 border border-[#737373] h-14 rounded bg-gray-50"

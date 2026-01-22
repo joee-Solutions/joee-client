@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/Textarea";
 import {
   Select,
@@ -44,8 +43,9 @@ export default function LifestyleForm() {
           <div className="flex space-x-4">
             {["Never", "Former", "Current"].map((option) => (
               <label key={option} className="flex items-center space-x-2  text-base text-black font-normal mb-2">
-                <Input
-                  type="checkbox"
+                <input
+                  type="radio"
+                  name="tobaccoUse"
                   className="accent-green-600 w-6 h-6 rounded"
                   checked={formState.tobaccoUse === option.toLowerCase()}
                   onChange={() => handleChange("tobaccoUse", option.toLowerCase())}
@@ -57,17 +57,19 @@ export default function LifestyleForm() {
 
           {(formState.tobaccoUse === "former" || formState.tobaccoUse === "current") && (
             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
+              <input
                 type="text"
+                name="tobaccoQuantity"
                 placeholder="Quantity (Packs per day)"
-            className="w-full h-14 p-3 border border-[#737373] rounded"
+                className="w-full h-14 p-3 border border-[#737373] rounded"
                 value={formState.tobaccoQuantity}
                 onChange={(e) => handleChange("tobaccoQuantity", e.target.value)}
               />
-              <Input
+              <input
                 type="text"
+                name="tobaccoDuration"
                 placeholder="Duration (Years)"
-            className="w-full h-14 p-3 border border-[#737373] rounded"
+                className="w-full h-14 p-3 border border-[#737373] rounded"
                 value={formState.tobaccoDuration}
                 onChange={(e) => handleChange("tobaccoDuration", e.target.value)}
               />
@@ -81,8 +83,9 @@ export default function LifestyleForm() {
           <div className="flex space-x-4">
             {["Never", "Social", "Regular", "Heavy"].map((option) => (
               <label key={option} className="flex items-center space-x-2 text-base text-black font-normal mb-2">
-                <Input
-                  type="checkbox"
+                <input
+                  type="radio"
+                  name="alcoholUse"
                   className="accent-green-600 w-6 h-6 rounded"
                   checked={formState.alcoholUse === option.toLowerCase()}
                   onChange={() => handleChange("alcoholUse", option.toLowerCase())}
@@ -106,8 +109,9 @@ export default function LifestyleForm() {
           <div className="flex space-x-4">
             {["Yes", "No"].map((option) => (
               <label key={option} className="flex items-center space-x-2 text-base text-black font-normal mb-2">
-                <Input
-                  type="checkbox"
+                <input
+                  type="radio"
+                  name="drugUse"
                   className="accent-green-600 w-6 h-6 rounded"
                   checked={formState.drugUse === option.toLowerCase()}
                   onChange={() => handleChange("drugUse", option.toLowerCase())}
@@ -133,8 +137,9 @@ export default function LifestyleForm() {
           <div className="flex space-x-4">
             {["Yes", "No"].map((option) => (
               <label key={option} className="flex items-center space-x-2 text-base text-black font-normal mb-2">
-                <Input
-                  type="checkbox"
+                <input
+                  type="radio"
+                  name="dietExercise"
                   className="accent-green-600 w-6 h-6 rounded"
                   checked={formState.dietExercise === option.toLowerCase()}
                   onChange={() => handleChange("dietExercise", option.toLowerCase())}

@@ -13,10 +13,10 @@ import { useForm } from "react-hook-form";
 
 export default function PersonalInfo() {
   const mult = useMultiStepForm([
-    <PatientDemograph />,
-    <PatientAdditionalInfo />,
-    <EmergencyInfo />,
-    <GuardianInfo />,
+    <PatientDemograph key="patient-demograph" />,
+    <PatientAdditionalInfo key="patient-additional-info" />,
+    <EmergencyInfo key="emergency-info" />,
+    <GuardianInfo key="guardian-info" />,
   ]);
 
   const form = useForm<PersonalInfoSchemaType>({

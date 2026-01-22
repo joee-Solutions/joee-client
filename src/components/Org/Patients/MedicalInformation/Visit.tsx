@@ -6,8 +6,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/Textarea";
+import { Calendar } from "lucide-react";
 
 // Define the type for a visit entry
 type VisitEntry = {
@@ -184,8 +184,9 @@ export default function MedicalVisitForm() {
                   Date of Service
                 </label>
                 <div className="relative">
-                  <Input
+                  <input
                     type="date"
+                    name={`dateOfService-${entry.id}`}
             className="w-full h-14 p-3 border border-[#737373] rounded"
                     value={entry.dateOfService}
                     onChange={(e) =>
@@ -248,8 +249,9 @@ export default function MedicalVisitForm() {
                     Onset date
                   </label>
                   <div className="relative">
-                    <Input
+                    <input
                       type="date"
+                      name={`hpiOnsetDate-${entry.id}`}
             className="w-full h-14 p-3 border border-[#737373] rounded"
                       value={entry.hpiOnsetDate}
                       onChange={(e) =>
@@ -393,8 +395,9 @@ export default function MedicalVisitForm() {
                     Onset date
                   </label>
                   <div className="relative">
-                    <Input
+                    <input
                       type="date"
+                      name={`diagnosisOnsetDate-${entry.id}`}
                         className="w-full h-14 p-3 border border-[#737373] rounded"
                       value={entry.diagnosisOnsetDate}
                       onChange={(e) =>
@@ -432,8 +435,9 @@ export default function MedicalVisitForm() {
                 <label className="block text-base text-black font-normal mb-2">
                   Provider name
                 </label>
-                <Input
+                <input
                   type="text"
+                  name={`providerName-${entry.id}`}
             className="w-full h-14 p-3 border border-[#737373] rounded"
                   value={entry.providerName}
                   onChange={(e) =>

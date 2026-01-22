@@ -1,10 +1,9 @@
 "use client";
 
-import DataTable from "@/components/shared/table/DataTable";
+import DataTable, { Column } from "@/components/shared/table/DataTable";
 import { ListView } from "@/components/shared/table/DataTableFilter";
 import Pagination from "@/components/shared/table/pagination";
 import { useState } from "react";
-import { TableCell, TableRow } from "@/components/ui/table";
 import { Ellipsis } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -44,15 +43,69 @@ export default function AppointmentList({
     setCurrentPage(event.selected);
   };
 
-  const columns = [
-    { header: "ID", key: "id" },
-    { header: "Patient name", key: "patientName" },
-    { header: "Age", key: "age" },
-    { header: "Doctor name", key: "doctorName" },
-    { header: "Department", key: "department" },
-    { header: "Date", key: "date" },
-    { header: "Time", key: "time" },
-    { header: "Action", key: "action" },
+  const columns: Column<Appointment>[] = [
+    {
+      header: "ID",
+      key: "id" as keyof Appointment,
+      size: 80,
+    },
+    {
+      header: "Patient name",
+      render: (row) => (
+        <div className="flex items-center gap-[10px] py-[21px]">
+          <span className="w-[42px] h-[42px] rounded-full overflow-hidden">
+            <Image
+              src={orgPlaceholder}
+              alt="patient image"
+              width={42}
+              height={42}
+              className="object-cover aspect-square w-full h-full rounded-full"
+            />
+          </span>
+          <p className="font-medium text-xs text-black">{row.patientName}</p>
+        </div>
+      ),
+      size: 200,
+    },
+    {
+      header: "Age",
+      render: (row) => (
+        <span className="font-semibold text-xs text-[#737373]">{row.age || "-"}</span>
+      ),
+      size: 80,
+    },
+    {
+      header: "Doctor name",
+      key: "doctorName" as keyof Appointment,
+      size: 150,
+    },
+    {
+      header: "Department",
+      key: "department" as keyof Appointment,
+      size: 150,
+    },
+    {
+      header: "Date",
+      key: "date" as keyof Appointment,
+      size: 120,
+    },
+    {
+      header: "Time",
+      key: "time" as keyof Appointment,
+      size: 120,
+    },
+    {
+      header: "Action",
+      render: (row) => (
+        <button
+          onClick={() => onViewAppointment(row)}
+          className="flex items-center justify-center px-2 h-6 rounded-[2px] border border-[#BFBFBF] bg-[#EDF0F6]"
+        >
+          <Ellipsis className="text-black size-5" />
+        </button>
+      ),
+      size: 100,
+    },
   ];
 
   return (
@@ -73,42 +126,11 @@ export default function AppointmentList({
           <ListView pageSize={pageSize} setPageSize={setPageSize} />
           <SearchInput onSearch={(query) => console.log("Searching:", query)} />
         </div>
-        <DataTable columns={columns} data={appointments}>
-          {appointments.map((appointment) => {
-            return (
-              <TableRow key={appointment.id} className="px-3 odd:bg-white even:bg-gray-50 hover:bg-gray-100">
-                <TableCell>{appointment.id}</TableCell>
-                <TableCell className="py-[21px]">
-                  <div className="flex items-center gap-[10px]">
-                    <span className="w-[42px] h-[42px] rounded-full overflow-hidden">
-                      <Image
-                        src={orgPlaceholder}
-                        alt="patient image"
-                        width={42}
-                        height={42}
-                        className="object-cover aspect-square w-full h-full rounded-full"
-                      />
-                    </span>
-                    <p className="font-medium text-xs text-black">{appointment.patientName}</p>
-                  </div>
-                </TableCell>
-                <TableCell className="font-semibold text-xs text-[#737373]">{appointment.age || "-"}</TableCell>
-                <TableCell className="font-semibold text-xs text-[#737373]">{appointment.doctorName}</TableCell>
-                <TableCell className="font-semibold text-xs text-[#737373]">{appointment.department}</TableCell>
-                <TableCell className="font-semibold text-xs text-[#737373]">{appointment.date}</TableCell>
-                <TableCell className="font-semibold text-xs text-[#737373]">{appointment.time}</TableCell>
-                <TableCell>
-                  <button
-                    onClick={() => onViewAppointment(appointment)}
-                    className="flex items-center justify-center px-2 h-6 rounded-[2px] border border-[#BFBFBF] bg-[#EDF0F6]"
-                  >
-                    <Ellipsis className="text-black size-5" />
-                  </button>
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </DataTable>
+        <DataTable
+          columns={columns as any}
+          data={appointments as any}
+          bgHeader="bg-[#003465] text-white"
+        />
         <Pagination
           dataLength={appointments.length}
           numOfPages={Math.ceil(appointments.length / pageSize)}

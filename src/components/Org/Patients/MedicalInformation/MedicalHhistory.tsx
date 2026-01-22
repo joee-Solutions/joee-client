@@ -1,5 +1,4 @@
 import { useState, ChangeEvent } from "react";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/Textarea";
 import {
   Select,
@@ -227,10 +226,11 @@ export default function MedicalHistoryForm() {
 
             <div className="w-full md:w-1/2">
               <label className="block text-base text-black font-normal mb-2">Onset Date</label>
-              <Input
+              <input
                 type="date"
+                name={`onsetDate-${condition.id}`}
                 value={condition.onsetDate}
-            className="w-full h-14 p-3 border border-[#737373] rounded"
+                className="w-full h-14 p-3 border border-[#737373] rounded"
                 onChange={(e) =>
                   updateMedicalCondition(condition.id, "onsetDate", e.target.value)
                 }
@@ -241,10 +241,11 @@ export default function MedicalHistoryForm() {
           <div className="flex flex-col md:flex-row gap-4 mb-4">
             <div className="w-full md:w-1/2">
               <label className="block text-base text-black font-normal mb-2">End Date</label>
-              <Input
+              <input
                 type="date"
+                name={`endDate-${condition.id}`}
                 value={condition.endDate}
-            className="w-full h-14 p-3 border border-[#737373] rounded"
+                className="w-full h-14 p-3 border border-[#737373] rounded"
                 onChange={(e) =>
                   updateMedicalCondition(condition.id, "endDate", e.target.value)
                 }
@@ -317,10 +318,11 @@ export default function MedicalHistoryForm() {
 
             <div className="w-full md:w-1/2">
               <label className="block text-base text-black font-normal mb-2">Start Date</label>
-              <Input
+              <input
                 type="date"
+                name={`startDate-${medication.id}`}
                 value={medication.startDate}
-            className="w-full h-14 p-3 border border-[#737373] rounded"
+                className="w-full h-14 p-3 border border-[#737373] rounded"
                 onChange={(e) =>
                   updateMedication(medication.id, "startDate", e.target.value)
                 }
@@ -331,10 +333,11 @@ export default function MedicalHistoryForm() {
           <div className="flex flex-col md:flex-row gap-4 mb-4">
             <div className="w-full md:w-1/2">
               <label className="block text-base text-black font-normal mb-2">End Date</label>
-              <Input
+              <input
                 type="date"
+                name={`endDate-${medication.id}`}
                 value={medication.endDate}
-            className="w-full h-14 p-3 border border-[#737373] rounded"
+                className="w-full h-14 p-3 border border-[#737373] rounded"
                 onChange={(e) =>
                   updateMedication(medication.id, "endDate", e.target.value)
                 }
@@ -343,10 +346,11 @@ export default function MedicalHistoryForm() {
 
             <div className="w-full md:w-1/2">
               <label className="block text-base text-black font-normal mb-2">Dosage</label>
-              <Input
+              <input
                 type="text"
+                name={`dosage-${medication.id}`}
                 value={medication.dosage}
-            className="w-full h-14 p-3 border border-[#737373] rounded"
+                className="w-full h-14 p-3 border border-[#737373] rounded"
                 onChange={(e) =>
                   updateMedication(medication.id, "dosage", e.target.value)
                 }
@@ -401,10 +405,11 @@ export default function MedicalHistoryForm() {
 
           <div className="mb-4">
             <label className="block text-base text-black font-normal mb-2">Prescriber's Name</label>
-            <Input
+            <input
               type="text"
+              name={`prescribersName-${medication.id}`}
               value={medication.prescribersName}
-            className="w-full h-14 p-3 border border-[#737373] rounded"
+              className="w-full h-14 p-3 border border-[#737373] rounded"
               onChange={(e) =>
                 updateMedication(medication.id, "prescribersName", e.target.value)
               }

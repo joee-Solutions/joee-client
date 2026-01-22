@@ -81,7 +81,7 @@ const OTPInput = ({ length = 6 }: { length?: number }) => {
       {otp.map((digit, index) => (
         <input
           key={index}
-          ref={(el) => (inputRefs.current[index] = el)}
+          ref={(el) => { inputRefs.current[index] = el; }}
           type="text"
           value={digit}
           maxLength={1}

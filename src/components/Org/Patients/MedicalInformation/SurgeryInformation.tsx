@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/Textarea";
 import {
   Select,
@@ -149,10 +148,11 @@ export default function SurgeryHistoryForm() {
                 >
                   Date
                 </label>
-                <Input
+                <input
                   type="date"
+                  name={`date-${entry.id}`}
                   value={entry.date}
-            className="w-full h-14 p-3 border border-[#737373] rounded"
+                  className="w-full h-14 p-3 border border-[#737373] rounded"
                   onChange={(e) =>
                     updateSurgeryEntry(entry.id, "date", e.target.value)
                   }

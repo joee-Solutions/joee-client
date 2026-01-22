@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Input } from "@/components/ui/input";
 
 // Define the type for a vital sign entry
 type VitalSignEntry = {
@@ -119,7 +118,7 @@ export default function VitalSignsForm() {
                 <label className="block text-base text-black font-normal mb-2" htmlFor={`temperature-${entry.id}`}>
                   Temperature (°F/°C)
                 </label>
-                <Input
+                <input
                   id={`temperature-${entry.id}`}
                   type="text"
                   placeholder="Temperature"
@@ -134,7 +133,7 @@ export default function VitalSignsForm() {
                 <label className="block text-base text-black font-normal mb-2" htmlFor={`systolic-${entry.id}`}>
                   Systolic (mmHg)
                 </label>
-                <Input
+                <input
                   id={`systolic-${entry.id}`}
                   type="text"
                   placeholder="Systolic"
@@ -149,7 +148,7 @@ export default function VitalSignsForm() {
                 <label className="block text-base text-black font-normal mb-2" htmlFor={`diastolic-${entry.id}`}>
                   Diastolic (mmHg)
                 </label>
-                <Input
+                <input
                   id={`diastolic-${entry.id}`}
                   type="text"
                   placeholder="Diastolic"
@@ -167,7 +166,7 @@ export default function VitalSignsForm() {
                 <label className="block text-base text-black font-normal mb-2" htmlFor={`heartRate-${entry.id}`}>
                   Heart Rate (bpm)
                 </label>
-                <Input
+                <input
                   id={`heartRate-${entry.id}`}
                   type="text"
                   placeholder="Heart Rate"
@@ -182,7 +181,7 @@ export default function VitalSignsForm() {
                 <label className="block text-base text-black font-normal mb-2" htmlFor={`respiratoryRate-${entry.id}`}>
                   Respiratory Rate (breaths/min)
                 </label>
-                <Input
+                <input
                   id={`respiratoryRate-${entry.id}`}
                   type="text"
                   placeholder="Respiratory Rate"
@@ -197,7 +196,7 @@ export default function VitalSignsForm() {
                 <label className="block text-base text-black font-normal mb-2" htmlFor={`oxygenSaturation-${entry.id}`}>
                   Oxygen Saturation (%)
                 </label>
-                <Input
+                <input
                   id={`oxygenSaturation-${entry.id}`}
                   type="text"
                   placeholder="Oxygen Saturation"
@@ -215,7 +214,7 @@ export default function VitalSignsForm() {
                 <label className="block text-base text-black font-normal mb-2" htmlFor={`glucose-${entry.id}`}>
                   Glucose
                 </label>
-                <Input
+                <input
                   id={`glucose-${entry.id}`}
                   type="text"
                   placeholder="Glucose"
@@ -230,7 +229,7 @@ export default function VitalSignsForm() {
                 <label className="block text-base text-black font-normal mb-2" htmlFor={`height-${entry.id}`}>
                   Height (cm/in)
                 </label>
-                <Input
+                <input
                   id={`height-${entry.id}`}
                   type="text"
                   placeholder="Height"
@@ -245,7 +244,7 @@ export default function VitalSignsForm() {
                 <label className="block text-base text-black font-normal mb-2" htmlFor={`weight-${entry.id}`}>
                   Weight (kg/lbs)
                 </label>
-                <Input
+                <input
                   id={`weight-${entry.id}`}
                   type="text"
                   placeholder="Weight"
@@ -263,7 +262,7 @@ export default function VitalSignsForm() {
                 <label className="block text-base text-black font-normal mb-2" htmlFor={`bmi-${entry.id}`}>
                   BMI
                 </label>
-                <Input
+                <input
                   id={`bmi-${entry.id}`}
                   type="text"
                   className="w-full h-14 p-3 border border-[#737373] rounded"
@@ -276,7 +275,7 @@ export default function VitalSignsForm() {
                 <label className="block text-base text-black font-normal mb-2" htmlFor={`painScore-${entry.id}`}>
                   Pain Score (0-10)
                 </label>
-                <Input
+                <input
                   id={`painScore-${entry.id}`}
                   type="text"
                   className="w-full h-14 p-3 border border-[#737373] rounded"

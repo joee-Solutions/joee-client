@@ -117,30 +117,30 @@ class OfflineDatabase {
   // Generic CRUD operations
   async get<T>(storeName: keyof JoeeOfflineDB, key: string): Promise<T | undefined> {
     await this.init();
-    return this.db!.get(storeName, key);
+    return this.db!.get(storeName as any, key);
   }
 
   async getAll<T>(storeName: keyof JoeeOfflineDB, indexName?: string, query?: any): Promise<T[]> {
     await this.init();
     if (indexName && query) {
-      return this.db!.getAllFromIndex(storeName, indexName, query);
+      return (this.db!.getAllFromIndex as any)(storeName, indexName, query);
     }
-    return this.db!.getAll(storeName);
+    return this.db!.getAll(storeName as any);
   }
 
   async put<T>(storeName: keyof JoeeOfflineDB, value: T): Promise<string> {
     await this.init();
-    return this.db!.put(storeName, value);
+    return String(this.db!.put(storeName as any, value));
   }
 
   async delete(storeName: keyof JoeeOfflineDB, key: string): Promise<void> {
     await this.init();
-    await this.db!.delete(storeName, key);
+    await this.db!.delete(storeName as any, key);
   }
 
   async clear(storeName: keyof JoeeOfflineDB): Promise<void> {
     await this.init();
-    await this.db!.clear(storeName);
+    await this.db!.clear(storeName as any);
   }
 
   // Specific entity operations
@@ -199,9 +199,9 @@ class OfflineDatabase {
   }
 
   async incrementRetryCount(id: string): Promise<void> {
-    const request = await this.get('queuedRequests', id);
+    const request = await this.get<any>('queuedRequests', id);
     if (request) {
-      request.retryCount += 1;
+      request.retryCount = (request.retryCount || 0) + 1;
       await this.put('queuedRequests', request);
     }
   }
@@ -261,8 +261,9 @@ class OfflineDatabase {
       const cutoff = Date.now() - maxAge;
       
       for (const item of data) {
-        if (item.updatedAt && item.updatedAt < cutoff) {
-          await this.delete(storeName, item.id);
+        const itemTyped = item as any;
+        if (itemTyped.updatedAt && itemTyped.updatedAt < cutoff) {
+          await this.delete(storeName, itemTyped.id);
         }
       }
     }

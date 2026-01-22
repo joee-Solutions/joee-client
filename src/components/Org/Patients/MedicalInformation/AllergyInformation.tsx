@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/Textarea";
 import {
   Select,
@@ -149,10 +148,11 @@ export default function AllergyInformationForm() {
                 <label htmlFor={`startDate-${allergy.id}`} className="block text-base text-black font-normal mb-2">
                   Start Date
                 </label>
-                <Input
+                <input
                   type="date"
+                  name={`startDate-${allergy.id}`}
                   value={allergy.startDate}
-            className="w-full h-14 p-3 border border-[#737373] rounded"
+                  className="w-full h-14 p-3 border border-[#737373] rounded"
                   onChange={(e) =>
                     updateAllergy(allergy.id, "startDate", e.target.value)
                   }
@@ -164,10 +164,11 @@ export default function AllergyInformationForm() {
                 <label htmlFor={`endDate-${allergy.id}`} className="block text-base text-black font-normal mb-2">
                   End Date
                 </label>
-                <Input
+                <input
                   type="date"
+                  name={`endDate-${allergy.id}`}
                   value={allergy.endDate}
-            className="w-full h-14 p-3 border border-[#737373] rounded"
+                  className="w-full h-14 p-3 border border-[#737373] rounded"
                   onChange={(e) =>
                     updateAllergy(allergy.id, "endDate", e.target.value)
                   }

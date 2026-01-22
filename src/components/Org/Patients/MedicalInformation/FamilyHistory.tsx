@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Input } from "@/components/ui/input";
 
 // Define the type for a family history entry
 type FamilyHistoryEntry = {
@@ -103,10 +102,11 @@ export default function FamilyHistoryForm() {
                 >
                   Relative
                 </label>
-                <Input
+                <input
                   type="text"
+                  name={`relative-${entry.id}`}
                   value={entry.relative}
-            className="w-full h-14 p-3 border border-[#737373] rounded"
+                  className="w-full h-14 p-3 border border-[#737373] rounded"
                   onChange={(e) =>
                     updateFamilyHistoryEntry(entry.id, "relative", e.target.value)
                   }
@@ -122,10 +122,11 @@ export default function FamilyHistoryForm() {
                 >
                   Conditions
                 </label>
-                <Input
+                <input
                   type="text"
+                  name={`conditions-${entry.id}`}
                   value={entry.conditions}
-            className="w-full h-14 p-3 border border-[#737373] rounded"
+                  className="w-full h-14 p-3 border border-[#737373] rounded"
                   onChange={(e) =>
                     updateFamilyHistoryEntry(entry.id, "conditions", e.target.value)
                   }
@@ -141,10 +142,11 @@ export default function FamilyHistoryForm() {
                 >
                   Age of Diagnosis
                 </label>
-                <Input
+                <input
                   type="text"
+                  name={`ageOfDiagnosis-${entry.id}`}
                   value={entry.ageOfDiagnosis}
-            className="w-full h-14 p-3 border border-[#737373] rounded"
+                  className="w-full h-14 p-3 border border-[#737373] rounded"
                   onChange={(e) =>
                     updateFamilyHistoryEntry(entry.id, "ageOfDiagnosis", e.target.value)
                   }
@@ -160,10 +162,11 @@ export default function FamilyHistoryForm() {
                 >
                   Current Age
                 </label>
-                <Input
+                <input
                   type="text"
+                  name={`currentAge-${entry.id}`}
                   value={entry.currentAge}
-            className="w-full h-14 p-3 border border-[#737373] rounded"
+                  className="w-full h-14 p-3 border border-[#737373] rounded"
                   onChange={(e) =>
                     updateFamilyHistoryEntry(entry.id, "currentAge", e.target.value)
                   }

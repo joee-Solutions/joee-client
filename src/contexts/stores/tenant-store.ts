@@ -9,6 +9,7 @@ export type TenantState = {
   user: null | any;
   isLoading?: boolean;
   error?: string;
+  timeStamp?: Date;
 };
 
 export type TenantActions = {
