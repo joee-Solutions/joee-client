@@ -177,6 +177,7 @@ export default function Settings() {
                   src={logoPreview}
                   alt="logo previewer"
                   fill
+                  sizes="(max-width: 600px) 100vw, 600px"
                   unoptimized
                   className="aspect-square object-cover absolute inset-0 z-10 cursor-pointer"
                 />

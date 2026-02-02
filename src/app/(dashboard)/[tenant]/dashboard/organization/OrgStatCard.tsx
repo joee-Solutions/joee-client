@@ -1,13 +1,12 @@
 import {
   ActiveOrgChart,
   AllOrgChart,
-  DeactivatedOrgChart,
   InactiveOrgChart,
 } from "@/components/icons/icon";
 import { ChartNoAxesColumn, Hospital } from "lucide-react";
 
 export const cards: {
-  cardType: "all" | "active" | "inactive" | "deactivate";
+  cardType: "all" | "active" | "inactive";
   title: string;
   statNum: number;
   orgIcon: React.ReactNode;
@@ -41,19 +40,10 @@ export const cards: {
     barChartIcon: <ChartNoAxesColumn className="text-[#FAD900]" />,
     OrgPercentChanges: "+2.45%",
   },
-  {
-    cardType: "deactivate",
-    title: "Deactivated Organizations",
-    statNum: 140,
-    orgIcon: <Hospital className="text-white size-5" />,
-    chart: <DeactivatedOrgChart className="w-full h-full object-fit" />,
-    barChartIcon: <ChartNoAxesColumn className="text-[#EC0909]" />,
-    OrgPercentChanges: "+2.45%",
-  },
 ];
 
 interface OrgCardStatusProps {
-  cardType: "all" | "active" | "inactive" | "deactivate";
+  cardType: "all" | "active" | "inactive";
   title: string;
   statNum: number;
   orgIcon: React.ReactNode;
@@ -76,9 +66,7 @@ export default function OrgCardStatus({
       ? "#003465"
       : cardType === "active"
       ? "#3FA907"
-      : cardType === "inactive"
-      ? "#FAD900"
-      : "#EC0909";
+      : "#FAD900";
 
   return (
     <div className="rounded-[10px] shadow-[0px_4px_4px_0px_#00000040] bg-white text-black flex flex-col gap-[25.85px]">
@@ -116,7 +104,7 @@ export default function OrgCardStatus({
 }
 
 export const ActiveOrgCards: {
-  cardType: "all" | "active" | "inactive" | "deactivate";
+  cardType: "all" | "active" | "inactive";
   title: string;
   statNum: number;
   orgIcon: React.ReactNode;
@@ -144,7 +132,7 @@ export const ActiveOrgCards: {
 ];
 
 export const InactiveOrgCards: {
-  cardType: "all" | "active" | "inactive" | "deactivate";
+  cardType: "all" | "active" | "inactive";
   title: string;
   statNum: number;
   orgIcon: React.ReactNode;
@@ -171,30 +159,3 @@ export const InactiveOrgCards: {
   },
 ];
 
-export const deactivatedOrgCards: {
-  cardType: "all" | "active" | "inactive" | "deactivate";
-  title: string;
-  statNum: number;
-  orgIcon: React.ReactNode;
-  chart: React.ReactNode;
-  barChartIcon: React.ReactNode;
-  OrgPercentChanges?: string;
-}[] = [
-  {
-    cardType: "all",
-    title: "All Organizations",
-    statNum: 490,
-    orgIcon: <Hospital className="text-white size-5" />,
-    chart: <AllOrgChart className="w-full h-full object-fill" />,
-    barChartIcon: <ChartNoAxesColumn className="text-[#003465]" />,
-  },
-  {
-    cardType: "deactivate",
-    title: "Deactivated Organizations",
-    statNum: 140,
-    orgIcon: <Hospital className="text-white size-5" />,
-    chart: <DeactivatedOrgChart className="w-full h-full object-fit" />,
-    barChartIcon: <ChartNoAxesColumn className="text-[#EC0909]" />,
-    OrgPercentChanges: "+2.45%",
-  },
-];

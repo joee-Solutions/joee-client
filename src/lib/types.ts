@@ -2,7 +2,7 @@ export interface Organization {
     id: number;
     name: string;
     location: string;
-    status: 'Active' | 'Inactive' | 'Deactivated';
+    status: 'Active' | 'Inactive';
     image: string;
   }
   

@@ -53,11 +53,19 @@ const VerifyOtpLoginClient = ({ token }: { token: string }) => {
 
       Cookies.remove("mfa_token");
       Cookies.set("auth_token", mockAuthToken, {
-        expires: 1 / 48,
+        expires: 7, // 7 days
+        sameSite: 'lax',
+        path: '/'
       });
-      Cookies.set("refresh_token", mockRefreshToken, { expires: 1 / 48 });
+      Cookies.set("refresh_token", mockRefreshToken, { 
+        expires: 30, // 30 days for refresh token
+        sameSite: 'lax',
+        path: '/'
+      });
       Cookies.set("user", JSON.stringify(mockUser), {
-        expires: 1 / 48,
+        expires: 7, // 7 days
+        sameSite: 'lax',
+        path: '/'
       });
       // Set OTP verified cookie (0 days = always remember, so use long expiration)
       Cookies.set("otp_verified", "true", {

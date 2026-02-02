@@ -3,7 +3,7 @@
 import { FC } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
-interface OrganizationStatusProps {
+interface DepartmentsStatusProps {
   data: {
     activeCount: number;
     inactiveCount: number;
@@ -16,13 +16,13 @@ interface OrganizationStatusProps {
   };
 }
 
-const OrganizationStatus: FC<OrganizationStatusProps> = ({ data, colors }) => {
+const DepartmentsStatus: FC<DepartmentsStatusProps> = ({ data, colors }) => {
   const activeData = [{ name: "Active", value: data.activeCount }];
   const inactiveData = [{ name: "Inactive", value: data.inactiveCount }];
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
-      <h3 className="text-xl font-medium mb-4">Organizations Status</h3>
+      <h3 className="text-xl font-medium mb-4">Departments Status</h3>
       <div className="flex items-center">
    
         <div className="relative flex-shrink-0 mr-8">
@@ -66,7 +66,7 @@ const OrganizationStatus: FC<OrganizationStatusProps> = ({ data, colors }) => {
         </div>
 
         <div>
-          <p className="text-gray-500 mb-2">Total number of all organizations</p>
+          <p className="text-gray-500 mb-2">Total number of all departments</p>
           <p className="text-3xl font-medium text-blue-900">{data.totalCount}</p>
         </div>
       </div>
@@ -76,7 +76,7 @@ const OrganizationStatus: FC<OrganizationStatusProps> = ({ data, colors }) => {
             <p className="text-2xl font-medium" style={{ color: colors.active }}>{data.activeCount}</p>
           <div className="flex gap-2 items-center">
             <div className="w-3 h-3 " style={{ backgroundColor: colors.active }}></div>
-          <p className="text-gray-500 text-sm">Active Organization</p>
+          <p className="text-gray-500 text-sm">Active Departments</p>
           </div>
         </div>
 
@@ -84,7 +84,7 @@ const OrganizationStatus: FC<OrganizationStatusProps> = ({ data, colors }) => {
             <p className="text-2xl font-medium" style={{ color: colors.inactive }}>{data.inactiveCount}</p>
           <div className="flex gap-2 items-center">
             <div className="w-3 h-3 " style={{ backgroundColor: colors.inactive }}></div>
-          <p className="text-gray-500 text-sm">Inactive Organization</p>
+          <p className="text-gray-500 text-sm">Inactive Departments</p>
           </div>
         </div>
       </div>
@@ -92,4 +92,5 @@ const OrganizationStatus: FC<OrganizationStatusProps> = ({ data, colors }) => {
   );
 };
 
-export default OrganizationStatus;
+export default DepartmentsStatus;
+

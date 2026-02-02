@@ -13,7 +13,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { X } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useEffect, useState } from "react";
+import { processRequestAuth } from "@/framework/https";
+import { API_ENDPOINTS } from "@/framework/api-endpoints";
 
 const AppointmentSchema = z.object({
   patientName: z.string().min(1, "Patient name is required"),
@@ -50,6 +58,10 @@ export default function EditAppointmentModal({
   onClose,
   onSave,
 }: EditAppointmentModalProps) {
+  const [patients, setPatients] = useState<Array<{ id: string | number; name: string }>>([]);
+  const [employees, setEmployees] = useState<Array<{ id: string | number; name: string }>>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
   const form = useForm<AppointmentSchemaType>({
     resolver: zodResolver(AppointmentSchema),
     mode: "onChange",
@@ -62,6 +74,68 @@ export default function EditAppointmentModal({
       appointmentDescription: appointment.description || "",
     },
   });
+
+  // Load patients and employees from API
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        // Load patients
+        const patientsResponse = await processRequestAuth("get", API_ENDPOINTS.GET_PATIENTS);
+        const patientsData = Array.isArray(patientsResponse?.data) 
+          ? patientsResponse.data 
+          : Array.isArray(patientsResponse) 
+          ? patientsResponse 
+          : [];
+        
+        const patientsList = patientsData.map((patient: any) => {
+          const firstName = patient.first_name || patient.firstName || patient.name?.split(" ")[0] || "";
+          const lastName = patient.last_name || patient.lastName || patient.name?.split(" ").slice(1).join(" ") || "";
+          const name = `${firstName} ${lastName}`.trim() || patient.email || "Unknown Patient";
+          return {
+            id: patient.id || patient._id || "",
+            name,
+          };
+        });
+        setPatients(patientsList);
+
+        // Load employees
+        const employeesResponse = await processRequestAuth("get", API_ENDPOINTS.GET_USERS);
+        const employeesData = Array.isArray(employeesResponse?.data) 
+          ? employeesResponse.data 
+          : Array.isArray(employeesResponse) 
+          ? employeesResponse 
+          : [];
+        
+        const employeesList = employeesData.map((employee: any) => {
+          const firstName = employee.first_name || employee.firstName || employee.name?.split(" ")[0] || "";
+          const lastName = employee.last_name || employee.lastName || employee.name?.split(" ").slice(1).join(" ") || "";
+          const name = `${firstName} ${lastName}`.trim() || employee.email || "Unknown Employee";
+          return {
+            id: employee.id || employee._id || "",
+            name: `Dr. ${name}`,
+          };
+        });
+        setEmployees(employeesList);
+      } catch (error) {
+        console.error("Failed to load patients/employees:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  // Restore body scroll when modal closes
+  useEffect(() => {
+    return () => {
+      if (typeof window !== "undefined") {
+        document.body.style.overflow = "";
+        document.body.style.paddingRight = "";
+      }
+    };
+  }, []);
 
   const onSubmit = (data: AppointmentSchemaType) => {
     const appointmentDate = new Date(data.appointmentDate);
@@ -91,42 +165,41 @@ export default function EditAppointmentModal({
     }
   }
 
-  // Sample data for dropdowns
-  const patients = ["John Janet Esther", "Temitope Denilson", "Jane Smith", "Robert Johnson"];
-  const doctors = ["Dr. Deniis Hampton", "Dr. Smith", "Dr. Johnson", "Dr. Williams"];
   const statuses = ["Approved", "Upcoming", "Pending", "Canceled"];
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center border-b p-6 sticky top-0 bg-white z-10">
-          <h2 className="text-2xl font-semibold text-[#003465]">Edit Appointment</h2>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors"
-          >
-            <X size={20} />
-          </button>
-        </div>
+    <AlertDialog open={true} onOpenChange={(open) => !open && onClose()}>
+      <AlertDialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto !z-[110]">
+        <AlertDialogHeader>
+          <AlertDialogTitle className="text-2xl font-semibold text-[#003465]">
+            Edit Appointment
+          </AlertDialogTitle>
+        </AlertDialogHeader>
 
-        <form onSubmit={form.handleSubmit(onSubmit)} className="p-6 space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Patient Name */}
             <div>
               <label className="block text-base text-black font-normal mb-2">Patient name</label>
               <Select
-                defaultValue={appointment.patientName}
+                value={form.watch("patientName")}
                 onValueChange={(value) => form.setValue("patientName", value)}
               >
                 <SelectTrigger className="w-full p-3 border border-[#737373] h-14 rounded flex justify-between items-center">
                   <SelectValue placeholder="select" />
                 </SelectTrigger>
                 <SelectContent className="z-50 bg-white">
-                  {patients.map((patient) => (
-                    <SelectItem key={patient} value={patient} className="hover:bg-gray-200">
-                      {patient}
-                    </SelectItem>
-                  ))}
+                  {isLoading ? (
+                    <SelectItem value="loading" disabled>Loading...</SelectItem>
+                  ) : patients.length > 0 ? (
+                    patients.map((patient) => (
+                      <SelectItem key={patient.id} value={patient.name} className="hover:bg-gray-200">
+                        {patient.name}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-patients" disabled>No patients available</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -135,18 +208,24 @@ export default function EditAppointmentModal({
             <div>
               <label className="block text-base text-black font-normal mb-2">Appointment with</label>
               <Select
-                defaultValue={appointment.doctorName}
+                value={form.watch("appointmentWith")}
                 onValueChange={(value) => form.setValue("appointmentWith", value)}
               >
                 <SelectTrigger className="w-full p-3 border border-[#737373] h-14 rounded flex justify-between items-center">
                   <SelectValue placeholder="select" />
                 </SelectTrigger>
                 <SelectContent className="z-50 bg-white">
-                  {doctors.map((doctor) => (
-                    <SelectItem key={doctor} value={doctor} className="hover:bg-gray-200">
-                      {doctor}
-                    </SelectItem>
-                  ))}
+                  {isLoading ? (
+                    <SelectItem value="loading" disabled>Loading...</SelectItem>
+                  ) : employees.length > 0 ? (
+                    employees.map((employee) => (
+                      <SelectItem key={employee.id} value={employee.name} className="hover:bg-gray-200">
+                        {employee.name}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-employees" disabled>No employees available</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -176,7 +255,7 @@ export default function EditAppointmentModal({
             <div>
               <label className="block text-base text-black font-normal mb-2">Status</label>
               <Select
-                defaultValue={appointment.status}
+                value={form.watch("status")}
                 onValueChange={(value) => form.setValue("status", value as any)}
               >
                 <SelectTrigger className="w-full p-3 border border-[#737373] h-14 rounded flex justify-between items-center">
@@ -222,8 +301,8 @@ export default function EditAppointmentModal({
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 

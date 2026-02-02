@@ -15,7 +15,7 @@ type Primitives = string | number | boolean;
 export type Column<T> = {
   header: string | (() => React.ReactNode);
   key?: keyof T;
-  render?: (row: T) => React.ReactNode;
+  render?: (row: T, index?: number) => React.ReactNode;
   searchable?: boolean;
   size?: number;
 };
@@ -48,7 +48,7 @@ export default function DataTable<T extends Record<string, Primitives>>({
   }, [data, search, searchableKeys]);
 
   return (
-    <Table className="w-max-full min-w-[900px] overflow-x-auto">
+    <Table className="w-full min-w-[600px] md:min-w-[800px] lg:min-w-[900px]">
       <TableHeader
         className={`h-10 border-y-2 border-[#D9D9D9] ${
           bgHeader ? bgHeader : "bg-[#003465] text-white"
@@ -84,7 +84,7 @@ export default function DataTable<T extends Record<string, Primitives>>({
                 className="px-4"
                 style={col.size ? { width: `${col.size}px` } : undefined}
               >
-                {col.render ? col.render(tr) : col.key ? tr[col.key] : null}
+                {col.render ? col.render(tr, idx) : col.key ? tr[col.key] : null}
               </TableCell>
             ))}
           </TableRow>

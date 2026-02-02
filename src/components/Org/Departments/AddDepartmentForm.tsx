@@ -44,16 +44,19 @@ export default function AddDepartment({ onSubmit: onSubmitProp, onCancel: onCanc
 
   const onSubmit = (data: DepartmentSchemaType) => {
     if (onSubmitProp) {
-      // Transform data to match parent's expected format
+      // Transform data to match API expected format
       const transformedData = {
         name: data.departmentName,
         code: data.departmentName.substring(0, 2).toUpperCase(),
+        departmentDescription: data.departmentDescription,
+        departmentImage: data.departmentImage,
+        status: data.status ? 'Inactive' : 'Active',
+        // Keep these for UI mapping if needed
         color: 'bg-blue-600',
         textColor: 'text-blue-600',
         borderColor: 'border-blue-600',
         employeeCount: 0,
-        status: data.status ? 'Inactive' : 'Active',
-        image: data.departmentImage || '/images/default.jpg',
+        image: data.departmentImage || '/assets/department/department-bg.jpg',
       };
       onSubmitProp(transformedData);
     } else {

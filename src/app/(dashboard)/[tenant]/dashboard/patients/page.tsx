@@ -5,89 +5,149 @@ import DataTable, { Column } from "@/components/shared/table/DataTable";
 import { ListView } from "@/components/shared/table/DataTableFilter";
 import Pagination from "@/components/shared/table/pagination";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, EllipsisVertical, Plus, Search } from "lucide-react";
-
+import { Plus, Search, Edit, Trash2, MoreVertical } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { processRequestAuth } from "@/framework/https";
+import { API_ENDPOINTS } from "@/framework/api-endpoints";
+import { toast } from "react-toastify";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
-const patientCards = [
-  {
-    id: 1,
-    name: "Denise Hampton",
-    role: "Doctor",
-    description:
-      "Lorem ipsum dolor sit amet consectetur. Cursus nec amet ipsum a. ",
-    picture: "/assets/doctorFemale.png",
-    rgbColorCode: "0, 52, 101",
-  },
-  {
-    id: 2,
-    name: "Susan Denilson",
-    role: "Lab Attendant",
-    description:
-      "Lorem ipsum dolor sit amet consectetur. Cursus nec amet ipsum a. ",
-    picture: "/assets/labAttendant.png",
-    rgbColorCode: "63, 169, 7",
-  },
-  {
-    id: 3,
-    name: "Cole Joshua",
-    role: "Doctor",
-    description:
-      "Lorem ipsum dolor sit amet consectetur. Cursus nec amet ipsum a. ",
-    picture: "/assets/doctorMale.png",
-    rgbColorCode: "236, 9, 9",
-  },
-  {
-    id: 4,
-    name: "Jenifer Gloria",
-    role: "Nurse",
-    description:
-      "Lorem ipsum dolor sit amet consectetur. Cursus nec amet ipsum a. ",
-    picture: "/assets/doctorFemale.png",
-    rgbColorCode: "225, 195, 0",
-  },
-];
+type PatientCard = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  picture: string;
+};
 
-type PatientDto = {
+type PatientDTO = {
   id: number;
   firstName: string;
   lastName: string;
   picture: string;
   address: string;
-  ailment: string;
-  age: number;
+  ailment?: string;
+  age?: number;
   phoneNumber: string;
   email: string;
+  [key: string]: string | number | undefined;
 };
 
-const columns: Column<PatientDto>[] = [
+// Helper function to map API patient data to PatientCard
+const mapPatientToCard = (patient: any, index: number): PatientCard => {
+  const firstName = patient.first_name || patient.firstName || patient.name?.split(" ")[0] || "";
+  const lastName = patient.last_name || patient.lastName || patient.name?.split(" ").slice(1).join(" ") || "";
+  const email = patient.email || patient.email_address || "";
+  const picture = patient.profile_picture || patient.profilePicture || patient.picture || "/assets/imagePlaceholder.png";
+
+  return {
+    id: patient.id || patient._id || index + 1,
+    firstName,
+    lastName,
+    email,
+    picture,
+  };
+};
+
+// Helper function to map API patient data to PatientDTO
+const mapPatientToDTO = (patient: any, index: number): PatientDTO => {
+  const firstName = patient.first_name || patient.firstName || patient.name?.split(" ")[0] || "";
+  const lastName = patient.last_name || patient.lastName || patient.name?.split(" ").slice(1).join(" ") || "";
+  const address = patient.address || patient.Address || "N/A";
+  const ailment = patient.ailment || patient.condition || patient.diagnosis || patient.medical_condition || "";
+  const age = patient.age || patient.Age || patient.date_of_birth ? calculateAge(patient.date_of_birth || patient.dob || patient.dateOfBirth) : undefined;
+  const phoneNumber = patient.phone_number || patient.phone || patient.phoneNumber || patient.Phone || patient.mobile || "N/A";
+  const email = patient.email || patient.email_address || patient.Email || "";
+  const picture = patient.profile_picture || patient.profilePicture || patient.picture || "/assets/imagePlaceholder.png";
+
+  return {
+    id: patient.id || patient._id || index + 1,
+    firstName,
+    lastName,
+    picture,
+    address,
+    ailment,
+    age,
+    phoneNumber,
+    email,
+  };
+};
+
+// Helper function to calculate age from date of birth
+const calculateAge = (dob: string): number | undefined => {
+  if (!dob) return undefined;
+  try {
+    const birthDate = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  } catch {
+    return undefined;
+  }
+};
+
+// Create columns function that accepts handlers
+const createColumns = (
+  onEdit: (patient: PatientDTO) => void,
+  onDelete: (patient: PatientDTO) => void
+): Column<PatientDTO>[] => [
   {
-    header: "Name",
+    header: "S/N",
+    render(row, index = 0) {
+      return (
+        <p className="font-semibold text-xs text-[#737373]">
+          {(index ?? 0) + 1}
+        </p>
+      );
+    },
+  },
+  {
+    header: "Patient Name",
     render(row) {
       return (
         <div className="flex items-center gap-[10px]">
+          <span className="w-[42px] h-[42px] rounded-full overflow-hidden">
           <Image
             src={row.picture}
+              alt="patient image"
             width={42}
             height={42}
-            alt={`${row.firstName} photo`}
-            className="rounded-full object-cover shrink-0"
+              className="object-cover aspect-square w-full h-full rounded-full"
           />
-          <p className="font-medium text-xs text-[#737373]">
+          </span>
+          <p className="font-medium text-xs text-black">
             {row.firstName} {row.lastName}
           </p>
         </div>
       );
     },
-    size: 200,
   },
   {
     header: "Address",
     render(row) {
       return (
-        <p className="font-medium text-xs text-[#737373]">{row.address}</p>
+        <p className="font-semibold text-xs text-[#737373]">{row.address}</p>
       );
     },
   },
@@ -95,14 +155,14 @@ const columns: Column<PatientDto>[] = [
     header: "Ailment",
     render(row) {
       return (
-        <p className="font-semibold text-xs text-[#737373]">{row.ailment}</p>
+        <p className="font-semibold text-xs text-[#737373]">{row.ailment || "N/A"}</p>
       );
     },
   },
   {
     header: "Age",
     render: (row) => (
-      <p className="font-semibold text-xs text-[#737373]">{row.age}</p>
+      <p className="font-semibold text-xs text-[#737373]">{row.age || "N/A"}</p>
     ),
   },
   {
@@ -114,246 +174,350 @@ const columns: Column<PatientDto>[] = [
   {
     header: "Email",
     render: (row) => (
-      <p className="font-semibold text-xs text-[#737373]">{row.email}</p>
+      <p className="font-semibold text-xs text-[#737373]">{row.email || "N/A"}</p>
     ),
   },
   {
     header: "Actions",
-    render: (row) => (
-      <Link
-        href={`/dashboard/patients/${row.firstName}-${row.lastName}`}
-        className="flex items-center justify-center px-1 py-1 rounded-[2px] border-b border-[#BFBFBF]"
-      >
-        See Details <ChevronRight className="text-black size-5" />
-      </Link>
-    ),
-  },
-];
-
-const PatientsTableData: PatientDto[] = [
-  {
-    id: 1,
-    picture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    address: "Los Angeles, U.S.A",
-    ailment: "Lung Cancer",
-    age: 29,
-    phoneNumber: "(218) 661 8316",
-    email: "jenifahudson@gmail.com",
-  },
-  {
-    id: 2,
-    picture: "/assets/imagePlaceholder.png",
-    firstName: "Adeniyi",
-    lastName: "Samuel",
-    address: "Los Angeles, U.S.A",
-    age: 54,
-    phoneNumber: "8329393434",
-    email: "jenifahudson@gmail.com",
-    ailment: "Lung Cancer",
-  },
-  {
-    id: 3,
-    picture: "/assets/imagePlaceholder.png",
-    firstName: "Umaru",
-    lastName: "Newton",
-    address: "Los Angeles, U.S.A",
-    ailment: "Lung Cancer",
-    age: 54,
-    phoneNumber: "8329393434",
-    email: "jenifahudson@gmail.com",
-  },
-  {
-    id: 4,
-    picture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    address: "Los Angeles, U.S.A",
-    age: 54,
-    phoneNumber: "8329393434",
-    email: "jenifahudson@gmail.com",
-    ailment: "Lung Cancer",
-  },
-  {
-    id: 5,
-    picture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    address: "Los Angeles, U.S.A",
-    age: 54,
-    phoneNumber: "8329393434",
-    email: "jenifahudson@gmail.com",
-    ailment: "Lung Cancer",
-  },
-  {
-    id: 6,
-    picture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    address: "Los Angeles, U.S.A",
-    age: 54,
-    phoneNumber: "8329393434",
-    email: "jenifahudson@gmail.com",
-    ailment: "Lung Cancer",
-  },
-  {
-    id: 7,
-    picture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    address: "Los Angeles, U.S.A",
-    age: 54,
-    phoneNumber: "8329393434",
-    email: "jenifahudson@gmail.com",
-    ailment: "Lung Cancer",
-  },
-  {
-    id: 8,
-    picture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    address: "Los Angeles, U.S.A",
-    age: 54,
-    phoneNumber: "8329393434",
-    email: "jenifahudson@gmail.com",
-    ailment: "Lung Cancer",
-  },
-  {
-    id: 9,
-    picture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    address: "Los Angeles, U.S.A",
-    age: 54,
-    phoneNumber: "8329393434",
-    email: "jenifahudson@gmail.com",
-    ailment: "Lung Cancer",
-  },
-  {
-    id: 10,
-    picture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    address: "Los Angeles, U.S.A",
-    age: 54,
-    phoneNumber: "8329393434",
-    email: "jenifahudson@gmail.com",
-    ailment: "Lung Cancer",
+    render(row) {
+      return (
+        <DropdownMenu modal={false}>
+          <DropdownMenuTrigger asChild>
+            <button 
+              type="button"
+              className="flex items-center justify-center px-2 py-1 rounded-[2px] border border-[#BFBFBF] bg-[#EDF0F6] hover:bg-[#D9DDE5] transition-colors relative z-10"
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              <MoreVertical className="text-black size-5" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="bg-white border border-gray-200 shadow-lg z-[100]">
+            <DropdownMenuItem
+              onClick={() => onEdit(row)}
+              className="cursor-pointer flex items-center gap-2"
+            >
+              <Edit className="size-4" />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => onDelete(row)}
+              className="cursor-pointer flex items-center gap-2 text-red-600 focus:text-red-600"
+            >
+              <Trash2 className="size-4" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      );
+    },
   },
 ];
 
 export default function PatientPage() {
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");
-
-  const [rowSelectionIds, setRowSelectionIds] = useState<number[]>([]);
-  const toggleRowSelection = (val: number) => {
-    setRowSelectionIds((prev) =>
-      prev.includes(val) ? prev.filter((id) => id !== val) : [...prev, val]
-    );
-  };
-
-  const toggleAllRowsSelection = () => {
-    // this only cater for when pagination is done from the backend
-    const ids = PatientsTableData.map((_, idx) => idx);
-
-    if (rowSelectionIds.length > 0) {
-      setRowSelectionIds([]);
-      return;
-    }
-
-    setRowSelectionIds(ids);
-  };
-
-  let payload = {
-    page: 1,
-    pageSize: 10,
-    sortOrder: "",
-    type: "upcoming",
-  };
+  const [currentPage, setCurrentPage] = useState(0);
+  const [patientCards, setPatientCards] = useState<PatientCard[]>([]);
+  const [patientsTableData, setPatientsTableData] = useState<PatientDTO[]>([]);
+  const [fullPatientData, setFullPatientData] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedPatient, setSelectedPatient] = useState<PatientDTO | null>(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [editFormData, setEditFormData] = useState<Partial<PatientDTO & {
+    dob?: string;
+    gender?: string;
+    state?: string;
+    bio?: string;
+  }>>({});
 
   useEffect(() => {
-    // probably use the payload above to call the api for data for the first time
-    // or when the value of sortBy changes
+    loadPatients();
   }, []);
 
-  const handlePageClick = (event: { selected: number }) => {
-    const newPage = event.selected + 1;
+  // Ensure body scroll is restored when modals close
+  useEffect(() => {
+    if (!isEditModalOpen && !isDeleteModalOpen && !isViewModalOpen) {
+      const timer = setTimeout(() => {
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+        const overlays = document.querySelectorAll('[data-radix-portal]');
+        overlays.forEach((overlay) => {
+          const element = overlay as HTMLElement;
+          if (element.style.pointerEvents === 'none' || element.getAttribute('data-state') === 'closed') {
+            element.style.pointerEvents = '';
+          }
+        });
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [isEditModalOpen, isDeleteModalOpen, isViewModalOpen]);
 
-    payload = {
-      page: newPage,
-      pageSize: 10,
-      sortOrder: "",
-      type: "name",
-    };
+  const loadPatients = async () => {
+    try {
+      setIsLoading(true);
+      const response = await processRequestAuth("get", API_ENDPOINTS.GET_PATIENTS);
+      
+      const patients = Array.isArray(response?.data) 
+        ? response.data 
+        : Array.isArray(response) 
+        ? response 
+        : [];
 
-    // call the API
+      if (patients.length > 0) {
+        setFullPatientData(patients);
+        
+        const cards = patients.slice(0, 4).map(mapPatientToCard);
+        setPatientCards(cards);
+
+        const tableData = patients.map(mapPatientToDTO);
+        setPatientsTableData(tableData);
+      } else {
+        setPatientCards([]);
+        setPatientsTableData([]);
+        setFullPatientData([]);
+      }
+    } catch (error: any) {
+      console.error("Failed to load patients:", error);
+      
+      if (error?.response?.status === 403) {
+        toast.error("Access denied. Please check your permissions or contact your administrator.", {
+          toastId: "patients-403-error",
+          autoClose: 5000,
+        });
+      } else if (error?.response?.status === 401) {
+        toast.error("Authentication failed. Please log in again.", {
+          toastId: "patients-401-error",
+          autoClose: 5000,
+        });
+      } else {
+        toast.error("Failed to load patients data", { toastId: "patients-load-error" });
+      }
+      
+      setPatientCards([]);
+      setPatientsTableData([]);
+      setFullPatientData([]);
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  const handlePageClick = (event: { selected: number }) => {
+    setCurrentPage(event.selected);
+  };
+
+  // Filter patients based on search
+  const filteredPatients = patientsTableData.filter((patient) => {
+    if (!search) return true;
+    const searchLower = search.toLowerCase();
+    return (
+      patient.firstName.toLowerCase().includes(searchLower) ||
+      patient.lastName.toLowerCase().includes(searchLower) ||
+      patient.email.toLowerCase().includes(searchLower) ||
+      patient.phoneNumber.toLowerCase().includes(searchLower) ||
+      (patient.ailment && patient.ailment.toLowerCase().includes(searchLower)) ||
+      patient.address.toLowerCase().includes(searchLower)
+    );
+  });
+
+  // Get full patient data from API response
+  const getFullPatientData = (patient: PatientDTO) => {
+    let found = fullPatientData.find(p => {
+      const patientId = String(p.id || p._id || '');
+      return patientId === String(patient.id);
+    });
+    
+    if (!found) {
+      found = fullPatientData.find(p => {
+        const pFirstName = p.first_name || p.firstName || p.name?.split(" ")[0] || "";
+        const pLastName = p.last_name || p.lastName || p.name?.split(" ").slice(1).join(" ") || "";
+        return `${pFirstName} ${pLastName}`.trim() === `${patient.firstName} ${patient.lastName}`.trim();
+      });
+    }
+    
+    return found;
+  };
+
+  // Handle view (opens view modal, which can then open edit)
+  const handleView = (patient: PatientDTO) => {
+    setSelectedPatient(patient);
+    const fullData = getFullPatientData(patient);
+    
+    setEditFormData({
+      firstName: patient.firstName,
+      lastName: patient.lastName,
+      address: patient.address,
+      email: patient.email,
+      phoneNumber: patient.phoneNumber,
+      ailment: patient.ailment,
+      age: patient.age,
+      picture: patient.picture,
+      dob: fullData?.dob || fullData?.date_of_birth || fullData?.dateOfBirth || fullData?.DOB || fullData?.birth_date || '',
+      gender: fullData?.gender || fullData?.Gender || '',
+      state: fullData?.state || fullData?.region_state || fullData?.State || fullData?.region || '',
+      bio: fullData?.bio || fullData?.biography || fullData?.short_biography || fullData?.Bio || '',
+    });
+    setIsViewModalOpen(true);
+  };
+
+  // Handle edit (opens edit modal directly)
+  const handleEdit = (patient: PatientDTO) => {
+    setSelectedPatient(patient);
+    const fullData = getFullPatientData(patient);
+    
+    setEditFormData({
+      firstName: patient.firstName,
+      lastName: patient.lastName,
+      address: patient.address,
+      email: patient.email,
+      phoneNumber: patient.phoneNumber,
+      ailment: patient.ailment,
+      age: patient.age,
+      picture: patient.picture,
+      dob: fullData?.dob || fullData?.date_of_birth || fullData?.dateOfBirth || fullData?.DOB || fullData?.birth_date || '',
+      gender: fullData?.gender || fullData?.Gender || '',
+      state: fullData?.state || fullData?.region_state || fullData?.State || fullData?.region || '',
+      bio: fullData?.bio || fullData?.biography || fullData?.short_biography || fullData?.Bio || '',
+    });
+    setIsEditModalOpen(true);
+  };
+
+  // Open edit from view modal
+  const handleEditFromView = () => {
+    setIsViewModalOpen(false);
+    setIsEditModalOpen(true);
+  };
+
+  // Handle delete
+  const handleDelete = (patient: PatientDTO) => {
+    setSelectedPatient(patient);
+    setIsDeleteModalOpen(true);
+  };
+
+  // Confirm delete
+  const confirmDelete = async () => {
+    if (!selectedPatient) return;
+    
+    try {
+      await processRequestAuth("delete", `${API_ENDPOINTS.GET_PATIENTS}/${selectedPatient.id}`);
+      
+      setPatientsTableData((prev) => prev.filter((p) => p.id !== selectedPatient.id));
+      setPatientCards((prev) => prev.filter((card) => card.id !== selectedPatient.id));
+      
+      toast.success("Patient deleted successfully", { toastId: "patient-delete-success" });
+      setIsDeleteModalOpen(false);
+      setSelectedPatient(null);
+    } catch (error: any) {
+      console.error("Failed to delete patient:", error);
+      toast.error("Failed to delete patient", { toastId: "patient-delete-error" });
+    }
+  };
+
+  // Handle edit save
+  const handleEditSave = async (updatedData: Partial<PatientDTO>) => {
+    if (!selectedPatient) return;
+    
+    try {
+      const patientData = {
+        first_name: updatedData.firstName || selectedPatient.firstName,
+        last_name: updatedData.lastName || selectedPatient.lastName,
+        email: updatedData.email || selectedPatient.email,
+        phone_number: updatedData.phoneNumber || selectedPatient.phoneNumber,
+        address: updatedData.address || selectedPatient.address,
+        ailment: updatedData.ailment || selectedPatient.ailment,
+        dob: (updatedData as any).dob || '',
+        gender: (updatedData as any).gender || '',
+        state: (updatedData as any).state || '',
+        bio: (updatedData as any).bio || '',
+      };
+
+      const response = await processRequestAuth("patch", `${API_ENDPOINTS.GET_PATIENTS}/${selectedPatient.id}`, patientData);
+
+      if (response?.data || response) {
+        toast.success("Patient updated successfully", { toastId: "patient-update-success" });
+        setIsEditModalOpen(false);
+        setSelectedPatient(null);
+        setEditFormData({});
+        await loadPatients();
+      } else {
+        throw new Error("Unexpected response from server");
+      }
+    } catch (error: any) {
+      console.error("Failed to update patient:", error);
+      if (error?.response?.status === 403) {
+        toast.error("Access denied. You don't have permission to update patients.", {
+          toastId: "patient-update-403-error",
+          autoClose: 5000,
+        });
+      } else if (error?.response?.status === 401) {
+        toast.error("Authentication failed. Please log in again.", {
+          toastId: "patient-update-401-error",
+          autoClose: 5000,
+        });
+      } else if (error?.response?.status === 400) {
+        const errorMessage = error?.response?.data?.message || error?.response?.data?.error || "Invalid patient data";
+        toast.error(errorMessage, {
+          toastId: "patient-update-400-error",
+          autoClose: 5000,
+        });
+      } else {
+        const errorMessage = error?.response?.data?.message || error?.message || "Failed to update patient";
+        toast.error(errorMessage, {
+          toastId: "patient-update-error",
+          autoClose: 5000,
+        });
+      }
+    }
+  };
+
+  // Create columns with handlers
+  const columns = createColumns(handleEdit, handleDelete);
 
   return (
     <section>
       <SectionHeader
         title="Patients"
-        description="Adequate Health care services improves Patients Health   "
+        description="Adequate Health care services improves Patients Health"
       />
       <div className="flex flex-col py-[50px] px-[30px]">
         <div className="grid grid-cols-[repeat(auto-fit,_minmax(260px,_1fr))] gap-[19px]">
-          {patientCards.map((empCard) => (
+          {patientCards.map((patientCard) => (
             <div
-              key={empCard.id}
-              className="rounded-[10px] shadow-[0px_4px_4px_0px_#00000040] bg-white flex flex-col overflow-hidden"
+              key={patientCard.id}
+              className="rounded-[10px] shadow-[0px_4px_4px_0px_#00000040] bg-white flex flex-col p-5"
             >
-              <div
-                style={{
-                  backgroundImage: `linear-gradient(to right, rgba(${empCard.rgbColorCode},.8)), url('/assets/sectionHeaderBG.png')`,
-                }}
-                className={`h-[87.2px] bg-cover bg-no-repeat`}
-              ></div>
-              <div className="pb-5 flex flex-col items-center px-5">
-                <div
-                  style={{
-                    borderWidth: "3px",
-                    borderColor: `rgb(${empCard.rgbColorCode})`,
-                  }}
-                  className="size-[80px] -mt-10 rounded-full mb-[10px] flex items-center justify-center overflow-hidden"
-                >
+              <div className="flex flex-col items-center">
+                <div className="size-[80px] rounded-full mb-4 flex items-center justify-center overflow-hidden border-2 border-[#D9D9D9]">
                   <Image
-                    src={empCard.picture}
+                    src={patientCard.picture}
                     width={80}
                     height={80}
-                    alt={`${empCard.name} photo`}
+                    alt={`${patientCard.firstName} ${patientCard.lastName} photo`}
+                    className="object-cover w-full h-full"
                   />
                 </div>
-                <h3 className="font-medium text-sm text-black">
-                  {empCard.name}
+                <h3 className="font-medium text-sm text-black text-center">
+                  {patientCard.firstName} {patientCard.lastName}
                 </h3>
-                <p
-                  style={{ color: `rgb(${empCard.rgbColorCode})` }}
-                  className="font-medium text-xs text-center mt-2"
-                >
-                  {empCard.role}
+                <p className="font-normal text-xs text-center mt-1 text-[#999999]">
+                  {patientCard.email}
                 </p>
-                <p className="font-normal text-[10px] my-2 text-center text-[#999999]">
-                  {empCard.description}
-                </p>
-                <Link
-                  href={`/dashboard/patients/${empCard.name
-                    .split(" ")
-                    .join("-")}`}
-                  className="rounded-[4px] px-5 py-1 text-white font-medium text-xs bg-[#003465]"
-                >
-                  View
-                </Link>
               </div>
             </div>
           ))}
         </div>
-        <section className="mt-10 shadow-[0px_0px_4px_1px_#0000004D]">
-          <header className="flex items-center justify-between gap-5 border-b border-[#D9D9D9] h-[90px]">
-            <div className="px-[27px]">
+        <section className="mt-10 shadow-[0px_0px_4px_1px_#0000004D] relative z-0">
+          <header className="flex items-center justify-between gap-5 border-b border-[#D9D9D9] h-[90px] px-[27px]">
               <h2 className="font-semibold text-xl text-black">Patient List</h2>
-            </div>
+            <Link
+              href="/dashboard/patients/create"
+              className="flex items-center gap-2 font-normal text-base text-white bg-[#003465] hover:bg-[#003465]/90 px-6 h-[40px] rounded"
+            >
+              Create Patient <Plus size={20} />
+            </Link>
           </header>
           <div className="px-[27px] pb-[35px]">
             <div className="py-[30px] flex justify-between gap-10">
@@ -369,22 +533,288 @@ export default function PatientPage() {
                 <Search className="size-5 text-[#999999] absolute right-4 top-1/2 -translate-y-1/2" />
               </div>
             </div>
-            <DataTable columns={columns} data={PatientsTableData} />
+            {isLoading ? (
+              <div className="flex items-center justify-center py-20 text-gray-500">
+                <p className="text-lg">Loading patients...</p>
+              </div>
+            ) : filteredPatients.length > 0 ? (
+              <DataTable columns={columns} data={filteredPatients} />
+            ) : (
+              <div className="flex items-center justify-center py-20 text-gray-500">
+                <p className="text-lg">No patients found</p>
+              </div>
+            )}
           </div>
+          {filteredPatients.length > 0 && (
           <Pagination
-            dataLength={PatientsTableData.length}
-            numOfPages={1000}
-            pageSize={10}
+              dataLength={filteredPatients.length}
+              numOfPages={Math.ceil(filteredPatients.length / pageSize)}
+              pageSize={pageSize}
             handlePageClick={handlePageClick}
           />
+          )}
         </section>
-        <Link
-          href="/dashboard/patients/create"
-          className="flex justify-center items-center font-normal text-base text-white bg-[#003465] hover:bg-[#003465]/90 w-[306px] h-[60px] mt-7 self-end"
-        >
-          Create Patient <Plus size={24} />
-        </Link>
       </div>
+
+      {/* View Modal */}
+      <AlertDialog 
+        open={isViewModalOpen} 
+        onOpenChange={(open) => {
+          setIsViewModalOpen(open);
+          if (!open) {
+            setTimeout(() => {
+              setSelectedPatient(null);
+              setEditFormData({});
+            }, 150);
+          }
+        }}
+      >
+        <AlertDialogContent className="bg-white max-w-2xl max-h-[90vh] overflow-y-auto !z-[110]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-semibold text-black">
+              Patient Details
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-[#737373] pt-2">
+              View patient information for{" "}
+              <span className="font-semibold">
+                {selectedPatient?.firstName} {selectedPatient?.lastName}
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-black mb-1">First Name</label>
+                <p className="text-sm text-[#737373]">{selectedPatient?.firstName || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-black mb-1">Last Name</label>
+                <p className="text-sm text-[#737373]">{selectedPatient?.lastName || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-black mb-1">Email</label>
+                <p className="text-sm text-[#737373]">{selectedPatient?.email || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-black mb-1">Phone Number</label>
+                <p className="text-sm text-[#737373]">{selectedPatient?.phoneNumber || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-black mb-1">Address</label>
+                <p className="text-sm text-[#737373]">{selectedPatient?.address || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-black mb-1">Ailment</label>
+                <p className="text-sm text-[#737373]">{selectedPatient?.ailment || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-black mb-1">Age</label>
+                <p className="text-sm text-[#737373]">{selectedPatient?.age || 'N/A'}</p>
+              </div>
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => setIsViewModalOpen(false)}
+              className="border border-[#D9D9D9] text-[#737373] hover:bg-gray-50"
+            >
+              Close
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleEditFromView}
+              className="bg-[#003465] hover:bg-[#002147] text-white"
+            >
+              Edit
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Edit Modal */}
+      <AlertDialog 
+        open={isEditModalOpen} 
+        onOpenChange={(open) => {
+          setIsEditModalOpen(open);
+          if (!open) {
+            setTimeout(() => {
+              setSelectedPatient(null);
+              setEditFormData({});
+            }, 150);
+          }
+        }}
+      >
+        <AlertDialogContent className="bg-white max-w-2xl max-h-[90vh] overflow-y-auto !z-[110]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-semibold text-black">
+              Edit Patient
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-[#737373] pt-2">
+              Update patient information for{" "}
+              <span className="font-semibold">
+                {selectedPatient?.firstName} {selectedPatient?.lastName}
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-black mb-1">First Name</label>
+                <input
+                  type="text"
+                  value={editFormData.firstName || ""}
+                  onChange={(e) => setEditFormData({ ...editFormData, firstName: e.target.value })}
+                  className="w-full px-3 py-2 border border-[#D9D9D9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#003465]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-black mb-1">Last Name</label>
+                <input
+                  type="text"
+                  value={editFormData.lastName || ""}
+                  onChange={(e) => setEditFormData({ ...editFormData, lastName: e.target.value })}
+                  className="w-full px-3 py-2 border border-[#D9D9D9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#003465]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-black mb-1">Email</label>
+                <input
+                  type="email"
+                  value={editFormData.email || ""}
+                  onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                  className="w-full px-3 py-2 border border-[#D9D9D9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#003465]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-black mb-1">Phone Number</label>
+                <input
+                  type="text"
+                  value={editFormData.phoneNumber || ""}
+                  onChange={(e) => setEditFormData({ ...editFormData, phoneNumber: e.target.value })}
+                  className="w-full px-3 py-2 border border-[#D9D9D9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#003465]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-black mb-1">Address</label>
+                <input
+                  type="text"
+                  value={editFormData.address || ""}
+                  onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
+                  className="w-full px-3 py-2 border border-[#D9D9D9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#003465]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-black mb-1">Region/State</label>
+                <input
+                  type="text"
+                  value={(editFormData as any).state || ""}
+                  onChange={(e) => setEditFormData({ ...editFormData, state: e.target.value })}
+                  className="w-full px-3 py-2 border border-[#D9D9D9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#003465]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-black mb-1">Date of Birth</label>
+                <input
+                  type="date"
+                  value={(editFormData as any).dob || ""}
+                  onChange={(e) => setEditFormData({ ...editFormData, dob: e.target.value })}
+                  className="w-full px-3 py-2 border border-[#D9D9D9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#003465]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-black mb-1">Gender</label>
+                <select
+                  value={(editFormData as any).gender || ""}
+                  onChange={(e) => setEditFormData({ ...editFormData, gender: e.target.value })}
+                  className="w-full px-3 py-2 border border-[#D9D9D9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#003465]"
+                >
+                  <option value="">Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-black mb-1">Ailment</label>
+                <input
+                  type="text"
+                  value={editFormData.ailment || ""}
+                  onChange={(e) => setEditFormData({ ...editFormData, ailment: e.target.value })}
+                  className="w-full px-3 py-2 border border-[#D9D9D9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#003465]"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-black mb-1">Bio/Notes</label>
+              <textarea
+                value={(editFormData as any).bio || ""}
+                onChange={(e) => setEditFormData({ ...editFormData, bio: e.target.value })}
+                rows={4}
+                className="w-full px-3 py-2 border border-[#D9D9D9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#003465]"
+                placeholder="Enter notes..."
+              />
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setIsEditModalOpen(false);
+              }}
+              className="border border-[#D9D9D9] text-[#737373] hover:bg-gray-50"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                handleEditSave(editFormData);
+              }}
+              className="bg-[#003465] hover:bg-[#002147] text-white"
+            >
+              Save Changes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Warning Modal */}
+      <AlertDialog 
+        open={isDeleteModalOpen} 
+        onOpenChange={(open) => {
+          setIsDeleteModalOpen(open);
+          if (!open) {
+            setTimeout(() => {
+              setSelectedPatient(null);
+            }, 150);
+          }
+        }}
+      >
+        <AlertDialogContent className="bg-white max-w-md !z-[110]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-semibold text-black">
+              Delete Patient
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-[#737373] pt-2">
+              Are you sure you want to delete{" "}
+              <span className="font-semibold text-black">
+                {selectedPatient?.firstName} {selectedPatient?.lastName}
+              </span>
+              ? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => setIsDeleteModalOpen(false)}
+              className="border border-[#D9D9D9] text-[#737373] hover:bg-gray-50"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-[#EC0909] hover:bg-[#D40808] text-white"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   );
 }

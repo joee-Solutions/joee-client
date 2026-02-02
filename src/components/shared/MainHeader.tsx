@@ -9,6 +9,8 @@ import profileImage from "./../../../public/assets/profile.png";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import Cookies from "js-cookie";
 import { toast } from "react-toastify";
+import { processRequestAuth } from "@/framework/https";
+import { API_ENDPOINTS } from "@/framework/api-endpoints";
 
 interface UserData {
   id?: number;
@@ -69,17 +71,47 @@ const MainHeaderContent = ({ onToggleMobileMenu }: MainHeaderProps) => {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
 
-  // Load user data from cookies
+  // Load user data from cookies (login response) and optionally refresh from API
   useEffect(() => {
-    const userCookie = Cookies.get("user");
-    if (userCookie) {
-      try {
-        const parsedUser = JSON.parse(userCookie);
-        setUserData(parsedUser);
-      } catch (error) {
-        console.error("Failed to parse user data from cookies:", error);
+    const loadUserData = async () => {
+      // First, load from cookies (set during login)
+      const userCookie = Cookies.get("user");
+      if (userCookie) {
+        try {
+          const parsedUser = JSON.parse(userCookie);
+          console.log("Loaded user data from cookie:", parsedUser);
+          setUserData(parsedUser);
+        } catch (error) {
+          console.error("Failed to parse user data from cookies:", error);
+        }
       }
-    }
+      
+      // Optionally refresh from API if needed (only if cookie data is missing or stale)
+      // For now, we'll use the login response data primarily
+      // Uncomment below if you want to always fetch fresh data from API
+      /*
+      try {
+        const profileData = await processRequestAuth("get", API_ENDPOINTS.GET_PROFILE);
+        
+        if (profileData?.data || profileData) {
+          const user = profileData.data || profileData;
+          console.log("Loaded user data from API:", user);
+          setUserData(user);
+          // Update cookie with fresh data
+          Cookies.set("user", JSON.stringify(user), { 
+            expires: 7, // 7 days
+            sameSite: 'lax',
+            path: '/'
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch profile from API:", error);
+        // If API fails, keep using cookie data if available
+      }
+      */
+    };
+    
+    loadUserData();
   }, []);
 
   // Sync search query with URL params
@@ -92,25 +124,30 @@ const MainHeaderContent = ({ onToggleMobileMenu }: MainHeaderProps) => {
 
   // Extract user info
   const fullName = userData
-    ? `${userData.first_name || userData.name || ""} ${userData.last_name || ""}`.trim() ||
+    ? `${userData.first_name || userData.firstname || userData.name || ""} ${userData.last_name || userData.lastname || ""}`.trim() ||
       userData.username ||
       userData.email ||
+      userData.firstName ||
+      userData.lastName ||
       "User"
-    : "Loading...";
-  const role = userData?.role || "Admin";
-  const profilePicture = userData?.profile_picture || profileImage;
+    : userData === null ? "User" : "Loading...";
+  
+  // Extract role - handle array format or string
+  const roleArray = Array.isArray(userData?.roles) ? userData.roles : userData?.role ? [userData.role] : [];
+  const role = roleArray.length > 0 ? roleArray[0] : userData?.role || "Admin";
+  const profilePicture = userData?.profile_picture || userData?.profilePicture || profileImage;
 
   // Calculate unread count
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  // Search handler
+  // Search handler - navigate to search page
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const query = searchQuery.trim();
     if (query) {
-      router.push(`/dashboard/organization?search=${encodeURIComponent(query)}`);
+      router.push(`/dashboard/search?q=${encodeURIComponent(query)}`);
     } else {
-      router.push("/dashboard/organization");
+      router.push("/dashboard/search");
     }
   };
 
@@ -158,17 +195,17 @@ const MainHeaderContent = ({ onToggleMobileMenu }: MainHeaderProps) => {
         <Menu className="w-6 h-6 text-[#003465]" />
       </button>
 
-      {/* Search Bar */}
+      {/* Search Bar - Made longer */}
       <form
         onSubmit={handleSearch}
-        className="relative flex items-center justify-center px-2 py-[10px] rounded-[60px] bg-white shadow-[4px_4px_4px_0px_#B7B5B566] basis-[50%] md:basis-[50%] flex-1 lg:flex-initial"
+        className="relative flex items-center justify-center px-2 py-[10px] rounded-[60px] bg-white shadow-[4px_4px_4px_0px_#B7B5B566] flex-1 min-w-0 max-w-2xl"
       >
         <input
           type="text"
-          placeholder="Search..."
+          placeholder="Search organizations, employees, patients..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="px-3 md:px-5 h-[40px] md:h-[50px] rounded-[30px] pl-3 md:pl-5 pr-10 md:pr-12 bg-[#E4E8F2] outline-none focus:outline-1 focus:outline-slate-400 w-full text-sm md:text-base [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"
+          className="px-3 md:px-5 h-[40px] md:h-[50px] rounded-[30px] pl-3 md:pl-5 pr-10 md:pr-12 bg-[#E4E8F2] outline-none focus:outline-2 focus:outline-[#003465] w-full text-sm md:text-base [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"
         />
         <button
           type="submit"
@@ -192,7 +229,7 @@ const MainHeaderContent = ({ onToggleMobileMenu }: MainHeaderProps) => {
               )}
             </button>
           </PopoverTrigger>
-          <PopoverContent className="w-80 p-0" align="end">
+          <PopoverContent className="w-80 p-0 bg-white border border-gray-200 shadow-lg" align="end">
             <div className="p-4 border-b">
               <h3 className="font-semibold text-lg">Notifications</h3>
             </div>
@@ -273,7 +310,7 @@ const MainHeaderContent = ({ onToggleMobileMenu }: MainHeaderProps) => {
           </div>
         </div>
           </PopoverTrigger>
-          <PopoverContent className="w-48 p-0" align="end">
+          <PopoverContent className="w-48 p-0 bg-white border border-gray-200 shadow-lg" align="end">
             <div className="p-2">
               <button
                 onClick={handleViewProfile}

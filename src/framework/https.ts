@@ -32,18 +32,20 @@ if (typeof window !== "undefined") {
       "Content-Type": "application/json",
     },
   });
+  
+  // Set up interceptors only when httpNoAuth is created
+  httpNoAuth.interceptors.request.use(
+    (config: any) => {
+      config.headers = {
+        ...config.headers,
+      };
+      return config;
+    },
+    (error: any) => {
+      return Promise.reject(error);
+    }
+  );
 }
-httpNoAuth.interceptors.request.use(
-  (config: any) => {
-    config.headers = {
-      ...config.headers,
-    };
-    return config;
-  },
-  (error: any) => {
-    return Promise.reject(error);
-  }
-);
 
 let httpAuth: any;
 if (typeof window !== "undefined") {
@@ -54,34 +56,37 @@ if (typeof window !== "undefined") {
       "Content-Type": "application/json",
     },
   });
-}
-httpAuth.interceptors.request.use(
-  (config: any) => {
-    const token = getToken();
-    let authorization;
-    if (typeof token === "string" && token.trim().length > 10) {
-      authorization = `Bearer ${token}`;
-    } else {
-      const refreshed = getRefreshToken();
-      if (refreshed) {
-        const token = getToken();
-        if (typeof token === "string" && token.trim().length > 10) {
-          authorization = `Bearer ${token}`;
-        }
+  
+  // Set up interceptors only when httpAuth is created
+  httpAuth.interceptors.request.use(
+    (config: any) => {
+      const token = getToken();
+      let authorization;
+      if (typeof token === "string" && token.trim().length > 10) {
+        authorization = `Bearer ${token}`;
       } else {
-        // window.location.href = "/";
+        const refreshed = getRefreshToken();
+        if (refreshed) {
+          const token = getToken();
+          if (typeof token === "string" && token.trim().length > 10) {
+            authorization = `Bearer ${token}`;
+          }
+        } else {
+          console.warn("No auth token found for authenticated request:", config.url);
+          // window.location.href = "/";
+        }
       }
+      config.headers = {
+        ...config.headers,
+        authorization,
+      };
+      return config;
+    },
+    (error: any) => {
+      return Promise.reject(error);
     }
-    config.headers = {
-      ...config.headers,
-      authorization,
-    };
-    return config;
-  },
-  (error: any) => {
-    return Promise.reject(error);
-  }
-);
+  );
+}
 
 const processRequestNoAuth = async (
   method: "post" | "get" | "put" | "delete",
@@ -90,6 +95,15 @@ const processRequestNoAuth = async (
   callback?: (path: string, data: any, error?: any) => void,
   files?: any[] | File | Blob
 ) => {
+  // Only run on client side
+  if (typeof window === "undefined") {
+    throw new Error("processRequestNoAuth can only be called on the client side");
+  }
+
+  if (!httpNoAuth) {
+    throw new Error("httpNoAuth is not initialized");
+  }
+
   console.debug("request -> processDataRequest", path);
 
   let rt;
@@ -135,6 +149,15 @@ const processRequestAuth = async (
   callback?: (path: string, data: any, error?: any) => void,
   files?: any[] | File | Blob
 ) => {
+  // Only run on client side
+  if (typeof window === "undefined") {
+    throw new Error("processRequestAuth can only be called on the client side");
+  }
+
+  if (!httpAuth) {
+    throw new Error("httpAuth is not initialized");
+  }
+
   console.debug("request -> processDataRequest", path);
 
   let rt;
@@ -153,6 +176,8 @@ const processRequestAuth = async (
       });
     } else if (method === "put") {
       rt = await httpAuth.put(`${path}`, data);
+    } else if (method === "patch") {
+      rt = await httpAuth.patch(`${path}`, data);
     } else if (method === "delete") {
       rt = await httpAuth.delete(`${path}`);
     } else {
@@ -200,10 +225,20 @@ const refreshUser = async () => {
         { refresh_token: getRefreshToken() }
       );
       if (tResponse) {
-        Cookies.set("auth_token", tResponse.token, { expires: 1 / 48 });
-        Cookies.set("refresh_token", tResponse.refresh_token || getRefreshToken(), { expires: 1 / 48 });
+        Cookies.set("auth_token", tResponse.token, { 
+          expires: 7, // 7 days
+          sameSite: 'lax',
+          path: '/'
+        });
+        Cookies.set("refresh_token", tResponse.refresh_token || getRefreshToken(), { 
+          expires: 30, // 30 days for refresh token
+          sameSite: 'lax',
+          path: '/'
+        });
         Cookies.set("user", JSON.stringify(tResponse.user), {
-          expires: 1 / 48,
+          expires: 7, // 7 days
+          sameSite: 'lax',
+          path: '/'
         });
         return tResponse;
       } else {

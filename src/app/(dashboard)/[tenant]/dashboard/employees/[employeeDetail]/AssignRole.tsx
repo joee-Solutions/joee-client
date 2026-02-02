@@ -78,7 +78,7 @@ const AssignRoleSchema = z.object({
 
 type AssignRoleSchemaType = z.infer<typeof AssignRoleSchema>;
 
-const orgStatus = ["Active", "Inactive", "Deactivate"];
+const orgStatus = ["Active", "Inactive"];
 
 export default function AssignRolePage() {
   const form = useForm<AssignRoleSchemaType>({

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import FieldSelect from "@/components/shared/form/FieldSelect";
 import FormComposer from "@/components/shared/form/FormComposer";
 import {
@@ -23,49 +23,124 @@ import {
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import FieldBox from "../shared/form/FieldBox";
+import { processRequestAuth } from "@/framework/https";
+import { API_ENDPOINTS } from "@/framework/api-endpoints";
+import { toast } from "react-toastify";
+import Cookies from "js-cookie";
 
 const EditOrganizationSchema = z.object({
   firstName: z.string().min(1, "This field is required"),
-  address: z.string().min(1, "This field is required"),
+  address: z.string().optional(),
   lastName: z.string().min(1, "This field is required"),
   email: z
     .string()
     .email("Invalid email address")
     .min(1, "This field is required"),
-
-  role: z.string().min(1, "This field is required"),
-  phoneNumber: z.string().min(1, "This field is required"),
-  company: z.string().min(1, "This field is required"),
+  role: z.string().optional(),
+  phoneNumber: z.string().optional(),
+  company: z.string().optional(),
 });
 
 type EditOrganizationSchemaType = z.infer<typeof EditOrganizationSchema>;
 
-const orgStatus = ["Admin", "Super Admin", "User"];
+const orgStatus = ["Admin", "Super Admin", "User", "Tenant_Admin"];
 
-export default function ProfileForm() {
+interface ProfileFormProps {
+  profileData?: any;
+  onProfileUpdate?: () => void;
+  isLoading?: boolean;
+}
+
+export default function ProfileForm({ profileData, onProfileUpdate, isLoading }: ProfileFormProps) {
   const form = useForm<EditOrganizationSchemaType>({
     resolver: zodResolver(EditOrganizationSchema),
     mode: "onChange",
     defaultValues: {
-      firstName: "JP",
-      lastName: "Morgan",
-      address: "123, allen street, lagos",
-      email: "jpMorgan@gmail.com",
-      phoneNumber: "0818888888",
+      firstName: "",
+      lastName: "",
+      address: "",
+      email: "",
+      phoneNumber: "",
       role: "",
-      company: "Joee Solution",
+      company: "",
     },
   });
-  const [isEdit, setIsEdit] = React.useState(true);
+
+  // Update form when profile data loads
+  useEffect(() => {
+    if (profileData && !isLoading) {
+      form.reset({
+        firstName: profileData.first_name || profileData.firstName || profileData.name?.split(" ")[0] || "",
+        lastName: profileData.last_name || profileData.lastName || profileData.name?.split(" ").slice(1).join(" ") || "",
+        address: profileData.address || "",
+        email: profileData.email || "",
+        phoneNumber: profileData.phone || profileData.phoneNumber || profileData.phone_number || "",
+        role: Array.isArray(profileData.roles) ? profileData.roles[0] : profileData.role || "",
+        company: profileData.company || profileData.organization || "",
+      });
+    }
+  }, [profileData, isLoading, form]);
+
   const [isDisabled, setIsDisabled] = React.useState(true);
 
-  const onSubmit = (payload: EditOrganizationSchemaType) => {
-    console.log(payload);
+  const onSubmit = async (payload: EditOrganizationSchemaType) => {
+    try {
+      const updateData = {
+        first_name: payload.firstName,
+        last_name: payload.lastName,
+        email: payload.email,
+        address: payload.address,
+        phone: payload.phoneNumber,
+        phone_number: payload.phoneNumber,
+        company: payload.company,
+        organization: payload.company,
+      };
+
+      const response = await processRequestAuth("put", API_ENDPOINTS.UPDATE_PROFILE, updateData);
+      
+      if (response) {
+        // Update cookie with new data
+        const updatedUser = {
+          ...profileData,
+          ...updateData,
+          first_name: payload.firstName,
+          last_name: payload.lastName,
+        };
+        Cookies.set("user", JSON.stringify(updatedUser), { 
+          expires: 7, // 7 days
+          sameSite: 'lax',
+          path: '/'
+        });
+        
+        toast.success("Profile updated successfully", { toastId: "profile-update-success" });
+        setIsDisabled(true);
+        if (onProfileUpdate) {
+          onProfileUpdate();
+        }
+      }
+    } catch (error: any) {
+      console.error("Profile update error:", error);
+      const errorMessage = error?.response?.data?.error || error?.response?.data?.message || "Failed to update profile";
+      toast.error(errorMessage, { toastId: "profile-update-error" });
+    }
   };
 
   const handleEdit = () => {
     setIsDisabled((prev) => !prev);
   };
+
+  if (isLoading) {
+    return (
+      <>
+        <h2 className="font-bold text-base text-black mb-[30px]">
+          Admin Profile
+        </h2>
+        <div className="flex items-center justify-center py-12">
+          <p className="text-gray-500">Loading profile data...</p>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>

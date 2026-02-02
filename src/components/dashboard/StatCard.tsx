@@ -62,49 +62,52 @@ const StatCard: FC<StatCardProps> = ({ title, value, growth, color, icon, href }
     { value: 35 },
   ];
 
-  const TitleComponent = href ? (
-    <Link href={href} className="text-black text-[16px] font-medium hover:underline hover:text-[#003465] transition-colors cursor-pointer">
-      {title}
-    </Link>
-  ) : (
-    <h3 className="text-black text-[16px] font-medium">{title}</h3>
+  const cardContent = (
+    <>
+      <div className="p-4 flex flex-col space-y-4">
+        <h3 className="text-black text-[16px] font-medium hover:text-[#003465] transition-colors">
+          {title}
+        </h3>
+        <div className="flex items-center justify-between">
+          <p className={`text-[32px] font-medium ${colors.text}`}>{value}</p>
+          <div className={`rounded-full  h-[36px] w-[36px] flex items-center justify-center ${colors.bgColor}`}>
+            {icon}
+          </div>
+        </div>
+        {growth !== null && (
+          <div className="flex items-center">
+            <span className={`${colors.bgColor} text-white text-sm font-medium px-3 py-2 rounded-full`}>
+              {growth > 0 ? "+" : ""}{growth}%
+            </span>
+          </div>
+        )}
+      </div>
+
+      <ChartNoAxesColumn className={`${colors.text} flex items-center justify-center text-lg font-medium p-2 bg-white z-10 rounded-lg h-[43px] w-[43px] absolute bottom-4 right-6`}/>
+      <div className="absolute bottom-0 left-0 w-full h-[150px] p-0">
+        <ResponsiveContainer width="100%" height="100%" className="" >
+          <AreaChart data={data} >
+          {/* <Tooltip /> */}
+          <Area type="monotone" dataKey="value" stroke={colors.lineColor} strokeWidth={4} fill={colors.fillColor} dot={true} fillOpacity={1} />
+           
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    </>
   );
 
+  if (href) {
+    return (
+      <Link href={href} className="block rounded-lg my-8 shadow-xl hover:shadow-2xl relative overflow-hidden bg-white h-[300px] p-0 transition-all hover:scale-[1.02] cursor-pointer">
+        {cardContent}
+      </Link>
+    );
+  }
+
   return (
-
-
-    <div className=" rounded-lg my-8 shadow-xl hover:shadow-2xl relative overflow-hidden bg-white h-[300px] p-0">
-
-    <div className=" p-4 flex flex-col space-y-4">
-      {TitleComponent}
-      <div className="flex items-center justify-between">
-        <p className={`text-[32px] font-medium ${colors.text}`}>{value}</p>
-        <div className={`rounded-full  h-[36px] w-[36px] flex items-center justify-center ${colors.bgColor}`}>
-            {icon}
-        </div>
-      </div>
-    {growth !== null && (
-      <div className="flex items-center">
-        <span className={`${colors.bgColor} text-white text-sm font-medium px-3 py-2 rounded-full`}>
-          {growth > 0 ? "+" : ""}{growth}%
-        </span>
-      </div>
-    )}
+    <div className="rounded-lg my-8 shadow-xl hover:shadow-2xl relative overflow-hidden bg-white h-[300px] p-0">
+      {cardContent}
     </div>
-
-
-    <ChartNoAxesColumn className={`${colors.text} flex items-center justify-center text-lg font-medium p-2 bg-white z-10 rounded-lg h-[43px] w-[43px] absolute bottom-4 right-6`}/>
-    <div className="absolute bottom-0 left-0 w-full h-[150px] p-0">
-      <ResponsiveContainer width="100%" height="100%" className="" >
-        <AreaChart data={data} >
-        {/* <Tooltip /> */}
-        <Area type="monotone" dataKey="value" stroke={colors.lineColor} strokeWidth={4} fill={colors.fillColor} dot={true} fillOpacity={1} />
-         
-        </AreaChart>
-      </ResponsiveContainer>
-    </div>
-
-  </div>
   );
 };
 

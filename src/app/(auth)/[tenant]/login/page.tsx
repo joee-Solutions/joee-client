@@ -12,15 +12,13 @@ import { processRequestNoAuth } from "@/framework/https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { Spinner } from "@/components/icons/Spinner";
 import Cookies from "js-cookie";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { toast } from "react-toastify";
 
 type LoginProps = z.infer<typeof schema>;
 
 const schema = z.object({
   email: z.string().email({ message: "Invalid email address" }),
-  // TODO: Restore password validation when backend is ready
-  // For development: accept any password (minimum 1 character for form validation)
   password: z
     .string()
     .min(1, { message: "Password is required" })
@@ -37,6 +35,8 @@ const schema = z.object({
 
 const TenantLoginPage = () => {
   const router = useRouter();
+  const params = useParams();
+  const tenant = params?.tenant as string;
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [errMessage, setErrMessage] = useState<string>("");
   const {
@@ -53,52 +53,110 @@ const TenantLoginPage = () => {
   };
   const handleFormSubmit = async (data: LoginProps) => {
     try {
-      // TODO: Remove this bypass when backend is ready
-      // Bypass authentication for development - accept any credentials
-      // Go directly to dashboard without OTP verification
-      const mockAuthToken = `dev_auth_token_${Date.now()}`;
-      const mockRefreshToken = `dev_refresh_token_${Date.now()}`;
-      const mockUser = {
-        id: 1,
-        email: data.email,
-        name: "Development User",
-      };
-
-      Cookies.set("auth_token", mockAuthToken, {
-        expires: 1 / 48,
-      });
-      Cookies.set("refresh_token", mockRefreshToken, { expires: 1 / 48 });
-      Cookies.set("user", JSON.stringify(mockUser), {
-        expires: 1 / 48,
-      });
-      toast.success("Login successful!", {
-        toastId: "success",
-        delay: 1000,
-      });
-      router.push("/dashboard");
+      setErrMessage("");
       
-      // Original code (commented out for now):
-      // const rt = await processRequestNoAuth("post", API_ENDPOINTS.LOGIN, data);
-      // if (rt) {
-      //   Cookies.set("auth_token", rt.data.token, { expires: 1 / 48 });
-      //   if (rt.data.refresh_token) {
-      //     Cookies.set("refresh_token", rt.data.refresh_token, { expires: 1 / 48 });
-      //   }
-      //   Cookies.set("user", JSON.stringify(rt.data.user), {
-      //     expires: 1 / 48,
-      //   });
-      //   router.push("/dashboard");
-      // }
+      // Make API call to login endpoint
+      // The x-tenant-id header is automatically added by the API proxy based on the host header
+      const response = await processRequestNoAuth(
+        "post",
+        API_ENDPOINTS.LOGIN,
+        {
+        email: data.email,
+          password: data.password,
+        }
+      );
+
+      // Check if response is successful
+      if (response) {
+        // Extract auth token - based on Postman response, token is nested as data.data.token
+        const authToken = 
+          response.data?.data?.token ||  // Postman shows: data.data.token
+          response.data?.token ||
+          response.token || 
+          response.auth_token || 
+          response.data?.auth_token;
+        
+        const refreshToken = 
+          response.data?.data?.refresh_token ||
+          response.data?.refresh_token ||
+          response.refresh_token;
+        
+        // Extract user data - could be in different locations in response
+        const user = 
+          response.data?.data?.user ||
+          response.data?.data?.data?.user ||
+          response.data?.user || 
+          response.user ||
+          response.data?.data;
+
+        if (authToken) {
+          // Save authentication tokens with longer expiration (7 days)
+          // Using sameSite: 'lax' for better compatibility and path: '/' to ensure cookies are accessible site-wide
+          Cookies.set("auth_token", authToken, { 
+            expires: 7, // 7 days
+            sameSite: 'lax',
+            path: '/'
+          });
+          
+          if (refreshToken) {
+            Cookies.set("refresh_token", refreshToken, { 
+              expires: 30, // 30 days for refresh token
+              sameSite: 'lax',
+              path: '/'
+            });
+          }
+          
+          // Save user data from login response
+          if (user) {
+            // Ensure we have a proper user object
+            const userData = typeof user === 'object' ? user : { email: user };
+            Cookies.set("user", JSON.stringify(userData), { 
+              expires: 7, // 7 days
+              sameSite: 'lax',
+              path: '/'
+            });
+            console.log("Saved user data from login:", userData);
+          } else {
+            console.warn("No user data found in login response:", response);
+          }
+
+          toast.success("Login successful!", {
+            toastId: "login-success",
+            autoClose: 3000,
+          });
+          
+          router.push("/dashboard");
+        } else {
+          // Unexpected response format - no token found
+          console.error("Login response:", response);
+          toast.error("Unexpected response from server. No authentication token received.", {
+            toastId: "login-error",
+          });
+        }
+      }
     } catch (error: any) {
-      toast.error(error?.response?.data.error);
-      if (error?.status === 401) {
-        setErrMessage(error?.response?.data.error);
+      console.error("Login error:", error);
+      
+      // Extract error message
+      const errorMessage = 
+        error?.response?.data?.error || 
+        error?.response?.data?.message || 
+        error?.message || 
+        "Login failed. Please check your credentials and try again.";
+      
+      toast.error(errorMessage, {
+        toastId: "login-error",
+        autoClose: 5000,
+      });
+      
+      if (error?.response?.status === 401) {
+        setErrMessage(errorMessage);
       }
     }
   };
 
   useEffect(() => {
-    if (errMessage.toLowerCase().includes("user")) {
+    if (errMessage.toLowerCase().includes("user") || errMessage.toLowerCase().includes("email")) {
       setError("email", {
         type: "manual",
         message: errMessage,
@@ -109,7 +167,7 @@ const TenantLoginPage = () => {
         message: errMessage,
       });
     }
-  }, [errMessage]);
+  }, [errMessage, setError]);
   return (
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 gap-6 px-4 sm:px-8 lg:px-24 py-10 items-center justify-center font-poppins place-items-center">
       <div className="content col-span-1 text-white hidden md:flex flex-col justify-center space-y-8 w-full max-w-3xl">

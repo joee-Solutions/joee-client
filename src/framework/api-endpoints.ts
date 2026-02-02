@@ -1,14 +1,18 @@
 export const API_ENDPOINTS = {
-  REFRESH_TOKEN: "/auth/super/refresh-token",
-  LOGIN: "/tenant/auth/login",
-  AUTH_LOGIN: "/tenant/auth",
-  VERIFY_OTP: "/tenant/auth/verify-login-otp",
+  LOGIN: "/auth/tenant/login",
   FORGOT_PASSWORD: "/tenant/auth/forgot-password",
   RESET_PASSWORD: "/tenant/auth/reset-password",
   VERIFY_LOGIN: "/tenant/auth/verify-otp",
-
-
-  LOGOUT: "/auth/super/logout",
-  VERIFY_EMAIL: "/auth/super/verify-email",
-  RESEND_OTP: "/auth/super/resend-otp",
+  REFRESH_TOKEN: "/tenant/auth/refresh-token",
+  
+  // Profile endpoints
+  GET_PROFILE: "/tenant/profile",
+  UPDATE_PROFILE: "/tenant/profile",
+  CHANGE_PASSWORD: "/tenant/user/change-password",
+  
+  // Dashboard endpoints
+  GET_DEPARTMENTS: "/tenant/department",
+  GET_PATIENTS: "/tenant/patient",
+  GET_APPOINTMENTS: "/tenant/appointment",
+  GET_USERS: "/tenant/users",
 };

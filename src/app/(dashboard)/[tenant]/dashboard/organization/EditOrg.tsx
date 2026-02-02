@@ -37,7 +37,7 @@ const EditOrganizationSchema = z.object({
 
 type EditOrganizationSchemaType = z.infer<typeof EditOrganizationSchema>;
 
-const orgStatus = ["Active", "Inactive", "Deactivate"];
+const orgStatus = ["Active", "Inactive"];
 
 export default function EditOrg() {
   const form = useForm<EditOrganizationSchemaType>({

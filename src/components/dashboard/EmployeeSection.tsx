@@ -42,7 +42,7 @@ const EmployeeSection: FC<EmployeeSectionProps> = ({ employees }) => {
 
       <div className="flex flex-col items-center -mt-12 text-center">
         <div className="relative w-[180px] h-[180px] rounded-full border-8 border-[#003465] overflow-hidden">
-          <Image src={mainEmployee.image} alt={mainEmployee.name} layout="fill" objectFit="cover" />
+          <Image src={mainEmployee.image} alt={mainEmployee.name} fill sizes="180px" className="object-cover" />
         </div>
         <h4 className="mt-4 text-xl font-medium text-black">{mainEmployee.name}</h4>
         <p className="text-gray-500">{mainEmployee.role}</p>
@@ -64,7 +64,7 @@ const EmployeeSection: FC<EmployeeSectionProps> = ({ employees }) => {
                 employee.role.includes("Doctor") ? "border-red-500" : "border-yellow-500"
               }`}
             >
-              <Image src={employee.image} alt={employee.name} layout="fill" objectFit="cover" />
+              <Image src={employee.image} alt={employee.name} fill sizes="60px" className="object-cover" />
             </div>
             <div>
               <h4 className="text-sm font-semibold text-gray-900">{employee.name}</h4>

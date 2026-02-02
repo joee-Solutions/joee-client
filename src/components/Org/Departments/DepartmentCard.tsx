@@ -14,30 +14,41 @@ interface Department {
     dateCreated: string;
     status: 'Active' | 'Inactive';
     image: string;
+    description?: string;
 }
 
 interface DepartmentCardProps {
   department: Department;
   onClick: () => void;
+  onViewClick?: () => void;
   isRecentlyViewed?: boolean;
 }
 
 export default function DepartmentCard({ 
   department, 
   onClick,
+  onViewClick,
   isRecentlyViewed = false 
 }: DepartmentCardProps) {
   const handleCardClick = (e: React.MouseEvent) => {
     onClick();
   };
 
+  const handleViewClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onViewClick) {
+      onViewClick();
+    }
+  };
+
   return (
     <div
-      className={`relative rounded-lg shadow-md overflow-hidden cursor-pointer ${
+      className={`relative rounded-lg shadow-md overflow-hidden ${
         isRecentlyViewed ? 'ring-2 ring-blue-500 ring-offset-2' : ''
       }`}
     >
-      <Link href={`/dashboard/department/${department.id}`} onClick={handleCardClick}>
+      <div>
         <div 
           className={`h-32 relative bg-cover bg-center bg-no-repeat ${department.color}`}
           style={{
@@ -70,7 +81,13 @@ export default function DepartmentCard({
                 src={department.image}
                 alt={department.name}
                 fill
+                sizes="96px"
                 className="object-cover"
+                onError={(e) => {
+                  // Fallback to default image on error
+                  const target = e.target as HTMLImageElement;
+                  target.src = '/assets/department/department-bg.jpg';
+                }}
               />
             </div>
           </div>
@@ -82,7 +99,7 @@ export default function DepartmentCard({
           
           {/* Description */}
           <p className="text-center text-gray-500 text-sm mt-2">
-            Providing specialized medical care and services with a dedicated team of healthcare professionals.
+            {department.description || "Providing specialized medical care and services with a dedicated team of healthcare professionals."}
           </p>
 
           {/* Employee Count (Optional) */}
@@ -91,8 +108,20 @@ export default function DepartmentCard({
               {department.employeeCount} employees
             </span>
           </div>
+
+          {/* View Button */}
+          {onViewClick && (
+            <div className="text-center mt-4">
+              <button
+                onClick={handleViewClick}
+                className="rounded-[4px] px-5 py-1 text-white font-medium text-xs bg-[#003465] hover:bg-[#003465]/90"
+              >
+                View
+              </button>
+            </div>
+          )}
         </div>
-      </Link>
+      </div>
     </div>
   );
 }

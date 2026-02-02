@@ -38,7 +38,7 @@ const PersonalInfoSchema = z.object({
 
 type PersonalInfoSchemaType = z.infer<typeof PersonalInfoSchema>;
 
-const orgStatus = ["Active", "Inactive", "Deactivate"];
+const orgStatus = ["Active", "Inactive"];
 
 export default function PersonalInfo() {
   const form = useForm<PersonalInfoSchemaType>({

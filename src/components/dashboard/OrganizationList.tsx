@@ -21,8 +21,6 @@ const OrganizationList: FC<OrganizationListProps> = ({ organizations }) => {
         return 'bg-green-200 text-green-800';
       case 'Inactive':
         return 'bg-red-200 text-red-800';
-      case 'Deactivated':
-        return 'bg-yellow-200 text-yellow-800';
       default:
         return 'bg-gray-200 text-gray-800';
     }
@@ -34,8 +32,6 @@ const OrganizationList: FC<OrganizationListProps> = ({ organizations }) => {
         return 'border-green-500';
       case 'Inactive':
         return 'border-red-500';
-      case 'Deactivated':
-        return 'border-yellow-500';
       default:
         return 'border-gray-500';
     }

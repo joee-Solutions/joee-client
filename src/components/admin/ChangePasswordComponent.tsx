@@ -5,15 +5,26 @@ import FormComposer from "../shared/form/FormComposer";
 import FieldBox from "../shared/form/FieldBox";
 import { Button } from "../ui/button";
 import { PlusSquareIcon } from "lucide-react";
+import { processRequestAuth } from "@/framework/https";
+import { API_ENDPOINTS } from "@/framework/api-endpoints";
+import { toast } from "react-toastify";
 
 const changePasswordSchema = zod.object({
   oldPassword: zod.string().min(1, "This field is required"),
-  newPassword: zod.string().min(1, "This field is required"),
+  newPassword: zod.string().min(8, "Password must be at least 8 characters"),
   confirmPassword: zod.string().min(1, "This field is required"),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
 });
 
 type ChangePasswordSchemaType = zod.infer<typeof changePasswordSchema>;
-export default function ChnagePasswordComponent() {
+
+interface ChangePasswordComponentProps {
+  onPasswordChange?: () => void;
+}
+
+export default function ChangePasswordComponent({ onPasswordChange }: ChangePasswordComponentProps) {
   const form = useForm<ChangePasswordSchemaType>({
     resolver: zodResolver(changePasswordSchema),
     mode: "onChange",
@@ -24,8 +35,26 @@ export default function ChnagePasswordComponent() {
     },
   });
 
-  const onSubmit = (payload: ChangePasswordSchemaType) => {
-    console.log(payload);
+  const onSubmit = async (payload: ChangePasswordSchemaType) => {
+    try {
+      const response = await processRequestAuth("post", API_ENDPOINTS.CHANGE_PASSWORD, {
+        old_password: payload.oldPassword,
+        new_password: payload.newPassword,
+        confirm_password: payload.confirmPassword,
+      });
+
+      if (response) {
+        toast.success("Password changed successfully", { toastId: "password-change-success" });
+        form.reset();
+        if (onPasswordChange) {
+          onPasswordChange();
+        }
+      }
+    } catch (error: any) {
+      console.error("Password change error:", error);
+      const errorMessage = error?.response?.data?.error || error?.response?.data?.message || "Failed to change password";
+      toast.error(errorMessage, { toastId: "password-change-error" });
+    }
   };
 
   const handleEdit = () => {};

@@ -14,7 +14,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { X } from "lucide-react";
-import Link from "next/link";
 
 const AppointmentSchema = z.object({
   patientName: z.string().min(1, "Patient name is required"),
@@ -67,17 +66,12 @@ export default function AddAppointmentModal({ onClose, onSave }: AddAppointmentM
       <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center border-b p-6 sticky top-0 bg-white z-10">
           <h2 className="text-2xl font-semibold text-[#003465]">ADD APPOINTMENT</h2>
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard/appointments" className="text-[#003465] hover:underline text-sm">
-              Appointment List
-            </Link>
-            <button
-              onClick={onClose}
-              className="w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors"
-            >
-              <X size={20} />
-            </button>
-          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors"
+          >
+            <X size={20} />
+          </button>
         </div>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="p-6 space-y-6">

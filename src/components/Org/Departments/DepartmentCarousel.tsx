@@ -13,42 +13,34 @@ interface Department {
   dateCreated: string;
   status: 'Active' | 'Inactive';
   image: string;
+  description?: string;
+  [key: string]: string | number | boolean | undefined;
 }
 
 interface DepartmentCarouselProps {
   departments: Department[];
   onDepartmentClick: (departmentId: string) => void;
+  onViewClick?: (department: Department) => void;
   recentlyViewedId: string | null;
 }
 
 export default function DepartmentCarousel({
   departments,
   onDepartmentClick,
+  onViewClick,
   recentlyViewedId,
 }: DepartmentCarouselProps) {
   return (
     <div className="relative">
-      <div
-        className="flex gap-6 overflow-x-auto scrollbar-hide scroll-snap-x scroll-snap-mandatory"
-        style={{
-          scrollPadding: '0 1rem',
-        }}
-      >
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {departments.map((department, index) => (
-          <div
+          <DepartmentCard
             key={department.id}
-            className="flex-shrink-0 w-[calc(25%-1rem)] scroll-snap-align-start"
-            style={{
-              minWidth: 'calc(25% - 1rem)',
-            }}
-          >
-            <DepartmentCard
-              key={department.id}
-              department={department}
-              onClick={() => onDepartmentClick(department.id)}
-              isRecentlyViewed={department.id === recentlyViewedId && index === 0}
-            />
-          </div>
+            department={department}
+            onClick={() => onDepartmentClick(department.id)}
+            onViewClick={onViewClick ? () => onViewClick(department) : undefined}
+            isRecentlyViewed={department.id === recentlyViewedId && index === 0}
+          />
         ))}
       </div>
     </div>

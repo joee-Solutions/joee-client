@@ -8,51 +8,10 @@ import FormComposer from "@/components/shared/form/FormComposer";
 import SectionHeader from "@/components/shared/SectionHeader";
 import { Button } from "@/components/ui/button";
 import { zodResolver } from "@hookform/resolvers/zod";
-import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-
-const patientCards = [
-  {
-    id: 1,
-    name: "Denise Hampton",
-    role: "Doctor",
-    description:
-      "Lorem ipsum dolor sit amet consectetur. Cursus nec amet ipsum a. ",
-    picture: "/assets/doctorFemale.png",
-    rgbColorCode: "0, 52, 101",
-  },
-  {
-    id: 2,
-    name: "Susan Denilson",
-    role: "Lab Attendant",
-    description:
-      "Lorem ipsum dolor sit amet consectetur. Cursus nec amet ipsum a. ",
-    picture: "/assets/labAttendant.png",
-    rgbColorCode: "63, 169, 7",
-  },
-  {
-    id: 3,
-    name: "Cole Joshua",
-    role: "Doctor",
-    description:
-      "Lorem ipsum dolor sit amet consectetur. Cursus nec amet ipsum a. ",
-    picture: "/assets/doctorMale.png",
-    rgbColorCode: "236, 9, 9",
-  },
-  {
-    id: 4,
-    name: "Jenifer Gloria",
-    role: "Nurse",
-    description:
-      "Lorem ipsum dolor sit amet consectetur. Cursus nec amet ipsum a. ",
-    picture: "/assets/doctorFemale.png",
-    rgbColorCode: "225, 195, 0",
-  },
-];
 
 const PatientSchema = z.object({
   firstName: z.string({ required_error: "This field is required" }),
@@ -133,59 +92,7 @@ export default function PatientRegistrationForm() {
         description="Adequate Health care services improves Patients Health   "
       />
       <div className="flex flex-col py-[50px] px-[30px]">
-        <h4 className="font-medium text-2xl text-[#003465] mb-5">Top Search</h4>
-        <div className="grid grid-cols-[repeat(auto-fit,_minmax(260px,_1fr))] gap-[19px]">
-          {patientCards.map((patientCard) => (
-            <div
-              key={patientCard.id}
-              className="rounded-[10px] shadow-[0px_4px_4px_0px_#00000040] bg-white flex flex-col overflow-hidden"
-            >
-              <div
-                style={{
-                  backgroundImage: `linear-gradient(to right, rgba(${patientCard.rgbColorCode},.8)), url('/assets/sectionHeaderBG.png')`,
-                }}
-                className={`h-[87.2px] bg-cover bg-no-repeat`}
-              ></div>
-              <div className="pb-5 flex flex-col items-center px-5">
-                <div
-                  style={{
-                    borderWidth: "3px",
-                    borderColor: `rgb(${patientCard.rgbColorCode})`,
-                  }}
-                  className="size-[80px] -mt-10 rounded-full mb-[10px] flex items-center justify-center overflow-hidden"
-                >
-                  <Image
-                    src={patientCard.picture}
-                    width={80}
-                    height={80}
-                    alt={`${patientCard.name} photo`}
-                  />
-                </div>
-                <h3 className="font-medium text-sm text-black">
-                  {patientCard.name}
-                </h3>
-                <p
-                  style={{ color: `rgb(${patientCard.rgbColorCode})` }}
-                  className="font-medium text-xs text-center mt-2"
-                >
-                  {patientCard.role}
-                </p>
-                <p className="font-normal text-[10px] my-2 text-center text-[#999999]">
-                  {patientCard.description}
-                </p>
-                <Link
-                  href={`/dashboard/employees/${patientCard.name
-                    .split(" ")
-                    .join("-")}`}
-                  className="rounded-[4px] px-5 py-1 text-white font-medium text-xs bg-[#003465]"
-                >
-                  View
-                </Link>
-              </div>
-            </div>
-          ))}
-        </div>
-        <section className="mt-10 shadow-[0px_0px_4px_1px_#0000004D]">
+        <section className="shadow-[0px_0px_4px_1px_#0000004D]">
           <header className="flex items-center justify-between gap-5 border-b border-[#D9D9D9] h-[90px]">
             <div className="px-[27px]">
               <h2 className="font-semibold text-xl text-black">Add Patient</h2>
