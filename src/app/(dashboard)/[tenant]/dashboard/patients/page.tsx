@@ -538,7 +538,7 @@ export default function PatientPage() {
                 <p className="text-lg">Loading patients...</p>
               </div>
             ) : filteredPatients.length > 0 ? (
-              <DataTable columns={columns} data={filteredPatients} />
+              <DataTable columns={columns as any} data={filteredPatients as any} />
             ) : (
               <div className="flex items-center justify-center py-20 text-gray-500">
                 <p className="text-lg">No patients found</p>

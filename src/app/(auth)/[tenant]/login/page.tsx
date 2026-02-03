@@ -48,6 +48,15 @@ const TenantLoginPage = () => {
     resolver: zodResolver(schema),
     // reValidateMode: "onChange",
   });
+
+  // Check if user has already verified OTP (skip OTP for returning users)
+  useEffect(() => {
+    const otpVerified = Cookies.get("otp_verified");
+    if (otpVerified === "true") {
+      // User has already verified OTP, they can skip OTP verification
+      // This will be handled in the login response
+    }
+  }, []);
   const handleShowPassword = () => {
     setShowPassword((prev) => !prev);
   };
@@ -68,7 +77,44 @@ const TenantLoginPage = () => {
 
       // Check if response is successful
       if (response) {
-        // Extract auth token - based on Postman response, token is nested as data.data.token
+        // Check if OTP verification is required (first-time login)
+        // Backend should return a flag indicating if OTP is needed
+        const requiresOtp = 
+          response.data?.data?.requires_otp !== false && // Default to true if not specified
+          response.data?.requires_otp !== false &&
+          response.requires_otp !== false;
+        
+        // Check if user has already verified OTP (stored in cookie)
+        const otpVerified = Cookies.get("otp_verified") === "true";
+        
+        // If OTP is required and user hasn't verified yet, redirect to OTP page
+        if (requiresOtp && !otpVerified) {
+          // Extract MFA token for OTP verification
+          const mfaToken = 
+            response.data?.data?.token ||
+            response.data?.token ||
+            response.token ||
+            response.mfa_token;
+          
+          if (mfaToken) {
+            // Save MFA token for OTP verification
+            Cookies.set("mfa_token", mfaToken, {
+              expires: 1 / 24, // 1 hour
+              sameSite: 'lax',
+              path: '/'
+            });
+            
+            toast.info("Please verify your email with the OTP code sent to you.", {
+              toastId: "otp-required",
+              autoClose: 3000,
+            });
+            
+            router.push("/verify-otp");
+            return;
+          }
+        }
+        
+        // Extract auth token - for users who don't need OTP or have already verified
         const authToken = 
           response.data?.data?.token ||  // Postman shows: data.data.token
           response.data?.token ||
@@ -118,6 +164,15 @@ const TenantLoginPage = () => {
             console.log("Saved user data from login:", userData);
           } else {
             console.warn("No user data found in login response:", response);
+          }
+
+          // If OTP was not required, set otp_verified cookie for future logins
+          if (!requiresOtp || otpVerified) {
+            Cookies.set("otp_verified", "true", {
+              expires: 365, // 1 year
+              sameSite: 'lax',
+              path: '/'
+            });
           }
 
           toast.success("Login successful!", {

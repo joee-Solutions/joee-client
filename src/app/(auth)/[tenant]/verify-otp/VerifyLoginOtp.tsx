@@ -39,81 +39,111 @@ const VerifyOtpLoginClient = ({ token }: { token: string }) => {
       toast.error("Otp is required");
       return;
     }
-    console.log(data);
     try {
-      // TODO: Remove this bypass when backend is ready
-      // Bypass OTP verification for development - accept any OTP
-      const mockAuthToken = `dev_auth_token_${Date.now()}`;
-      const mockRefreshToken = `dev_refresh_token_${Date.now()}`;
-      const mockUser = {
-        id: 1,
-        email: "dev@example.com",
-        name: "Development User",
-      };
+      // Get MFA token from cookie or prop
+      const mfaToken = Cookies.get("mfa_token") || token;
+      
+      if (!mfaToken) {
+        toast.error("Session expired. Please login again.", {
+          toastId: "session-expired",
+        });
+        router.push("/login");
+        return;
+      }
 
-      Cookies.remove("mfa_token");
-      Cookies.set("auth_token", mockAuthToken, {
-        expires: 7, // 7 days
-        sameSite: 'lax',
-        path: '/'
-      });
-      Cookies.set("refresh_token", mockRefreshToken, { 
-        expires: 30, // 30 days for refresh token
-        sameSite: 'lax',
-        path: '/'
-      });
-      Cookies.set("user", JSON.stringify(mockUser), {
-        expires: 7, // 7 days
-        sameSite: 'lax',
-        path: '/'
-      });
-      // Set OTP verified cookie (0 days = always remember, so use long expiration)
-      Cookies.set("otp_verified", "true", {
-        expires: 365, // 1 year (effectively "always" for 0 days requirement)
-      });
-      toast.success("Login successful!", {
-        toastId: "success",
-        delay: 1000,
-      });
-      router.push(`/dashboard`);
+      // Verify OTP with backend
+      const rt = await processRequestNoAuth(
+        "post",
+        API_ENDPOINTS.VERIFY_LOGIN,
+        {
+          otp: data.otp,
+          token: mfaToken,
+        }
+      );
+      
+      // Extract auth token from response
+      const authToken = 
+        rt.data?.data?.token ||
+        rt.data?.token ||
+        rt.token;
+      
+      const refreshToken = 
+        rt.data?.data?.refresh_token ||
+        rt.data?.refresh_token ||
+        rt.refresh_token;
+      
+      const user = 
+        rt.data?.data?.user ||
+        rt.data?.user ||
+        rt.user;
 
-      // Original code (commented out for now):
-      // const rt = await processRequestNoAuth(
-      //   "post",
-      //   API_ENDPOINTS.VERIFY_LOGIN,
-      //   {
-      //     otp: data.otp,
-      //     token,
-      //   }
-      // );
-      // console.log(rt, "token");
-      // if (rt.status === true && rt?.data?.token) {
-      //   Cookies.remove("mfa_token");
-      //   Cookies.set("auth_token", rt.data.token, {
-      //     expires: 1 / 48,
-      //   });
-      //   // Save refresh token if provided in response
-      //   if (rt.data.refresh_token) {
-      //     Cookies.set("refresh_token", rt.data.refresh_token, { expires: 1 / 48 });
-      //   }
-      //   Cookies.set("user", JSON.stringify(rt.data.user), {
-      //     expires: 1 / 48,
-      //   });
-      //   // Set OTP verified cookie (0 days = always remember)
-      //   Cookies.set("otp_verified", "true", {
-      //     expires: 365, // 1 year (effectively "always" for 0 days requirement)
-      //   });
-      //   router.push(`/dashboard`);
-      // }
+      if (authToken && (rt.status === true || rt?.data?.status === true || authToken)) {
+        // Remove MFA token
+        Cookies.remove("mfa_token");
+        
+        // Save authentication tokens
+        Cookies.set("auth_token", authToken, {
+          expires: 7, // 7 days
+          sameSite: 'lax',
+          path: '/'
+        });
+        
+        // Save refresh token if provided
+        if (refreshToken) {
+          Cookies.set("refresh_token", refreshToken, { 
+            expires: 30, // 30 days
+            sameSite: 'lax',
+            path: '/'
+          });
+        }
+        
+        // Save user data
+        if (user) {
+          const userData = typeof user === 'object' ? user : { email: user };
+          Cookies.set("user", JSON.stringify(userData), {
+            expires: 7, // 7 days
+            sameSite: 'lax',
+            path: '/'
+          });
+        }
+        
+        // Set OTP verified cookie - this ensures user won't be asked for OTP again
+        Cookies.set("otp_verified", "true", {
+          expires: 365, // 1 year
+          sameSite: 'lax',
+          path: '/'
+        });
+        
+        toast.success("Login successful!", {
+          toastId: "success",
+          delay: 1000,
+        });
+        
+        router.push(`/dashboard`);
+      } else {
+        toast.error("Invalid OTP. Please try again.", {
+          toastId: "invalid-otp",
+          delay: 2000,
+        });
+      }
     } catch (error: any) {
-      console.log(error, "ekekek");
+      console.error("OTP verification error:", error);
+      
       if (
-        error.status === 401 &&
-        error.response.data.error === "Invalid Session"
+        error?.response?.status === 401 &&
+        error?.response?.data?.error === "Invalid Session"
       ) {
+        Cookies.remove("mfa_token");
         router.push("/login");
       }
-      toast.error(error?.response?.data?.error, {
+      
+      const errorMessage = 
+        error?.response?.data?.error || 
+        error?.response?.data?.message ||
+        error?.message ||
+        "OTP verification failed. Please try again.";
+      
+      toast.error(errorMessage, {
         toastId: "error",
         delay: 2000,
       });
@@ -123,17 +153,19 @@ const VerifyOtpLoginClient = ({ token }: { token: string }) => {
 
   const handleResendOtp = async () => {
     try {
+      // Use the mfa_token from cookie for resending OTP
+      const mfaToken = Cookies.get("mfa_token") || token;
       const rt = await processRequestNoAuth("post", API_ENDPOINTS.RESEND_OTP, {
-        token,
+        token: mfaToken,
       });
-      if (rt.status === true) {
-        toast.success(rt.message, {
+      if (rt.status === true || rt?.data?.status === true) {
+        toast.success(rt.message || rt?.data?.message || "OTP resent successfully", {
           toastId: "success",
           delay: 2000,
         });
       }
     } catch (error: any) {
-      toast.error(error?.response?.data?.error, {
+      toast.error(error?.response?.data?.error || "Failed to resend OTP", {
         toastId: "error",
         delay: 2000,
       });
