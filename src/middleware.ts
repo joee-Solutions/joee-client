@@ -6,11 +6,28 @@ export async function middleware(request: NextRequest) {
   const pathName = request.nextUrl.pathname;
   const domainObj = request.nextUrl.clone();
   const host = request.headers.get("host") || "";
-  const subdomain = host.split(".")[0]; // Extract subdomain
-  // const subdomain = host.replace(`.${rootDomain}`, ""); // Extract subdomain
+  
+  // Extract subdomain - handle different domain structures
+  let subdomain = host.split(".")[0];
+  
+  // For Vercel: subdomain.project.vercel.app
+  if (host.includes(".vercel.app")) {
+    const parts = host.split(".");
+    if (parts.length >= 3) {
+      subdomain = parts[0];
+    }
+  }
+  
+  // For production domains: subdomain.domain.com
+  if (host.includes(".") && !host.includes("localhost")) {
+    const parts = host.split(".");
+    if (parts.length >= 2 && parts[0] !== "www") {
+      subdomain = parts[0];
+    }
+  }
 
   if (!subdomain || subdomain === "www") {
-    console.log("subdomain does not exist");
+    console.log("subdomain does not exist for host:", host);
     return NextResponse.next();
   } // Checks to ensure that the subdomain is not "www" to avoid logic errors
   const isValid = isValidSlug(subdomain);

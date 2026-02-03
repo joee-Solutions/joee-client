@@ -1,5 +1,5 @@
 export const API_ENDPOINTS = {
-  LOGIN: "/auth/tenant/login",
+  LOGIN: "/tenant/auth/login",
   FORGOT_PASSWORD: "/tenant/auth/forgot-password",
   RESET_PASSWORD: "/tenant/auth/reset-password",
   VERIFY_LOGIN: "/tenant/auth/verify-otp",
