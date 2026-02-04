@@ -104,7 +104,7 @@ const DashboardPage: NextPage = () => {
         processRequestAuth("get", API_ENDPOINTS.GET_DEPARTMENTS),
         processRequestAuth("get", API_ENDPOINTS.GET_PATIENTS),
         processRequestAuth("get", API_ENDPOINTS.GET_APPOINTMENTS),
-        processRequestAuth("get", API_ENDPOINTS.GET_USERS),
+        processRequestAuth("get", API_ENDPOINTS.GET_EMPLOYEE),
       ]);
 
       // Extract counts from responses

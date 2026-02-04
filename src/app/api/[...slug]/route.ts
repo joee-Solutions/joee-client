@@ -8,46 +8,55 @@ const apiUrl = siteConfig.host;
 // Helper function to extract tenant subdomain from request
 const getTenantId = (req: NextRequest): string | undefined => {
   const host = req.headers.get("host") || "";
-  const referer = req.headers.get("referer") || "";
   
-  // Try to extract subdomain from host header
-  // Handle different domain structures:
-  // - Local: doe.localhost:3000 -> doe
-  // - Vercel: doe.joee-client-blond.vercel.app -> doe
-  // - Production: doe.joee.com.ng -> doe
-  let subdomain = host.split(".")[0];
+  // Extract tenant subdomain - handle different domain structures
+  let subdomain: string | undefined = undefined;
   
-  // If host starts with a known pattern, extract subdomain
-  // For Vercel: subdomain.project.vercel.app
+  // For Vercel: {tenant}.{project}.vercel.app or {project}.vercel.app
   if (host.includes(".vercel.app")) {
     const parts = host.split(".");
-    if (parts.length >= 3) {
+    // Pattern: tenant.project.vercel.app (4 parts) -> extract tenant (first part)
+    // Pattern: project.vercel.app (3 parts) -> no tenant, this is the root domain
+    if (parts.length >= 4) {
+      // Has tenant subdomain: doe.joee-client-blond.vercel.app
       subdomain = parts[0];
+      console.log("✅ Extracted tenant ID from Vercel host:", host, "->", subdomain);
+    } else {
+      // No tenant subdomain: joee-client-blond.vercel.app
+      // This is the root domain, don't extract a subdomain
+      console.log("⚠️ Vercel root domain detected (no tenant):", host);
+      return undefined;
     }
   }
-  
-  // Fallback: try to extract from referer if host doesn't have subdomain
-  if (!subdomain || subdomain === "www" || subdomain === "localhost") {
-    try {
-      if (referer) {
-        const refererUrl = new URL(referer);
-        const refererHost = refererUrl.hostname;
-        const refererParts = refererHost.split(".");
-        if (refererParts.length >= 2) {
-          const possibleSubdomain = refererParts[0];
-          if (possibleSubdomain && possibleSubdomain !== "www" && possibleSubdomain !== "localhost") {
-            subdomain = possibleSubdomain;
-          }
-        }
-      }
-    } catch (e) {
-      // Ignore URL parsing errors
+  // For localhost: {tenant}.localhost:3000 or localhost:3000
+  else if (host.includes("localhost")) {
+    const parts = host.split(".");
+    if (parts.length >= 2 && parts[0] !== "localhost") {
+      // Has tenant: doe.localhost:3000
+      subdomain = parts[0];
+      console.log("✅ Extracted tenant ID from localhost:", host, "->", subdomain);
+    } else {
+      // No tenant: localhost:3000
+      console.log("⚠️ Localhost root domain detected (no tenant):", host);
+      return undefined;
+    }
+  }
+  // For production domains: {tenant}.domain.com or domain.com
+  else {
+    const parts = host.split(".");
+    if (parts.length >= 3 && parts[0] !== "www") {
+      // Has tenant subdomain: doe.joee.com.ng
+      subdomain = parts[0];
+      console.log("✅ Extracted tenant ID from production host:", host, "->", subdomain);
+    } else {
+      // No tenant: joee.com.ng (root domain)
+      console.log("⚠️ Production root domain detected (no tenant):", host);
+      return undefined;
     }
   }
   
   // Only return subdomain if it's a valid tenant (not localhost, www, or empty)
   if (subdomain && subdomain !== "localhost" && subdomain !== "www" && subdomain.length > 0) {
-    console.log("Extracted tenant ID from host:", host, "->", subdomain);
     return subdomain;
   }
   
@@ -149,9 +158,21 @@ export async function POST(req: NextRequest) {
     }
     
     // Always include x-tenant-id if we have it
+    // For login endpoint, tenant ID is required by backend
     if (tenantId) {
       headers["x-tenant-id"] = tenantId;
+    } else if (pathName.includes("/auth/login")) {
+      // Log warning for login without tenant ID
+      console.error("❌ Login request without tenant ID! Host:", req.headers.get("host"));
     }
+    
+    // Log request details for debugging
+    console.log("📤 POST Request:", {
+      path: pathName,
+      tenantId: tenantId || "MISSING",
+      hasAuth: !!authorization,
+      bodyKeys: typeof body === "object" ? Object.keys(body) : "N/A"
+    });
     
     const res = await axios.post(
       path,

@@ -100,7 +100,7 @@ export default function EditAppointmentModal({
         setPatients(patientsList);
 
         // Load employees
-        const employeesResponse = await processRequestAuth("get", API_ENDPOINTS.GET_USERS);
+        const employeesResponse = await processRequestAuth("get", API_ENDPOINTS.GET_EMPLOYEE);
         const employeesData = Array.isArray(employeesResponse?.data) 
           ? employeesResponse.data 
           : Array.isArray(employeesResponse) 

@@ -7,22 +7,46 @@ export async function middleware(request: NextRequest) {
   const domainObj = request.nextUrl.clone();
   const host = request.headers.get("host") || "";
   
-  // Extract subdomain - handle different domain structures
-  let subdomain = host.split(".")[0];
+  // Extract tenant subdomain - handle different domain structures
+  let subdomain: string | undefined = undefined;
   
-  // For Vercel: subdomain.project.vercel.app
+  // For Vercel: {tenant}.{project}.vercel.app or {project}.vercel.app
   if (host.includes(".vercel.app")) {
     const parts = host.split(".");
-    if (parts.length >= 3) {
+    // Pattern: tenant.project.vercel.app (4 parts) -> extract tenant (first part)
+    // Pattern: project.vercel.app (3 parts) -> no tenant, this is the root domain
+    if (parts.length >= 4) {
+      // Has tenant subdomain: doe.joee-client-blond.vercel.app
       subdomain = parts[0];
+    } else {
+      // No tenant subdomain: joee-client-blond.vercel.app
+      // This is the root domain, don't extract a subdomain
+      console.log("Vercel root domain detected (no tenant):", host);
+      return NextResponse.next();
     }
   }
-  
-  // For production domains: subdomain.domain.com
-  if (host.includes(".") && !host.includes("localhost")) {
+  // For localhost: {tenant}.localhost:3000 or localhost:3000
+  else if (host.includes("localhost")) {
     const parts = host.split(".");
-    if (parts.length >= 2 && parts[0] !== "www") {
+    if (parts.length >= 2 && parts[0] !== "localhost") {
+      // Has tenant: doe.localhost:3000
       subdomain = parts[0];
+    } else {
+      // No tenant: localhost:3000
+      console.log("Localhost root domain detected (no tenant):", host);
+      return NextResponse.next();
+    }
+  }
+  // For production domains: {tenant}.domain.com or domain.com
+  else {
+    const parts = host.split(".");
+    if (parts.length >= 3 && parts[0] !== "www") {
+      // Has tenant subdomain: doe.joee.com.ng
+      subdomain = parts[0];
+    } else {
+      // No tenant: joee.com.ng (root domain)
+      console.log("Production root domain detected (no tenant):", host);
+      return NextResponse.next();
     }
   }
 

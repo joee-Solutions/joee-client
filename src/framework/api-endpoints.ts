@@ -1,5 +1,5 @@
 export const API_ENDPOINTS = {
-  LOGIN: "/tenant/auth/login",
+  LOGIN: "/auth/tenant/login",
   FORGOT_PASSWORD: "/tenant/auth/forgot-password",
   RESET_PASSWORD: "/tenant/auth/reset-password",
   VERIFY_LOGIN: "/tenant/auth/verify-otp",
@@ -16,5 +16,5 @@ export const API_ENDPOINTS = {
   GET_DEPARTMENTS: "/tenant/department",
   GET_PATIENTS: "/tenant/patient",
   GET_APPOINTMENTS: "/tenant/appointment",
-  GET_USERS: "/tenant/users",
+  GET_EMPLOYEE: "/tenant/employee",
 };

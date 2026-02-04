@@ -267,7 +267,7 @@ export default function EmployeePage() {
   const loadEmployees = async () => {
     try {
       setIsLoading(true);
-      const response = await processRequestAuth("get", API_ENDPOINTS.GET_USERS);
+      const response = await processRequestAuth("get", API_ENDPOINTS.GET_EMPLOYEE);
       
       // Handle different response structures
       const users = Array.isArray(response?.data) 
@@ -413,7 +413,7 @@ export default function EmployeePage() {
     
     try {
       // TODO: Replace with actual delete API endpoint when available
-      // await processRequestAuth("delete", `${API_ENDPOINTS.GET_USERS}/${selectedEmployee.id}`);
+      // await processRequestAuth("delete", `${API_ENDPOINTS.GET_EMPLOYEE}/${selectedEmployee.id}`);
       
       // Remove from local state for now
       setEmployeesTableData((prev) => prev.filter((emp) => emp.id !== selectedEmployee.id));
@@ -434,7 +434,7 @@ export default function EmployeePage() {
     
     try {
       // TODO: Replace with actual update API endpoint when available
-      // await processRequestAuth("put", `${API_ENDPOINTS.GET_USERS}/${selectedEmployee.id}`, updatedData);
+      // await processRequestAuth("put", `${API_ENDPOINTS.GET_EMPLOYEE}/${selectedEmployee.id}`, updatedData);
       
       // Update local state for now
       setEmployeesTableData((prev) =>

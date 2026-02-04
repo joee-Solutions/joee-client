@@ -77,50 +77,54 @@ const TenantLoginPage = () => {
 
       // Check if response is successful
       if (response) {
-        // Check if OTP verification is required (first-time login)
-        // Backend should return a flag indicating if OTP is needed
-        const requiresOtp = 
-          response.data?.data?.requires_otp !== false && // Default to true if not specified
-          response.data?.requires_otp !== false &&
-          response.requires_otp !== false;
-        
-        // Check if user has already verified OTP (stored in cookie)
-        const otpVerified = Cookies.get("otp_verified") === "true";
-        
-        // If OTP is required and user hasn't verified yet, redirect to OTP page
-        if (requiresOtp && !otpVerified) {
-          // Extract MFA token for OTP verification
-          const mfaToken = 
-            response.data?.data?.token ||
-            response.data?.token ||
-            response.token ||
-            response.mfa_token;
-          
-          if (mfaToken) {
-            // Save MFA token for OTP verification
-            Cookies.set("mfa_token", mfaToken, {
-              expires: 1 / 24, // 1 hour
-              sameSite: 'lax',
-              path: '/'
-            });
-            
-            toast.info("Please verify your email with the OTP code sent to you.", {
-              toastId: "otp-required",
-              autoClose: 3000,
-            });
-            
-            router.push("/verify-otp");
-            return;
-          }
-        }
-        
-        // Extract auth token - for users who don't need OTP or have already verified
+        // Extract tokens from response
+        // Postman response structure: { message: "...", data: { message: "...", user: {...}, token: "..." } }
         const authToken = 
           response.data?.data?.token ||  // Postman shows: data.data.token
           response.data?.token ||
           response.token || 
           response.auth_token || 
           response.data?.auth_token;
+        
+        const mfaToken = 
+          response.data?.data?.mfa_token ||
+          response.data?.mfa_token ||
+          response.mfa_token;
+        
+        // Check if OTP verification is required (first-time login)
+        // Backend indicates OTP is required by:
+        // 1. Returning requires_otp: true flag, OR
+        // 2. Returning mfa_token instead of direct token, OR
+        // 3. Not returning a direct auth token
+        const requiresOtp = 
+          response.data?.data?.requires_otp === true ||
+          response.data?.requires_otp === true ||
+          response.requires_otp === true ||
+          (!!mfaToken && !authToken); // If mfa_token exists but no auth token, OTP is required
+        
+        // Check if user has already verified OTP (stored in cookie)
+        const otpVerified = Cookies.get("otp_verified") === "true";
+        
+        // If OTP is required (first-time login) and user hasn't verified yet, redirect to OTP page
+        if (requiresOtp && !otpVerified && mfaToken) {
+          // Save MFA token for OTP verification
+          Cookies.set("mfa_token", mfaToken, {
+            expires: 1 / 24, // 1 hour
+            sameSite: 'lax',
+            path: '/'
+          });
+          
+          toast.info("Please verify your email with the OTP code sent to you.", {
+            toastId: "otp-required",
+            autoClose: 3000,
+          });
+          
+          router.push("/verify-otp");
+          return;
+        }
+        
+        // If we have a direct auth token, OTP is not required (user has logged in before)
+        // Proceed with normal login flow
         
         const refreshToken = 
           response.data?.data?.refresh_token ||
@@ -166,8 +170,9 @@ const TenantLoginPage = () => {
             console.warn("No user data found in login response:", response);
           }
 
-          // If OTP was not required, set otp_verified cookie for future logins
-          if (!requiresOtp || otpVerified) {
+          // If we received a direct auth token (not MFA token), user has already verified OTP before
+          // Set otp_verified cookie so they won't be asked for OTP again
+          if (authToken && !mfaToken) {
             Cookies.set("otp_verified", "true", {
               expires: 365, // 1 year
               sameSite: 'lax',
