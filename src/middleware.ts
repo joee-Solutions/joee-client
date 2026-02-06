@@ -7,6 +7,9 @@ export async function middleware(request: NextRequest) {
   const domainObj = request.nextUrl.clone();
   const host = request.headers.get("host") || "";
   
+  // Log all requests for debugging (remove in production if too verbose)
+  console.log("🔍 Middleware triggered - Host:", host, "Path:", pathName);
+  
   // Extract tenant subdomain - handle different domain structures
   let subdomain: string | undefined = undefined;
   
@@ -15,13 +18,15 @@ export async function middleware(request: NextRequest) {
     const parts = host.split(".");
     // Pattern: tenant.project.vercel.app (4 parts) -> extract tenant (first part)
     // Pattern: project.vercel.app (3 parts) -> no tenant, this is the root domain
+    console.log("Vercel host detected:", host, "Parts:", parts, "Length:", parts.length);
     if (parts.length >= 4) {
       // Has tenant subdomain: doe.joee-client-blond.vercel.app
       subdomain = parts[0];
+      console.log("✅ Extracted Vercel subdomain:", subdomain, "from host:", host);
     } else {
       // No tenant subdomain: joee-client-blond.vercel.app
       // This is the root domain, don't extract a subdomain
-      console.log("Vercel root domain detected (no tenant):", host);
+      console.log("⚠️ Vercel root domain detected (no tenant):", host);
       return NextResponse.next();
     }
   }
@@ -52,6 +57,16 @@ export async function middleware(request: NextRequest) {
 
   if (!subdomain || subdomain === "www") {
     console.log("subdomain does not exist for host:", host);
+    // For root domain access, redirect tenant-specific routes to root page
+    // This prevents 404 errors when accessing /login without a tenant
+    if (pathName.startsWith("/login") || 
+        pathName.startsWith("/dashboard") || 
+        pathName.startsWith("/verify-otp") ||
+        pathName.startsWith("/forgot-password") ||
+        pathName.startsWith("/reset-password")) {
+      // Redirect tenant-specific routes to root page with a message
+      return NextResponse.redirect(new URL("/", request.url));
+    }
     return NextResponse.next();
   } // Checks to ensure that the subdomain is not "www" to avoid logic errors
   const isValid = isValidSlug(subdomain);
