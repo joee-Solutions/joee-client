@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import DepartmentCarousel from '@/components/Org/Departments/DepartmentCarousel';
 import DepartmentList from '@/components/Org/Departments/DepartmentList';
 import AddDepartmentForm from '@/components/Org/Departments/AddDepartmentForm';
@@ -254,7 +255,7 @@ export default function DepartmentPage() {
       }, 200);
       return () => clearTimeout(timer);
     }
-  }, [isEditModalOpen, isDeleteModalOpen]);
+  }, [isEditModalOpen, isDeleteModalOpen, isViewModalOpen]);
 
   const loadDepartments = async () => {
     try {
@@ -554,7 +555,7 @@ export default function DepartmentPage() {
         <div className="relative w-full px-4 md:px-6 lg:px-8 h-full flex flex-col justify-center">
           <h1 className="text-white text-4xl font-bold text-center">Departments</h1>
           <p className="text-white text-center mt-2">
-            Employees are the foundation for ensuring good health
+            Manage and organize your healthcare departments efficiently
           </p>
         </div>
       </div>
@@ -776,6 +777,99 @@ export default function DepartmentPage() {
               >
                 Submit
               </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* View Department Modal */}
+        <AlertDialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+          <AlertDialogContent className="bg-white max-w-2xl max-h-[90vh] overflow-y-auto !z-[110] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            <AlertDialogHeader className="text-center pb-4">
+              <AlertDialogTitle className="text-2xl font-semibold text-black">
+                Department Details
+              </AlertDialogTitle>
+            </AlertDialogHeader>
+            {selectedDepartment && (
+              <div className="space-y-6 py-2">
+                {/* Department Image and Name Section */}
+                <div className="flex flex-col items-center space-y-4 pb-6 border-b border-gray-200">
+                  <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-[#003465] shadow-lg">
+                    <Image
+                      src={selectedDepartment.image}
+                      alt={selectedDepartment.name}
+                      fill
+                      sizes="128px"
+                      className="object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = '/assets/department/department-bg.jpg';
+                      }}
+                    />
+                  </div>
+                  <div className="text-center">
+                    <h3 className="text-2xl font-bold text-[#003465] mb-2">
+                      {selectedDepartment.name}
+                    </h3>
+                    <span
+                      className={`inline-block px-4 py-2 rounded-full text-sm font-semibold ${
+                        selectedDepartment.status.toLowerCase() === "active"
+                          ? "bg-green-100 text-green-800 border border-green-300"
+                          : "bg-red-100 text-red-800 border border-red-300"
+                      }`}
+                    >
+                      {selectedDepartment.status}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Description Section */}
+                {selectedDepartment.description && (
+                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">
+                      Description
+                    </label>
+                    <p className="text-base text-gray-800 leading-relaxed whitespace-pre-wrap">
+                      {selectedDepartment.description}
+                    </p>
+                  </div>
+                )}
+
+                {/* Details Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Employee Count */}
+                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                    <label className="block text-xs font-semibold text-blue-700 mb-2 uppercase tracking-wide">
+                      Employees
+                    </label>
+                    <p className="text-2xl font-bold text-[#003465]">
+                      {selectedDepartment.employeeCount}
+                    </p>
+                    <p className="text-sm text-gray-600 mt-1">Total staff members</p>
+                  </div>
+
+                  {/* Date Created */}
+                  <div className="bg-purple-50 rounded-lg p-4 border border-purple-100">
+                    <label className="block text-xs font-semibold text-purple-700 mb-2 uppercase tracking-wide">
+                      Date Created
+                    </label>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {selectedDepartment.dateCreated}
+                    </p>
+                    <p className="text-sm text-gray-600 mt-1">Establishment date</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            <AlertDialogFooter className="pt-4 border-t border-gray-200 mt-4">
+              <AlertDialogCancel
+                onClick={() => {
+                  setIsViewModalOpen(false);
+                  setSelectedDepartment(null);
+                }}
+                className="w-full sm:w-auto border border-[#D9D9D9] text-[#737373] hover:bg-gray-50 px-8 py-2"
+              >
+                Close
+              </AlertDialogCancel>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

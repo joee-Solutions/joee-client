@@ -21,7 +21,7 @@ const PatientsDonut: FC<PatientsDonutProps> = ({ data }) => {
     <div className=" bg-white p-6 rounded-lg shadow-md h-fit">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-lg md:text-xl font-medium text-black">Patients</h2>
-        <Link href="#" className="text-blue-800 text-sm flex items-center">
+        <Link href="/dashboard/patients" className="text-blue-800 text-sm flex items-center">
           View all
           <svg
             className="h-4 w-4 ml-1"
@@ -40,7 +40,7 @@ const PatientsDonut: FC<PatientsDonutProps> = ({ data }) => {
       </div>
 
       <div className="w-full flex flex-wrap md:flex-nowrap items-center justify-center gap-6">
-        <div className="mb-6  ">
+        <div className="mb-6 text-center w-full md:w-auto">
           <p className="text-gray-500 text-lg">Total Patients</p>
           <p className="text-xl font-medium text-blue-900">
             {data.totalPatients.toLocaleString()} People
@@ -69,7 +69,11 @@ const PatientsDonut: FC<PatientsDonutProps> = ({ data }) => {
               </ResponsiveContainer>
               {/* Center Label */}
               <div className="absolute inset-0 flex flex-col items-center justify-center ">
-                <span className="text-black font-bold text-lg">50%</span>
+                <span className="text-black font-bold text-lg">
+                  {data.ageDistribution.length > 0 
+                    ? (data.ageDistribution[0].percentage + data.ageDistribution[1].percentage) 
+                    : 0}%
+                </span>
                 <span className="text-xs text-[#595959]">Below 30 years</span>
               </div>
             </div>

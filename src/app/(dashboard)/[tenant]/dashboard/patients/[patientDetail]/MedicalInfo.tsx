@@ -4,7 +4,7 @@ import ReviewAndPrescription from "@/components/dashboard/patient/medicalInfo/Re
 import SocialHistory from "@/components/dashboard/patient/medicalInfo/SocialHistory";
 import SurgeryImmunizationHistory from "@/components/dashboard/patient/medicalInfo/SurgeryImmunizationHistory";
 import Visit from "@/components/dashboard/patient/medicalInfo/Visit";
-import MultiStepPagination from "@/components/dashboard/patient/MultiStepPagination";
+import MultiStepPagination from "@/components/dashboard/patient/PatientStepper";
 import FormComposer from "@/components/shared/form/FormComposer";
 import { Button } from "@/components/ui/button";
 import useMultiStepForm from "@/hooks/useMultiStepForm";

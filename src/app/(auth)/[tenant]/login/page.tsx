@@ -78,9 +78,11 @@ const TenantLoginPage = () => {
       // Check if response is successful
       if (response) {
         // Extract tokens from response
-        // Postman response structure: { message: "...", data: { message: "...", user: {...}, token: "..." } }
+        // Response structure: { success: true, data: { tokens: { accessToken: "...", refreshToken: "..." }, user: {...} } }
         const authToken = 
-          response.data?.data?.token ||  // Postman shows: data.data.token
+          response.data?.data?.tokens?.accessToken ||  // New structure: data.data.tokens.accessToken
+          response.data?.tokens?.accessToken ||        // Alternative: data.tokens.accessToken
+          response.data?.data?.token ||                // Old structure: data.data.token
           response.data?.token ||
           response.token || 
           response.auth_token || 
@@ -127,13 +129,15 @@ const TenantLoginPage = () => {
         // Proceed with normal login flow
         
         const refreshToken = 
+          response.data?.data?.tokens?.refreshToken ||  // New structure: data.data.tokens.refreshToken
+          response.data?.tokens?.refreshToken ||        // Alternative: data.tokens.refreshToken
           response.data?.data?.refresh_token ||
           response.data?.refresh_token ||
           response.refresh_token;
         
         // Extract user data - could be in different locations in response
         const user = 
-          response.data?.data?.user ||
+          response.data?.data?.user ||        // New structure: data.data.user
           response.data?.data?.data?.user ||
           response.data?.user || 
           response.user ||
@@ -180,12 +184,12 @@ const TenantLoginPage = () => {
             });
           }
 
-          toast.success("Login successful!", {
+      toast.success("Login successful!", {
             toastId: "login-success",
             autoClose: 3000,
-          });
+      });
           
-          router.push("/dashboard");
+      router.push("/dashboard");
         } else {
           // Unexpected response format - no token found
           console.error("Login response:", response);

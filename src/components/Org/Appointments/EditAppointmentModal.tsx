@@ -169,7 +169,7 @@ export default function EditAppointmentModal({
 
   return (
     <AlertDialog open={true} onOpenChange={(open) => !open && onClose()}>
-      <AlertDialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto !z-[110]">
+      <AlertDialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto !z-[110] bg-white">
         <AlertDialogHeader>
           <AlertDialogTitle className="text-2xl font-semibold text-[#003465]">
             Edit Appointment
@@ -188,7 +188,7 @@ export default function EditAppointmentModal({
                 <SelectTrigger className="w-full p-3 border border-[#737373] h-14 rounded flex justify-between items-center">
                   <SelectValue placeholder="select" />
                 </SelectTrigger>
-                <SelectContent className="z-50 bg-white">
+                <SelectContent className="!z-[150] bg-white">
                   {isLoading ? (
                     <SelectItem value="loading" disabled>Loading...</SelectItem>
                   ) : patients.length > 0 ? (
@@ -214,7 +214,7 @@ export default function EditAppointmentModal({
                 <SelectTrigger className="w-full p-3 border border-[#737373] h-14 rounded flex justify-between items-center">
                   <SelectValue placeholder="select" />
                 </SelectTrigger>
-                <SelectContent className="z-50 bg-white">
+                <SelectContent className="!z-[150] bg-white">
                   {isLoading ? (
                     <SelectItem value="loading" disabled>Loading...</SelectItem>
                   ) : employees.length > 0 ? (
@@ -261,7 +261,7 @@ export default function EditAppointmentModal({
                 <SelectTrigger className="w-full p-3 border border-[#737373] h-14 rounded flex justify-between items-center">
                   <SelectValue placeholder="select" />
                 </SelectTrigger>
-                <SelectContent className="z-50 bg-white">
+                <SelectContent className="!z-[150] bg-white">
                   {statuses.map((status) => (
                     <SelectItem key={status} value={status} className="hover:bg-gray-200">
                       {status}

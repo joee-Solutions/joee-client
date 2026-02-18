@@ -1,7 +1,6 @@
 import React from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useFormContext } from "react-hook-form";
 import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -10,128 +9,189 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { FormDataStepper } from "../PatientStepper";
 
 // Validation schema
-const schema = z.object({
-  fullName: z.string().min(1, "Full name is required"),
-  sex: z.enum(["male", "female", "other"], { required_error: "Sex is required" }),
-  relationship: z.string().min(1, "Relationship is required"),
-  phone: z
+export const childrenSchema = z.object({
+  fullName: z.string().optional(),
+  sex: z.enum(["male", "female", "other"]).optional(),
+  relationship: z.string().optional(),
+  phone: z.string().optional(),
+  email: z
     .string()
-    .min(1, "Phone is required")
-    .regex(/^\+?[0-9]{7,15}$/, "Invalid phone number"),
-  email: z.string().email("Invalid email address"),
+    .optional()
+    .refine((val) => {
+      // Only validate email format if there's a value
+      if (!val || val.trim() === "") return true;
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+    }, "Invalid email address"),
 });
 
-type FormData = z.infer<typeof schema>;
 
 export default function GuardianInfoForm() {
   const {
     register,
-    handleSubmit,
     formState: { errors },
-    setValue,
+    control,
     watch,
-  } = useForm<FormData>({
-    resolver: zodResolver(schema),
-  });
+  } = useFormContext<FormDataStepper>();
 
-  // Convert `register` to work with `shadcn/ui` Select
-  const registerSelect = (name: keyof FormData) => ({
-    value: watch(name) as string,
-    onValueChange: (value: string) => setValue(name, value),
-  });
-
-  const onSubmit = (data: FormData) => {
-    console.log("Form submitted:", data);
-  };
+  // Watch the date of birth to determine if fields should be required
+  const dateOfBirth = watch("demographic.dateOfBirth");
+  
+  // Calculate if patient is under 18
+  const isUnder18 = React.useMemo(() => {
+    if (!dateOfBirth) return false;
+    
+    const birthDate = new Date(dateOfBirth);
+    const today = new Date();
+    const age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate()) ? age - 1 : age;
+    
+    return actualAge < 18;
+  }, [dateOfBirth]);
 
   return (
     <div className=" mx-auto p-6">
       <h2 className="text-2xl font-bold mb-6">Guardian Information</h2>
+      
+      {isUnder18 && (
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+          <p className="text-blue-800 text-sm">
+            <strong>Note:</strong> Guardian information (Full Name, Relationship, Phone, and Email) is required for patients under 18 years old.
+          </p>
+        </div>
+      )}
 
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Guardian Full Name */}
           <div>
-            <label htmlFor="fullName" className="block text-base text-black font-normal mb-2">
-              Guardian Full Name
+            <label
+              htmlFor="fullName"
+              className="block text-base text-black font-normal mb-2"
+            >
+              Guardian Full Name {isUnder18 && <span className="text-red-500">*</span>}
             </label>
             <Input
               type="text"
               id="fullName"
               placeholder="Enter here"
               className="w-full h-14 p-3 border border-[#737373] rounded"
-              {...register("fullName")}
+              {...register("children.fullName",)}
             />
-            {errors.fullName && <p className="text-red-500 text-sm">{errors.fullName.message}</p>}
+            {errors.children?.fullName && (
+              <p className="text-red-500 text-sm">
+                {errors.children.fullName.message}
+              </p>
+            )}
           </div>
 
           {/* Sex */}
-          <div>
-            <label htmlFor="sex" className="block text-base text-black font-normal mb-2">
-              Sex
-            </label>
-            <Select {...registerSelect("sex")}>
-              <SelectTrigger className="w-full p-3 border border-[#737373] h-14 rounded flex justify-between items-center">
-                <SelectValue placeholder="Select sex" />
-              </SelectTrigger>
-              <SelectContent className="z-10 bg-white">
-                <SelectItem value="male" className="hover:bg-gray-200">Male</SelectItem>
-                <SelectItem value="female" className="hover:bg-gray-200">Female</SelectItem>
-                <SelectItem value="other" className="hover:bg-gray-200">Other</SelectItem>
-              </SelectContent>
-            </Select>
-            {errors.sex && <p className="text-red-500 text-sm">{errors.sex.message}</p>}
-          </div>
+
+          <Controller
+            name='children.sex'
+            control={control}
+            render={({ field }) => (
+              <div>
+                <label
+                  htmlFor="Sex"
+                  className="block text-base text-black font-normal mb-2"
+                >
+                  Sex
+                </label>
+                <Select
+                  {...field}
+                  onValueChange={(value) => field.onChange(value)}
+                >
+                  <SelectTrigger className="w-full p-3 border border-[#737373] h-14 rounded flex justify-between items-center">
+                    <SelectValue placeholder={`Select Gender`} />
+
+                  </SelectTrigger>
+                  <SelectContent className="z-10 bg-white">
+                    {['male', 'female', 'other'].map((option) => (
+                      <SelectItem key={option} value={option} className="hover:bg-gray-200">
+                        {option.charAt(0).toUpperCase() + option.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors?.children?.sex && (
+                  <p className="text-red-500 text-sm">{errors.children?.sex.message}</p>
+                )}
+              </div>
+            )}
+
+          />
 
           {/* Relationship */}
           <div>
-            <label htmlFor="relationship" className="block text-base text-black font-normal mb-2">
-              Relationship
+            <label
+              htmlFor="relationship"
+              className="block text-base text-black font-normal mb-2"
+            >
+              Relationship {isUnder18 && <span className="text-red-500">*</span>}
             </label>
             <Input
               type="text"
               id="relationship"
               placeholder="Enter here"
               className="w-full h-14 p-3 border border-[#737373] rounded"
-              {...register("relationship")}
+              {...register('children.relationship')}
             />
-            {errors.relationship && <p className="text-red-500 text-sm">{errors.relationship.message}</p>}
+            {errors.children?.relationship && (
+              <p className="text-red-500 text-sm">
+                {errors.children?.relationship.message}
+              </p>
+            )}
           </div>
 
           {/* Phone */}
           <div>
-            <label htmlFor="phone" className="block text-base text-black font-normal mb-2">
-              Phone
+            <label
+              htmlFor="phone"
+              className="block text-base text-black font-normal mb-2"
+            >
+              Phone {isUnder18 && <span className="text-red-500">*</span>}
             </label>
             <Input
               type="tel"
               id="phone"
               placeholder="Enter here"
               className="w-full h-14 p-3 border border-[#737373] rounded"
-              {...register("phone")}
+              {...register("children.phone")}
             />
-            {errors.phone && <p className="text-red-500 text-sm">{errors.phone.message}</p>}
+            {errors.children?.phone && (
+              <p className="text-red-500 text-sm">
+                {errors.children?.phone.message}
+              </p>
+            )}
           </div>
 
           {/* Email */}
           <div className="md:col-span-2">
-            <label htmlFor="email" className="block text-base text-black font-normal mb-2">
-              Email
+            <label
+              htmlFor="email"
+              className="block text-base text-black font-normal mb-2"
+            >
+              Email {isUnder18 && <span className="text-red-500">*</span>}
             </label>
             <Input
               type="email"
               id="email"
               placeholder="Enter here"
               className="w-full h-14 p-3 border border-[#737373] rounded"
-              {...register("email")}
+              {...register("children.email")}
             />
-            {errors.email && <p className="text-red-500 text-sm">{errors.email.message}</p>}
+            {errors.children?.email && (
+              <p className="text-red-500 text-sm">
+                {errors.children?.email.message}
+              </p>
+            )}
           </div>
         </div>
-
-      </form>
+      </div>
     </div>
   );
 }

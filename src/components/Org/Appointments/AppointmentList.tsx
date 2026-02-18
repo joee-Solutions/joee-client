@@ -4,10 +4,16 @@ import DataTable, { Column } from "@/components/shared/table/DataTable";
 import { ListView } from "@/components/shared/table/DataTableFilter";
 import Pagination from "@/components/shared/table/pagination";
 import { useState } from "react";
-import { Ellipsis } from "lucide-react";
+import { MoreVertical, Edit, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import orgPlaceholder from "./../../../../public/assets/orgPlaceholder.png";
 
 interface Appointment {
@@ -27,6 +33,7 @@ interface AppointmentListProps {
   appointments: Appointment[];
   onViewAppointment: (appointment: Appointment) => void;
   onEditAppointment: (appointment: Appointment) => void;
+  onDeleteAppointment?: (appointment: Appointment) => void;
   onAddAppointment?: () => void;
 }
 
@@ -34,6 +41,7 @@ export default function AppointmentList({
   appointments,
   onViewAppointment,
   onEditAppointment,
+  onDeleteAppointment,
   onAddAppointment,
 }: AppointmentListProps) {
   const [pageSize, setPageSize] = useState(10);
@@ -117,12 +125,37 @@ export default function AppointmentList({
     {
       header: "Action",
       render: (row) => (
-        <button
-          onClick={() => onViewAppointment(row)}
-          className="flex items-center justify-center px-2 h-6 rounded-[2px] border border-[#BFBFBF] bg-[#EDF0F6]"
-        >
-          <Ellipsis className="text-black size-5" />
-        </button>
+        <DropdownMenu modal={false}>
+          <DropdownMenuTrigger asChild>
+            <button 
+              type="button"
+              className="flex items-center justify-center px-2 py-1 rounded-[2px] border border-[#BFBFBF] bg-[#EDF0F6] hover:bg-[#D9DDE5] transition-colors relative z-10"
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              <MoreVertical className="text-black size-5" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="bg-white border border-gray-200 shadow-lg z-[100]">
+            <DropdownMenuItem
+              onClick={() => onEditAppointment(row)}
+              className="cursor-pointer flex items-center gap-2"
+            >
+              <Edit className="size-4" />
+              Edit
+            </DropdownMenuItem>
+            {onDeleteAppointment && (
+              <DropdownMenuItem
+                onClick={() => onDeleteAppointment(row)}
+                className="cursor-pointer flex items-center gap-2 text-red-600 focus:text-red-600"
+              >
+                <Trash2 className="size-4" />
+                Delete
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       ),
       size: 100,
     },

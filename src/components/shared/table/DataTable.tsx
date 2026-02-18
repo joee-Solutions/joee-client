@@ -21,12 +21,15 @@ export type Column<T> = {
 };
 
 interface DataTableProps<T extends Record<string, Primitives>> {
-  data: T[];
-  columns: Column<T>[];
+  data?: T[];
+  columns?: Column<T>[];
   bgHeader?: string;
   rowSelectionIds?: number[];
   searchableKeys?: (keyof T)[];
   search?: string;
+  children?: React.ReactNode;
+  tableDataObj?: any;
+  showAction?: boolean;
 }
 
 export default function DataTable<T extends Record<string, Primitives>>({
@@ -36,9 +39,43 @@ export default function DataTable<T extends Record<string, Primitives>>({
   rowSelectionIds = [],
   searchableKeys = [],
   search,
+  children,
+  tableDataObj,
+  showAction,
 }: DataTableProps<T>) {
+  // If children are provided, render them instead of auto-generated rows
+  if (children) {
+    return (
+      <Table className="w-full min-w-[600px] md:min-w-[800px] lg:min-w-[900px]">
+        {columns && columns.length > 0 && (
+          <TableHeader
+            className={`h-10 border-y-2 border-[#D9D9D9] ${
+              bgHeader ? bgHeader : "bg-[#003465] text-white"
+            }`}
+          >
+            <TableRow className="px-3">
+              {columns.map((col, i) => (
+                <TableHead
+                  key={i}
+                  className="font-medium text-xs"
+                  style={col.size ? { width: `${col.size}px` } : undefined}
+                >
+                  {typeof col.header === "string" ? col.header : col.header()}
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+        )}
+        <TableBody>
+          {children}
+        </TableBody>
+      </Table>
+    );
+  }
+
+  // Original auto-generated table logic
   const filteredRows = useMemo(() => {
-    if (!search || searchableKeys.length === 0) return data;
+    if (!data || !search || searchableKeys.length === 0) return data || [];
 
     return data.filter((row) =>
       searchableKeys.some((k) =>
@@ -78,7 +115,7 @@ export default function DataTable<T extends Record<string, Primitives>>({
               rowSelectionIds.includes(idx) ? "bg-[#EDF0F6]" : ""
             }`}
           >
-            {columns.map((col, colIndex) => (
+            {columns?.map((col, colIndex) => (
               <TableCell
                 key={colIndex}
                 className="px-4"

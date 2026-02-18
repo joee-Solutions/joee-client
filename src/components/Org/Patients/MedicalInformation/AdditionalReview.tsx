@@ -1,63 +1,86 @@
-import { useState } from "react";
+import { Controller, useFormContext } from "react-hook-form";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Textarea } from "@/components/ui/Textarea";
+import { z } from "zod";
+import { FormDataStepper } from "../PatientStepper";
 
-// Define types for symptoms and form state
-type Symptom = {
-  id: string;
-  label: string;
-  checked: boolean;
-};
+// Define the validation schema
+export const additionalReviewSchema = z.object({
+  psychiatric: z.object({
+    depression: z.boolean().default(false).optional(),
+    anxiety: z.boolean().default(false).optional(),
+    sleepingDisturbances: z.boolean().default(false).optional(),
+    details: z.string().optional(),
+  }).optional(),
+  endocrine: z.object({
+    heatColdIntolerance: z.boolean().default(false).optional(),
+    excessiveThirstHunger: z.boolean().default(false).optional(),
+    details: z.string().optional(),
+  }).optional(),
+  haematologic: z.object({
+    easyBruising: z.boolean().default(false).optional(),
+    bleedingTendencies: z.boolean().default(false).optional(),
+    details: z.string().optional(),
+  }).optional(),
+  allergic: z.object({
+    frequentInfections: z.boolean().default(false).optional(),
+    allergicReactions: z.boolean().default(false).optional(),
+    details: z.string().optional(),
+  }).optional(),
+}).optional();
 
-type SymptomCategoryState = {
-  symptoms: Symptom[];
-  details: string;
-};
-
-type FormState = {
-  psychiatric: SymptomCategoryState;
-  endocrine: SymptomCategoryState;
-  haematologic: SymptomCategoryState;
-  allergic: SymptomCategoryState;
-};
+export type AdditionalReviewData = z.infer<typeof additionalReviewSchema>;
 
 const SymptomCategory = ({
   title,
+  categoryKey,
   symptoms,
-  details,
-  onChange,
-  onDetailsChange,
 }: {
   title: string;
-  symptoms: Symptom[];
-  details: string;
-  onChange: (id: string) => void;
-  onDetailsChange: (value: string) => void;
+  categoryKey: 'psychiatric' | 'endocrine' | 'haematologic' | 'allergic';
+  symptoms: { id: string; label: string }[];
 }) => {
+  const { control, setValue } = useFormContext<Pick<FormDataStepper, 'additionalReview'>>();
+  
   return (
     <div className="mb-8">
       <h2 className="text-lg font-medium mb-2">{title}:</h2>
       <div className="flex flex-wrap gap-6 mb-2">
         {symptoms.map((symptom) => (
-          <div key={symptom.id} className="flex items-center gap-2">
-            <Checkbox
-              id={symptom.id}
-              checked={symptom.checked}
-              onCheckedChange={() => onChange(symptom.id)}
-              className="accent-green-600 w-6 h-6 rounded"
-            />
-            <label htmlFor={symptom.id} className="block text-base text-black font-normal mb-2">
-              {symptom.label}
-            </label>
-          </div>
+          <Controller
+            key={symptom.id}
+            name={`additionalReview.${categoryKey}.${symptom.id}` as any}
+            control={control}
+            render={({ field }) => (
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id={symptom.id}
+                  checked={!!field.value}
+                  onCheckedChange={(checked) => {
+                    field.onChange(!!checked);
+                    setValue(`additionalReview.${categoryKey}.${symptom.id}` as any, !!checked);
+                  }}
+                  className="accent-green-600 w-6 h-6 rounded"
+                />
+                <label htmlFor={symptom.id} className="block text-base text-black font-normal mb-2">
+                  {symptom.label}
+                </label>
+              </div>
+            )}
+          />
         ))}
       </div>
       <div>
         <label className="block text-base text-black font-normal mb-2">Details</label>
-        <Textarea
-          value={details}
-          onChange={(e) => onDetailsChange(e.target.value)}
-          className="w-full h-32 p-3 border border-[#737373] rounded"
+        <Controller
+          name={`additionalReview.${categoryKey}.details` as any}
+          control={control}
+          render={({ field }) => (
+            <Textarea
+              {...field}
+              className="w-full h-32 p-3 border border-[#737373] rounded"
+            />
+          )}
         />
       </div>
     </div>
@@ -65,115 +88,46 @@ const SymptomCategory = ({
 };
 
 export default function MedicalSymptomsForm() {
-  const [formState, setFormState] = useState<FormState>({
-    psychiatric: {
-      symptoms: [
-        { id: "depression", label: "Depression", checked: false },
-        { id: "anxiety", label: "Anxiety", checked: false },
-        { id: "sleepingDisturbances", label: "Sleeping Disturbances", checked: false },
-      ],
-      details: "",
-    },
-    endocrine: {
-      symptoms: [
-        { id: "heatColdIntolerance", label: "Heat/Cold Intolerance", checked: false },
-        { id: "excessiveThirstHunger", label: "Excessive Thirst/Hunger", checked: false },
-      ],
-      details: "",
-    },
-    haematologic: {
-      symptoms: [
-        { id: "easyBruising", label: "Easy Bruising", checked: false },
-        { id: "bleedingTendencies", label: "Bleeding Tendencies", checked: false },
-      ],
-      details: "",
-    },
-    allergic: {
-      symptoms: [
-        { id: "frequentInfections", label: "Frequent Infections", checked: false },
-        { id: "allergicReactions", label: "Allergic Reactions", checked: false },
-      ],
-      details: "",
-    },
-  });
-
-  const handleSymptomChange = (category: keyof FormState, symptomId: string) => {
-    setFormState((prev) => {
-      const newSymptoms = prev[category].symptoms.map((symptom) =>
-        symptom.id === symptomId ? { ...symptom, checked: !symptom.checked } : symptom
-      );
-
-      return {
-        ...prev,
-        [category]: {
-          ...prev[category],
-          symptoms: newSymptoms,
-        },
-      };
-    });
-  };
-
-  const handleDetailsChange = (category: keyof FormState, value: string) => {
-    setFormState((prev) => ({
-      ...prev,
-      [category]: {
-        ...prev[category],
-        details: value,
-      },
-    }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("Form submitted:", formState);
-    // Here you would typically send the data to your API
-  };
+  const { formState: { errors } } = useFormContext<Pick<FormDataStepper, 'additionalReview'>>();
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="mx-auto p-6 "
-    >
+    <form className="mx-auto p-6">
       <SymptomCategory
         title="Psychiatric"
-        symptoms={formState.psychiatric.symptoms}
-        details={formState.psychiatric.details}
-        onChange={(id) => handleSymptomChange("psychiatric", id)}
-        onDetailsChange={(value) => handleDetailsChange("psychiatric", value)}
+        categoryKey="psychiatric"
+        symptoms={[
+          { id: "depression", label: "Depression" },
+          { id: "anxiety", label: "Anxiety" },
+          { id: "sleepingDisturbances", label: "Sleeping Disturbances" },
+        ]}
       />
 
       <SymptomCategory
         title="Endocrine"
-        symptoms={formState.endocrine.symptoms}
-        details={formState.endocrine.details}
-        onChange={(id) => handleSymptomChange("endocrine", id)}
-        onDetailsChange={(value) => handleDetailsChange("endocrine", value)}
+        categoryKey="endocrine"
+        symptoms={[
+          { id: "heatColdIntolerance", label: "Heat/Cold Intolerance" },
+          { id: "excessiveThirstHunger", label: "Excessive Thirst/Hunger" },
+        ]}
       />
 
       <SymptomCategory
         title="Haematologic/Lymphatic"
-        symptoms={formState.haematologic.symptoms}
-        details={formState.haematologic.details}
-        onChange={(id) => handleSymptomChange("haematologic", id)}
-        onDetailsChange={(value) => handleDetailsChange("haematologic", value)}
+        categoryKey="haematologic"
+        symptoms={[
+          { id: "easyBruising", label: "Easy Bruising" },
+          { id: "bleedingTendencies", label: "Bleeding Tendencies" },
+        ]}
       />
 
       <SymptomCategory
         title="Allergic/Immunologic"
-        symptoms={formState.allergic.symptoms}
-        details={formState.allergic.details}
-        onChange={(id) => handleSymptomChange("allergic", id)}
-        onDetailsChange={(value) => handleDetailsChange("allergic", value)}
+        categoryKey="allergic"
+        symptoms={[
+          { id: "frequentInfections", label: "Frequent Infections" },
+          { id: "allergicReactions", label: "Allergic Reactions" },
+        ]}
       />
-
-      <div className="mt-6">
-      <button
-            type="submit"
-            className="px-6 py-2 bg-green-500 text-white rounded hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500"
-          >
-            Save
-          </button>
-      </div>
     </form>
   );
 }

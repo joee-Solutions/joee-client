@@ -7,11 +7,12 @@ import Pagination from "@/components/shared/table/pagination";
 import { Button } from "@/components/ui/button";
 import { Plus, Search, Edit, Trash2, MoreVertical } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import { useEffect, useState } from "react";
+import { usePathname, useParams } from "next/navigation";
 import { processRequestAuth } from "@/framework/https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { toast } from "react-toastify";
+import PatientStepper from "@/components/Org/Patients/PatientStepper";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -216,6 +217,10 @@ const createColumns = (
 ];
 
 export default function PatientPage() {
+  const pathname = usePathname();
+  const params = useParams();
+  const org = params?.tenant as string || pathname?.split('/organization/')[1]?.split('/')[0] || '';
+  const [showForm, setShowForm] = useState(false);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
@@ -402,7 +407,7 @@ export default function PatientPage() {
     if (!selectedPatient) return;
     
     try {
-      await processRequestAuth("delete", `${API_ENDPOINTS.GET_PATIENTS}/${selectedPatient.id}`);
+      await processRequestAuth("delete", API_ENDPOINTS.DELETE_PATIENT(selectedPatient.id));
       
       setPatientsTableData((prev) => prev.filter((p) => p.id !== selectedPatient.id));
       setPatientCards((prev) => prev.filter((card) => card.id !== selectedPatient.id));
@@ -434,7 +439,7 @@ export default function PatientPage() {
         bio: (updatedData as any).bio || '',
       };
 
-      const response = await processRequestAuth("patch", `${API_ENDPOINTS.GET_PATIENTS}/${selectedPatient.id}`, patientData);
+      const response = await processRequestAuth("patch", API_ENDPOINTS.UPDATE_PATIENT(selectedPatient.id), patientData);
 
       if (response?.data || response) {
         toast.success("Patient updated successfully", { toastId: "patient-update-success" });
@@ -476,6 +481,19 @@ export default function PatientPage() {
   // Create columns with handlers
   const columns = createColumns(handleEdit, handleDelete);
 
+  const handleFormCancel = () => {
+    setShowForm(false);
+  };
+
+  const handleCreatePatientClick = () => {
+    setShowForm(true);
+  };
+
+  const handleSaveComplete = () => {
+    setShowForm(false);
+    loadPatients(); // Reload patients list after successful save
+  };
+
   return (
     <section>
       <SectionHeader
@@ -483,28 +501,44 @@ export default function PatientPage() {
         description="Adequate Health care services improves Patients Health"
       />
       <div className="flex flex-col py-[50px] px-[30px]">
+        {showForm ? (
+          <div className="w-full">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-900">Create New Patient</h2>
+              <Button
+                onClick={handleFormCancel}
+                variant="outline"
+                className="bg-[#003465] text-white hover:bg-[#003465]/90"
+              >
+                Back to Patient List
+              </Button>
+            </div>
+            <PatientStepper slug={org} onSaveComplete={handleSaveComplete} />
+          </div>
+        ) : (
+          <>
         <div className="grid grid-cols-[repeat(auto-fit,_minmax(260px,_1fr))] gap-[19px]">
-          {patientCards.map((patientCard) => (
-            <div
-              key={patientCard.id}
-              className="rounded-[10px] shadow-[0px_4px_4px_0px_#00000040] bg-white flex flex-col p-5"
-            >
-              <div className="flex flex-col items-center">
-                <div className="size-[80px] rounded-full mb-4 flex items-center justify-center overflow-hidden border-2 border-[#D9D9D9]">
+              {patientCards.map((patientCard) => (
+                <div
+                  key={patientCard.id}
+                  className="rounded-[10px] shadow-[0px_4px_4px_0px_#00000040] bg-white flex flex-col p-5"
+                >
+                  <div className="flex flex-col items-center">
+                    <div className="size-[80px] rounded-full mb-4 flex items-center justify-center overflow-hidden border-2 border-[#D9D9D9]">
                   <Image
-                    src={patientCard.picture}
+                        src={patientCard.picture}
                     width={80}
                     height={80}
-                    alt={`${patientCard.firstName} ${patientCard.lastName} photo`}
-                    className="object-cover w-full h-full"
+                        alt={`${patientCard.firstName} ${patientCard.lastName} photo`}
+                        className="object-cover w-full h-full"
                   />
                 </div>
-                <h3 className="font-medium text-sm text-black text-center">
-                  {patientCard.firstName} {patientCard.lastName}
+                    <h3 className="font-medium text-sm text-black text-center">
+                      {patientCard.firstName} {patientCard.lastName}
                 </h3>
-                <p className="font-normal text-xs text-center mt-1 text-[#999999]">
-                  {patientCard.email}
-                </p>
+                    <p className="font-normal text-xs text-center mt-1 text-[#999999]">
+                      {patientCard.email}
+                    </p>
               </div>
             </div>
           ))}
@@ -512,12 +546,12 @@ export default function PatientPage() {
         <section className="mt-10 shadow-[0px_0px_4px_1px_#0000004D] relative z-0">
           <header className="flex items-center justify-between gap-5 border-b border-[#D9D9D9] h-[90px] px-[27px]">
               <h2 className="font-semibold text-xl text-black">Patient List</h2>
-            <Link
-              href="/dashboard/patients/create"
+            <Button
+              onClick={handleCreatePatientClick}
               className="flex items-center gap-2 font-normal text-base text-white bg-[#003465] hover:bg-[#003465]/90 px-6 h-[40px] rounded"
             >
               Create Patient <Plus size={20} />
-            </Link>
+            </Button>
           </header>
           <div className="px-[27px] pb-[35px]">
             <div className="py-[30px] flex justify-between gap-10">
@@ -554,6 +588,8 @@ export default function PatientPage() {
           />
           )}
         </section>
+          </>
+        )}
       </div>
 
       {/* View Modal */}
@@ -752,7 +788,7 @@ export default function PatientPage() {
                 placeholder="Enter notes..."
               />
             </div>
-          </div>
+      </div>
           <AlertDialogFooter>
             <AlertDialogCancel
               onClick={() => {

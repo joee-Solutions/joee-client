@@ -1,6 +1,6 @@
 import EmergencyInfo from "@/components/dashboard/patient/personalInfo/EmergencyInfo";
 import GuardianInfo from "@/components/dashboard/patient/personalInfo/GuardianInfo";
-import MultiStepPagination from "@/components/dashboard/patient/MultiStepPagination";
+import MultiStepPagination from "@/components/dashboard/patient/PatientStepper";
 import PatientAdditionalInfo from "@/components/dashboard/patient/personalInfo/PatientAdditionalInfo";
 import PatientDemograph from "@/components/dashboard/patient/personalInfo/PatientDemograph";
 import FormComposer from "@/components/shared/form/FormComposer";

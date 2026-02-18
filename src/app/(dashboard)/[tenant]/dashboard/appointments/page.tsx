@@ -7,6 +7,17 @@ import AppointmentList from "@/components/Org/Appointments/AppointmentList";
 import AddAppointmentModal from "@/components/Org/Appointments/AddAppointmentModal";
 import ViewAppointmentModal from "@/components/Org/Appointments/ViewAppointmentModal";
 import EditAppointmentModal from "@/components/Org/Appointments/EditAppointmentModal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "react-toastify";
 
 type ViewMode = "month" | "week" | "day" | "list";
 type ModalMode = "add" | "view" | "edit" | null;
@@ -57,6 +68,8 @@ export default function AppointmentsPage() {
   const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [appointmentToDelete, setAppointmentToDelete] = useState<Appointment | null>(null);
 
   const handleAddAppointment = () => {
     setModalMode("add");
@@ -92,6 +105,20 @@ export default function AppointmentsPage() {
       );
     }
     handleCloseModal();
+  };
+
+  const handleDeleteAppointment = (appointment: Appointment) => {
+    setAppointmentToDelete(appointment);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (appointmentToDelete) {
+      setAppointments(appointments.filter((apt) => apt.id !== appointmentToDelete.id));
+      toast.success("Appointment deleted successfully", { toastId: "appointment-delete-success" });
+      setIsDeleteModalOpen(false);
+      setAppointmentToDelete(null);
+    }
   };
 
   return (
@@ -153,6 +180,7 @@ export default function AppointmentsPage() {
               appointments={appointments}
               onViewAppointment={handleViewAppointment}
               onEditAppointment={handleEditAppointment}
+              onDeleteAppointment={handleDeleteAppointment}
               onAddAppointment={handleAddAppointment}
             />
           </div>
@@ -225,6 +253,41 @@ export default function AppointmentsPage() {
             onSave={handleSaveAppointment}
           />
         )}
+
+        {/* Delete Confirmation Modal */}
+        <AlertDialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+          <AlertDialogContent className="bg-white max-w-md !z-[110]">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-xl font-semibold text-black">
+                Confirm Deletion
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-gray-700">
+                Are you sure you want to delete the appointment for{" "}
+                <span className="font-semibold">
+                  {appointmentToDelete?.patientName}
+                </span>
+                ? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                onClick={() => {
+                  setIsDeleteModalOpen(false);
+                  setAppointmentToDelete(null);
+                }}
+                className="border border-[#D9D9D9] text-[#737373] hover:bg-gray-50"
+              >
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmDelete}
+                className="bg-[#EC0909] hover:bg-[#D40808] text-white"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

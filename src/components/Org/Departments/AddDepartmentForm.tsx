@@ -72,26 +72,22 @@ export default function AddDepartment({ onSubmit: onSubmitProp, onCancel: onCanc
     }
   };
 
-  const handleListDepartment = () => {
-    setShowList(false);
-  };
-
   return (
     <div className="px-[27px] pb-[35px]">
-
-    {showList ? (
-      <DepartmentList 
-      />
-    ) : (
     <div className="py-8 p-[29px_14px_30px_24px] my-8 shadow-[0px_0px_4px_1px_#0000004D] mx-8">
       <div className="flex justify-between items-center border-b-2  py-4 mb-8">
         <h1 className="font-semibold text-xl text-black">Add Department</h1>
           <Button
-      onClick={handleListDepartment} 
-                      className="text-base text-[#003465] font-normal"
-                    >
-                      Department List
-                    </Button>
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleCancel();
+            }}
+            className="px-4 py-2 bg-[#003465] text-white rounded hover:bg-[#003465]/90 font-medium"
+          >
+            Department List
+          </Button>
       </div>
       
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -192,7 +188,6 @@ export default function AddDepartment({ onSubmit: onSubmitProp, onCancel: onCanc
         </div>
       </form>
     </div>
-  )} 
   </div>
   );
 }

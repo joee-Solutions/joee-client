@@ -46,7 +46,9 @@ const HomePage = () => {
     }
     
     // Tenant subdomain - check auth and redirect to login if needed
-    if (!Cookies.get("auth_token")) {
+    // Only redirect if we're not already on login page and no auth token exists
+    const currentPath = window.location.pathname;
+    if (!Cookies.get("auth_token") && !currentPath.includes("/login") && !currentPath.includes("/verify-otp")) {
       router.push("/login");
     }
   }, [router]);

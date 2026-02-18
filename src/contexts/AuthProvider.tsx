@@ -8,14 +8,15 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
   const pathName = usePathname();
   useEffect(() => {
-    if (!user) {
+    // Only redirect if we're not already on login/verify-otp pages
+    const isAuthPage = pathName.includes("/login") || pathName.includes("/verify-otp") || pathName.includes("/forgot-password");
+    
+    if (!user && !isAuthPage) {
       router.push("/login");
-    } else {
-      if (pathName.includes("auth")) {
-        router.push("/");
-      }
+    } else if (user && pathName.includes("/auth") && !isAuthPage) {
+      router.push("/");
     }
-  }, []);
+  }, [user, pathName, router]);
   return <>{children}</>;
 };
 

@@ -6,7 +6,14 @@ import { API_ENDPOINTS } from "@/framework/api-endpoints";
 
 let httpNoAuth: any;
 let refreshingToking = false;
+let refreshSubscribers: Array<(token: string) => void> = [];
 let controller = new AbortController();
+
+// Queue for requests waiting for token refresh
+const onTokenRefreshed = (token: string) => {
+  refreshSubscribers.forEach(callback => callback(token));
+  refreshSubscribers = [];
+};
 
 export const resetController = () => {
   controller.abort();
@@ -57,7 +64,7 @@ if (typeof window !== "undefined") {
     },
   });
   
-  // Set up interceptors only when httpAuth is created
+  // Set up request interceptor
   httpAuth.interceptors.request.use(
     (config: any) => {
       const token = getToken();
@@ -73,6 +80,7 @@ if (typeof window !== "undefined") {
           }
         } else {
           console.warn("No auth token found for authenticated request:", config.url);
+          // Don't redirect - let the request fail gracefully so components can handle it
           // window.location.href = "/";
         }
       }
@@ -83,6 +91,94 @@ if (typeof window !== "undefined") {
       return config;
     },
     (error: any) => {
+      return Promise.reject(error);
+    }
+  );
+
+  // Set up response interceptor to handle token expiration
+  httpAuth.interceptors.response.use(
+    (response: any) => response,
+    async (error: any) => {
+      const originalRequest = error.config;
+
+      // Only handle token expiration for 401 errors or 403 with specific expired token messages
+      // Don't treat "No token" 403 errors as expiration - those are expected when token is missing
+      const errorMessage = error?.response?.data?.error?.toLowerCase() || 
+                          error?.response?.data?.message?.toLowerCase() || 
+                          error?.message?.toLowerCase() || "";
+      
+      const isNoTokenError = error?.response?.status === 403 && 
+                            (errorMessage.includes("no token") || errorMessage.includes("token required"));
+      
+      // Only treat as token expiration if:
+      // 1. 401 status (unauthorized)
+      // 2. 403 with expired token message (not "no token")
+      const isTokenExpired = 
+        error?.response?.status === 401 ||
+        (error?.response?.status === 403 && 
+         !isNoTokenError &&
+         (errorMessage.includes("jwt expired") ||
+          errorMessage.includes("token expired") ||
+          errorMessage.includes("invalid token")));
+
+      // If token expired and we haven't tried to refresh yet
+      if (isTokenExpired && !originalRequest._retry) {
+        // If already refreshing, queue this request
+        if (refreshingToking) {
+          return new Promise((resolve, reject) => {
+            refreshSubscribers.push((token: string) => {
+              if (token) {
+                originalRequest.headers.authorization = `Bearer ${token}`;
+                resolve(httpAuth(originalRequest));
+              } else {
+                reject(error);
+              }
+            });
+          });
+        }
+
+        originalRequest._retry = true;
+
+        try {
+          const refreshToken = getRefreshToken();
+          if (!refreshToken) {
+            // No refresh token available - don't redirect, just let the request fail
+            // Components should handle this gracefully
+            console.warn("No refresh token available for token refresh");
+            return Promise.reject(error);
+          }
+
+          const refreshed = await refreshUser();
+          if (refreshed && refreshed.token) {
+            // Update the authorization header with new token
+            const newToken = getToken();
+            if (newToken) {
+              originalRequest.headers.authorization = `Bearer ${newToken}`;
+              // Notify all queued requests
+              onTokenRefreshed(newToken);
+              // Retry the original request
+              return httpAuth(originalRequest);
+            }
+          } else {
+            // Refresh failed - clear tokens but don't redirect immediately
+            // Let the component handle the error gracefully
+            console.warn("Token refresh failed - tokens cleared");
+            Cookies.remove("refresh_token");
+            Cookies.remove("auth_token");
+            Cookies.remove("user");
+            // Don't redirect here - let the request fail and component handle it
+          }
+        } catch (refreshError) {
+          // Refresh failed - clear tokens but don't redirect immediately
+          console.error("Token refresh error:", refreshError);
+          Cookies.remove("refresh_token");
+          Cookies.remove("auth_token");
+          Cookies.remove("user");
+          // Don't redirect here - let the request fail and component handle it
+          return Promise.reject(refreshError);
+        }
+      }
+
       return Promise.reject(error);
     }
   );
@@ -190,22 +286,21 @@ const processRequestAuth = async (
     console.log(rt.data, "rt.data");
     return rt.data;
   } catch (error: any) {
-    if (!refreshingToking && error?.response?.status === 401) {
-      const refreshed = await refreshUser();
-      if (refreshed) {
-        return await processRequestAuth(method, path, data, callback);
-      }
-    } else if (
-      !refreshingToking &&
-      error.response?.data?.error?.toLowerCase().includes("not authorized")
-    ) {
-      const refreshed = await refreshUser();
-      if (refreshed) {
-        return await processRequestAuth(method, path, data, callback);
-      }
+    // Token refresh is now handled by the response interceptor
+    // Only log errors that weren't handled by the interceptor
+    
+    // Suppress console.error for 500 errors on schedules endpoint (may not be implemented yet)
+    if (error?.response?.status === 500 && path?.includes('/schedule')) {
+      // Silently handle 500 errors for schedules endpoint
+    } else if (error?.response?.status === 403 && error?.response?.data?.error?.toLowerCase().includes('no token')) {
+      // Suppress console.error for 403 "No token" errors - these are expected when token is missing
+      // Components should handle this gracefully
+      console.warn(`403 Forbidden (No token) for ${path} - request will fail gracefully`);
+    } else if (error?.response?.status !== 401 && error?.response?.status !== 403) {
+      // Only log non-auth errors (401/403 are handled by interceptor)
+      console.error(error);
     }
-
-    console.error(error);
+    
     if (callback) {
       callback(path, null, error);
     } else {
@@ -217,40 +312,66 @@ const processRequestAuth = async (
 const refreshUser = async () => {
   console.log("token expired, refreshing token");
   try {
-    if (getRefreshToken()) {
-      refreshingToking = true;
-      const tResponse: any = await processRequestNoAuth(
-        "post",
-        API_ENDPOINTS.REFRESH_TOKEN,
-        { refresh_token: getRefreshToken() }
-      );
-      if (tResponse) {
-        Cookies.set("auth_token", tResponse.token, { 
-          expires: 7, // 7 days
-          sameSite: 'lax',
-          path: '/'
-        });
-        Cookies.set("refresh_token", tResponse.refresh_token || getRefreshToken(), { 
-          expires: 30, // 30 days for refresh token
-          sameSite: 'lax',
-          path: '/'
-        });
-        Cookies.set("user", JSON.stringify(tResponse.user), {
-          expires: 7, // 7 days
-          sameSite: 'lax',
-          path: '/'
-        });
-        return tResponse;
-      } else {
-        Cookies.remove("refresh_token");
-        Cookies.remove("auth_token");
-        Cookies.remove("user");
-      }
+    const refreshToken = getRefreshToken();
+    if (!refreshToken) {
+      console.warn("No refresh token available");
+      return null;
     }
+
+    refreshingToking = true;
+    const tResponse: any = await processRequestNoAuth(
+      "post",
+      API_ENDPOINTS.REFRESH_TOKEN,
+      { refresh_token: refreshToken }
+    );
+    
+    // Handle different response structures
+    const responseData = tResponse?.data || tResponse;
+    const newToken = responseData?.token || 
+                    responseData?.accessToken || 
+                    responseData?.access_token;
+    const newRefreshToken = responseData?.refresh_token || 
+                          responseData?.refreshToken || 
+                          refreshToken; // Keep old refresh token if new one not provided
+    const userData = responseData?.user || responseData?.data?.user;
+
+    if (newToken) {
+      Cookies.set("auth_token", newToken, { 
+        expires: 7, // 7 days
+        sameSite: 'lax',
+        path: '/'
+      });
+      Cookies.set("refresh_token", newRefreshToken, { 
+        expires: 30, // 30 days for refresh token
+        sameSite: 'lax',
+        path: '/'
+      });
+      if (userData) {
+        Cookies.set("user", JSON.stringify(userData), {
+          expires: 7, // 7 days
+          sameSite: 'lax',
+          path: '/'
+        });
+      }
+      console.log("Token refreshed successfully");
+      return { token: newToken, refresh_token: newRefreshToken, user: userData };
+    } else {
+      console.warn("Token refresh response missing token");
+      Cookies.remove("refresh_token");
+      Cookies.remove("auth_token");
+      Cookies.remove("user");
+      return null;
+    }
+  } catch (error: any) {
+    console.error("Token refresh failed:", error);
+    // Clear tokens on refresh failure
+    Cookies.remove("refresh_token");
+    Cookies.remove("auth_token");
+    Cookies.remove("user");
+    return null;
   } finally {
     refreshingToking = false;
   }
-  return null;
 };
 
 export const convertToFormData = (data: any, files: any) => {

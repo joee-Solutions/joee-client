@@ -71,44 +71,51 @@ const MainHeaderContent = ({ onToggleMobileMenu }: MainHeaderProps) => {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
 
-  // Load user data from cookies (login response) and optionally refresh from API
+  // Load user data from profile API
   useEffect(() => {
     const loadUserData = async () => {
-      // First, load from cookies (set during login)
-      const userCookie = Cookies.get("user");
-      if (userCookie) {
-        try {
-          const parsedUser = JSON.parse(userCookie);
-          console.log("Loaded user data from cookie:", parsedUser);
-          setUserData(parsedUser);
-        } catch (error) {
-          console.error("Failed to parse user data from cookies:", error);
-        }
-      }
-      
-      // Optionally refresh from API if needed (only if cookie data is missing or stale)
-      // For now, we'll use the login response data primarily
-      // Uncomment below if you want to always fetch fresh data from API
-      /*
       try {
-        const profileData = await processRequestAuth("get", API_ENDPOINTS.GET_PROFILE);
+        const response = await processRequestAuth("get", API_ENDPOINTS.GET_PROFILE);
         
-        if (profileData?.data || profileData) {
-          const user = profileData.data || profileData;
-          console.log("Loaded user data from API:", user);
-          setUserData(user);
-          // Update cookie with fresh data
-          Cookies.set("user", JSON.stringify(user), { 
+        // Extract data from response (handle different response structures)
+        const profileData = response?.data || response;
+        
+        if (profileData) {
+          console.log("Loaded user data from API:", profileData);
+          setUserData(profileData);
+          
+          // Update cookie with fresh data for fallback
+          Cookies.set("user", JSON.stringify(profileData), { 
             expires: 7, // 7 days
             sameSite: 'lax',
             path: '/'
           });
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Failed to fetch profile from API:", error);
-        // If API fails, keep using cookie data if available
+        
+        // Fallback to cookie data if API fails
+        const userCookie = Cookies.get("user");
+        if (userCookie) {
+          try {
+            const parsedUser = JSON.parse(userCookie);
+            console.log("Using fallback user data from cookie:", parsedUser);
+            setUserData(parsedUser);
+          } catch (parseError) {
+            console.error("Failed to parse user data from cookies:", parseError);
+          }
+        }
+        
+        // Only show error toast if we don't have cookie fallback
+        if (!userCookie) {
+          if (error?.response?.status === 403 || error?.response?.status === 401) {
+            // Don't show error for auth issues, just use fallback
+            console.warn("Auth error loading profile, using cookie fallback if available");
+          } else {
+            toast.error("Failed to load profile data", { toastId: "profile-load-error" });
+          }
+        }
       }
-      */
     };
     
     loadUserData();

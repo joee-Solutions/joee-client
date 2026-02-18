@@ -2,6 +2,7 @@
 
 import { FC } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import Link from "next/link";
 
 interface DepartmentsStatusProps {
   data: {
@@ -22,7 +23,15 @@ const DepartmentsStatus: FC<DepartmentsStatusProps> = ({ data, colors }) => {
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
-      <h3 className="text-xl font-medium mb-4">Departments Status</h3>
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-xl font-medium">Departments Status</h3>
+        <Link href="/dashboard/departments" className="text-blue-600 text-sm flex items-center font-medium">
+          View all
+          <svg className="h-4 w-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </Link>
+      </div>
       <div className="flex items-center">
    
         <div className="relative flex-shrink-0 mr-8">
@@ -65,7 +74,7 @@ const DepartmentsStatus: FC<DepartmentsStatusProps> = ({ data, colors }) => {
           </div>
         </div>
 
-        <div>
+        <div className="text-center">
           <p className="text-gray-500 mb-2">Total number of all departments</p>
           <p className="text-3xl font-medium text-blue-900">{data.totalCount}</p>
         </div>

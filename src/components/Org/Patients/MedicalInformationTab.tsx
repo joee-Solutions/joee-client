@@ -17,10 +17,6 @@ import Visit from './MedicalInformation/Visit';
 export default function MedicalInformationTab(): React.ReactElement {
   return (
     <div>
-      <AccordionSection title="Patient Status">
-              <PatientStatus />
-      </AccordionSection>
-      
       <AccordionSection title="Allergy">
       <AllergyInformation />
       </AccordionSection>
@@ -63,6 +59,10 @@ export default function MedicalInformationTab(): React.ReactElement {
       
       <AccordionSection title="Visit">
       <Visit />
+      </AccordionSection>
+      
+      <AccordionSection title="Patient Status">
+              <PatientStatus />
       </AccordionSection>
     </div>
   );
