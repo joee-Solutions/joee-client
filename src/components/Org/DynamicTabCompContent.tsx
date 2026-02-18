@@ -4,13 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import { FaPlus } from "react-icons/fa";
 import { Button } from "../ui/button";
 import { TabVal } from "@/app/(dashboard)/[tenant]/dashboard/organization/[org]/view/page";
+import { useParams } from "next/navigation";
 import DepartmentList from "@/components/Org/Departments/DepartmentList";
 import AddDepartmentForm from "@/components/Org/Departments/AddDepartmentForm";
 import OrgDetails from "@/components/Org/Manage Organization/OrgDetails";
 import EmployeesList from "@/components/Org/Employees/EmployeeList";
 import AddEmployee from "@/components/Org/Employees/AddEmployee";
 import PatienceList from "@/components/Org/Patients/PatientList";
-import AddPatience from "@/components/Org/Patients/AddPatient";
+import PatientStepper from "@/components/Org/Patients/PatientStepper";
 import AppointmentList from "@/components/Org/Appointments/AppointmentList";
 import AddAppointment from "@/components/Org/Appointments/AddAppointment";
 import ScheduleList from "@/components/Org/Schedule/ScheduleList";
@@ -50,7 +51,8 @@ export default function DynamicTabCompContent({
 }: {
   tabName: TabVal;
 }) {
-  
+  const params = useParams();
+  const tenant = params?.tenant as string;
 
     // Filter tabs based on the parent tab name
     const filteredTabs = useMemo(() => innerTabs.filter((tab) => tab.parent === tabName), [tabName]);
@@ -94,8 +96,8 @@ export default function DynamicTabCompContent({
   {tabName === "Employees" && activeTab === "Add" && <AddEmployee />}
 
   {/* Patients */}
-  {tabName === "Patients" && activeTab === "List" && <PatienceList />}
-  {tabName === "Patients" && activeTab === "Add" && <AddPatience />}
+  {tabName === "Patients" && activeTab === "List" && <PatienceList org={tenant || ""} />}
+  {tabName === "Patients" && activeTab === "Add" && <PatientStepper slug={tenant || ""} />}
 
   {/* Appointments */}
   {tabName === "Appointments" && activeTab === "List" && (

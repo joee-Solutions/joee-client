@@ -466,14 +466,22 @@ export function normalizePatientData(mappedData: ReturnType<typeof mapFormDataTo
   
   // Ensure reviewOfSystems is an object
   if (mappedData.reviewOfSystems && typeof mappedData.reviewOfSystems === 'object') {
-    // Ensure all nested objects exist
-    mappedData.reviewOfSystems.neurological = mappedData.reviewOfSystems.neurological || {};
-    mappedData.reviewOfSystems.psychiatric = mappedData.reviewOfSystems.psychiatric || {};
-    mappedData.reviewOfSystems.endocrine = mappedData.reviewOfSystems.endocrine || {};
-    mappedData.reviewOfSystems.haematologic_lymphatic = mappedData.reviewOfSystems.haematologic_lymphatic || {};
-    mappedData.reviewOfSystems.allergic_immunologic = mappedData.reviewOfSystems.allergic_immunologic || {};
-    mappedData.reviewOfSystems.genitourinary = mappedData.reviewOfSystems.genitourinary || {};
-    mappedData.reviewOfSystems.musculoskeletal = mappedData.reviewOfSystems.musculoskeletal || {};
+    // Ensure all nested objects exist with proper defaults matching the type structure
+    const defaultNeurological = { headache: false, dizziness: false, weakness: false, seizures: false, notes: "" };
+    const defaultPsychiatric = { depression: false, anxiety: false, sleeping_disturbance: false, notes: "" };
+    const defaultEndocrine = { heat_cold_intolerance: false, excessive_thirst_hunger: false, notes: "" };
+    const defaultHaematologic = { easy_bruising: false, bleeding_tendencies: false, notes: "" };
+    const defaultAllergic = { frequent_infections: false, allergic_reactions: false, notes: "" };
+    const defaultGenitourinary = { urinary_frequency: false, dysuria: false, incontinence: false, notes: "" };
+    const defaultMusculoskeletal = { joint_pain: false, muscle_weakness: false, stiffness: false, notes: "" };
+    
+    mappedData.reviewOfSystems.neurological = mappedData.reviewOfSystems.neurological || defaultNeurological;
+    mappedData.reviewOfSystems.psychiatric = mappedData.reviewOfSystems.psychiatric || defaultPsychiatric;
+    mappedData.reviewOfSystems.endocrine = mappedData.reviewOfSystems.endocrine || defaultEndocrine;
+    mappedData.reviewOfSystems.haematologic_lymphatic = mappedData.reviewOfSystems.haematologic_lymphatic || defaultHaematologic;
+    mappedData.reviewOfSystems.allergic_immunologic = mappedData.reviewOfSystems.allergic_immunologic || defaultAllergic;
+    mappedData.reviewOfSystems.genitourinary = mappedData.reviewOfSystems.genitourinary || defaultGenitourinary;
+    mappedData.reviewOfSystems.musculoskeletal = mappedData.reviewOfSystems.musculoskeletal || defaultMusculoskeletal;
   }
   
   // Ensure additionalReview is an object

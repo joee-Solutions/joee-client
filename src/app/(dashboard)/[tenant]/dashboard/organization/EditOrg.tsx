@@ -82,7 +82,7 @@ export default function EditOrg() {
             adminPhoneNumber: profileData.admin_phone || profileData.adminPhoneNumber || profileData.phone || profileData.phone_number || "",
             organizationEmail: profileData.organization_email || profileData.organizationEmail || profileData.email || "",
             organizationPhoneNumber: profileData.organization_phone || profileData.organizationPhoneNumber || profileData.phone || profileData.phone_number || "",
-            status: profileData.status || profileData.is_active ? "Active" : "Inactive" || "",
+            status: profileData.status || (profileData.is_active ? "Active" : "Inactive") || "Active",
           });
         }
       } catch (error: any) {

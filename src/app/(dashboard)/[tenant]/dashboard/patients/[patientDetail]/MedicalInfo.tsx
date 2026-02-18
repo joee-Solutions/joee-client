@@ -1,10 +1,11 @@
-import MedicalStatusAlergy from "@/components/dashboard/patient/medicalInfo/MedicalStatusAlergy";
-import MedicationHistory from "@/components/dashboard/patient/medicalInfo/MedicationHistory";
-import ReviewAndPrescription from "@/components/dashboard/patient/medicalInfo/ReviewAndPrescription";
-import SocialHistory from "@/components/dashboard/patient/medicalInfo/SocialHistory";
-import SurgeryImmunizationHistory from "@/components/dashboard/patient/medicalInfo/SurgeryImmunizationHistory";
-import Visit from "@/components/dashboard/patient/medicalInfo/Visit";
-import MultiStepPagination from "@/components/dashboard/patient/PatientStepper";
+import AllergyInformation from "@/components/Org/Patients/MedicalInformation/AllergyInformation";
+import Prescriptions from "@/components/Org/Patients/MedicalInformation/Prescriptions";
+import ReviewOfSystem from "@/components/Org/Patients/MedicalInformation/ReviewOfSystem";
+import SocialHistory from "@/components/Org/Patients/MedicalInformation/SocialHistory";
+import SurgeryInformation from "@/components/Org/Patients/MedicalInformation/SurgeryInformation";
+import ImmunizationHistory from "@/components/Org/Patients/MedicalInformation/ImmunizationHistory";
+import Visit from "@/components/Org/Patients/MedicalInformation/Visit";
+// import PatientStepper from "@/components/Org/Patients/PatientStepper";
 import FormComposer from "@/components/shared/form/FormComposer";
 import { Button } from "@/components/ui/button";
 import useMultiStepForm from "@/hooks/useMultiStepForm";
@@ -15,12 +16,13 @@ import { useForm } from "react-hook-form";
 
 export default function MedicalInfo() {
   const mult = useMultiStepForm([
-    <MedicalStatusAlergy key="medical-status-allergy" />,
-    <MedicationHistory key="medication-history" />,
-    <SurgeryImmunizationHistory key="surgery-immunization-history" />,
+    <AllergyInformation key="allergy-information" />,
+    <Prescriptions key="prescriptions" />,
+    <SurgeryInformation key="surgery-information" />,
+    <ImmunizationHistory key="immunization-history" />,
     <SocialHistory key="social-history" />,
-    <ReviewAndPrescription key="review-and-prescription" />,
-    // <Visit />,
+    <ReviewOfSystem key="review-of-system" />,
+    <Visit key="visit" />,
   ]);
 
   const form = useForm<MedicalInfoSchemaType>({
@@ -115,16 +117,24 @@ export default function MedicalInfo() {
           </Button>
         </div>
       </FormComposer>
-      <MultiStepPagination
-        currPos={mult.currentPos}
-        totalLen={mult.totalStep}
-        handleGoto={mult.handleGoto}
-        handleNext={mult.handleNext}
-        handlePrev={mult.handlePrevious}
-        isFirst={mult.isFirstStep}
-        isLast={mult.isLastStep}
-        numOfBtnsShown={2}
-      />
+      {/* Pagination component removed - MultiStepPagination not found */}
+      <div className="flex gap-2 mt-4">
+        <Button
+          type="button"
+          onClick={mult.handlePrevious}
+          disabled={mult.isFirstStep}
+          variant="outline"
+        >
+          Previous
+        </Button>
+        <Button
+          type="button"
+          onClick={mult.handleNext}
+          disabled={mult.isLastStep}
+        >
+          Next
+        </Button>
+      </div>
     </>
   );
 }

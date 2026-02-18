@@ -1,8 +1,8 @@
-import EmergencyInfo from "@/components/dashboard/patient/personalInfo/EmergencyInfo";
-import GuardianInfo from "@/components/dashboard/patient/personalInfo/GuardianInfo";
-import MultiStepPagination from "@/components/dashboard/patient/PatientStepper";
-import PatientAdditionalInfo from "@/components/dashboard/patient/personalInfo/PatientAdditionalInfo";
-import PatientDemograph from "@/components/dashboard/patient/personalInfo/PatientDemograph";
+import EmergencyContact from "@/components/Org/Patients/PersonalInformation/EmergencyContact";
+import ChildrenInformation from "@/components/Org/Patients/PersonalInformation/ChildrenInformation";
+// import PatientStepper from "@/components/Org/Patients/PatientStepper";
+import Additionaldemographics from "@/components/Org/Patients/PersonalInformation/Additionaldemographics";
+import PatientDemographicsForm from "@/components/Org/Patients/PersonalInformation/PatientDemographicsForm";
 import FormComposer from "@/components/shared/form/FormComposer";
 import { Button } from "@/components/ui/button";
 import useMultiStepForm from "@/hooks/useMultiStepForm";
@@ -13,10 +13,10 @@ import { useForm } from "react-hook-form";
 
 export default function PersonalInfo() {
   const mult = useMultiStepForm([
-    <PatientDemograph key="patient-demograph" />,
-    <PatientAdditionalInfo key="patient-additional-info" />,
-    <EmergencyInfo key="emergency-info" />,
-    <GuardianInfo key="guardian-info" />,
+    <PatientDemographicsForm key="patient-demographics" />,
+    <Additionaldemographics key="additional-demographics" />,
+    <EmergencyContact key="emergency-contact" />,
+    <ChildrenInformation key="children-information" />,
   ]);
 
   const form = useForm<PersonalInfoSchemaType>({
@@ -73,16 +73,24 @@ export default function PersonalInfo() {
           </Button>
         </div>
       </FormComposer>
-      <MultiStepPagination
-        currPos={mult.currentPos}
-        totalLen={mult.totalStep}
-        handleGoto={mult.handleGoto}
-        handleNext={mult.handleNext}
-        handlePrev={mult.handlePrevious}
-        isFirst={mult.isFirstStep}
-        isLast={mult.isLastStep}
-        numOfBtnsShown={2}
-      />
+      {/* Pagination component removed - MultiStepPagination not found */}
+      <div className="flex gap-2 mt-4">
+        <Button
+          type="button"
+          onClick={mult.handlePrevious}
+          disabled={mult.isFirstStep}
+          variant="outline"
+        >
+          Previous
+        </Button>
+        <Button
+          type="button"
+          onClick={mult.handleNext}
+          disabled={mult.isLastStep}
+        >
+          Next
+        </Button>
+      </div>
     </>
   );
 }

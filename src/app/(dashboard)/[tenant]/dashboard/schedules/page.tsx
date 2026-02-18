@@ -406,7 +406,7 @@ const SchedulesPage: React.FC = () => {
       // Prepare schedule data for API
       const schedulePayload = {
         schedules: formData.schedules.map(schedule => ({
-          date: schedule.date ? (typeof schedule.date === 'string' ? schedule.date : schedule.date.toISOString().split('T')[0]) : undefined,
+          date: (schedule as any).date ? (typeof (schedule as any).date === 'string' ? (schedule as any).date : (schedule as any).date.toISOString().split('T')[0]) : undefined,
           start_time: schedule.startTime,
           end_time: schedule.endTime,
         })),
