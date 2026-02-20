@@ -71,12 +71,50 @@ const mapPatientToCard = (patient: any, index: number): PatientCard => {
 const mapPatientToDTO = (patient: any, index: number): PatientDTO => {
   const firstName = patient.first_name || patient.firstName || patient.name?.split(" ")[0] || "";
   const lastName = patient.last_name || patient.lastName || patient.name?.split(" ").slice(1).join(" ") || "";
-  const address = patient.address || patient.Address || "N/A";
-  const ailment = patient.ailment || patient.condition || patient.diagnosis || patient.medical_condition || "";
-  const age = patient.age || patient.Age || patient.date_of_birth ? calculateAge(patient.date_of_birth || patient.dob || patient.dateOfBirth) : undefined;
-  const phoneNumber = patient.phone_number || patient.phone || patient.phoneNumber || patient.Phone || patient.mobile || "N/A";
-  const email = patient.email || patient.email_address || patient.Email || "";
-  const picture = patient.profile_picture || patient.profilePicture || patient.picture || "/assets/imagePlaceholder.png";
+  
+  // Extract address from contact_info or top-level
+  const address = patient.contact_info?.address || 
+                 patient.contact_info?.current_address ||
+                 patient.address || 
+                 patient.Address || 
+                 "N/A";
+  
+  // Extract ailment from diagnosis history or medical condition
+  const ailment = patient.diagnosis_history?.[0]?.diagnosis ||
+                 patient.diagnosis_history?.[0]?.condition ||
+                 patient.ailment || 
+                 patient.condition || 
+                 patient.diagnosis || 
+                 patient.medical_condition || 
+                 "";
+  
+  // Calculate age from date_of_birth
+  const dob = patient.date_of_birth || patient.dob || patient.dateOfBirth || patient.birth_date;
+  const age = dob ? calculateAge(dob) : patient.age || patient.Age || undefined;
+  
+  // Extract phone number from contact_info or top-level
+  const phoneNumber = patient.contact_info?.phone_number ||
+                     patient.contact_info?.phone ||
+                     patient.phone_number || 
+                     patient.phone || 
+                     patient.phoneNumber || 
+                     patient.Phone || 
+                     patient.mobile || 
+                     "N/A";
+  
+  // Extract email from contact_info or top-level
+  const email = patient.contact_info?.email ||
+               patient.contact_info?.email_work ||
+               patient.email || 
+               patient.email_address || 
+               patient.Email || 
+               "";
+  
+  const picture = patient.profile_picture || 
+                 patient.profilePicture || 
+                 patient.picture || 
+                 patient.image ||
+                 "/assets/imagePlaceholder.png";
 
   return {
     id: patient.id || patient._id || index + 1,
@@ -266,19 +304,24 @@ export default function PatientPage() {
       setIsLoading(true);
       const response = await processRequestAuth("get", API_ENDPOINTS.GET_PATIENTS);
       
-      const patients = Array.isArray(response?.data) 
-        ? response.data 
-        : Array.isArray(response) 
-        ? response 
+      // Handle different API response structures
+      const patients = Array.isArray(response?.data?.data)
+        ? response.data.data
+        : Array.isArray(response?.data)
+        ? response.data
+        : Array.isArray(response)
+        ? response
         : [];
 
       if (patients.length > 0) {
         setFullPatientData(patients);
         
-        const cards = patients.slice(0, 4).map(mapPatientToCard);
+        // Map patients to cards (first 4 for display)
+        const cards = patients.slice(0, 4).map((patient: any, index: number) => mapPatientToCard(patient, index));
         setPatientCards(cards);
 
-        const tableData = patients.map(mapPatientToDTO);
+        // Map patients to table data format
+        const tableData = patients.map((patient: any, index: number) => mapPatientToDTO(patient, index));
         setPatientsTableData(tableData);
       } else {
         setPatientCards([]);
@@ -289,10 +332,13 @@ export default function PatientPage() {
       console.error("Failed to load patients:", error);
       
       if (error?.response?.status === 403) {
-        toast.error("Access denied. Please check your permissions or contact your administrator.", {
-          toastId: "patients-403-error",
-          autoClose: 5000,
-        });
+        // Suppress 403 "No token" errors - these are expected when token is missing
+        if (!error?.response?.data?.error?.toLowerCase().includes('no token')) {
+          toast.error("Access denied. Please check your permissions or contact your administrator.", {
+            toastId: "patients-403-error",
+            autoClose: 5000,
+          });
+        }
       } else if (error?.response?.status === 401) {
         toast.error("Authentication failed. Please log in again.", {
           toastId: "patients-401-error",
