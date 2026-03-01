@@ -7,7 +7,7 @@ import Pagination from '@/components/shared/table/pagination';
 import { Plus, Search, MoreVertical, Edit, Trash2 } from 'lucide-react';
 import { ListView } from '@/components/shared/table/DataTableFilter';
 import { Button } from '@/components/ui/button';
-import { processRequestAuth } from '@/framework/https';
+import { processRequestOfflineAuth } from '@/framework/offline-https';
 import { API_ENDPOINTS } from '@/framework/api-endpoints';
 import { toast } from "react-toastify";
 import {
@@ -55,6 +55,8 @@ interface TableDataItem {
   startTime: string;
   endTime: string;
   employeeId?: number | string;
+  scheduleId?: string;
+  rawDay?: string;
 }
 
 // Sample data for doctor schedules
@@ -217,7 +219,7 @@ const SchedulesPage: React.FC = () => {
   const loadSchedules = async () => {
     try {
       setIsLoading(true);
-      const response = await processRequestAuth("get", API_ENDPOINTS.GET_SCHEDULES);
+      const response = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_SCHEDULES);
       
       // Handle different response structures
       const schedules = Array.isArray(response?.data?.data)
@@ -269,14 +271,17 @@ const SchedulesPage: React.FC = () => {
               return `${hour12}:${minutes || "00"}${ampm}`;
             };
             
+            const scheduleId = String(schedule.id ?? schedule._id ?? scheduleIndex);
             transformedSchedules.push({
               id: `${schedule.id || scheduleIndex}-${dayIndex}`,
               name: employeeName,
               department,
-              date: day || new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
+              date: day ? (day.length === 10 ? new Date(day).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : day) : new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
               startTime: formatTime(startTime),
               endTime: formatTime(endTime),
               employeeId: userId,
+              scheduleId,
+              rawDay: day || undefined,
             });
           });
         } else {
@@ -289,6 +294,8 @@ const SchedulesPage: React.FC = () => {
           const startTime = schedule.start_time || schedule.startTime || "09:00am";
           const endTime = schedule.end_time || schedule.endTime || "05:00pm";
           
+          const scheduleId = String(schedule.id ?? schedule._id ?? scheduleIndex);
+          const dateStr = typeof date === "string" ? date : (date && new Date(date).toISOString?.().split("T")[0]);
           transformedSchedules.push({
             id: schedule.id || schedule._id || scheduleIndex + 1,
             name: employeeName,
@@ -297,6 +304,8 @@ const SchedulesPage: React.FC = () => {
             startTime,
             endTime,
             employeeId: userId,
+            scheduleId,
+            rawDay: dateStr,
           });
         }
       });
@@ -315,7 +324,7 @@ const SchedulesPage: React.FC = () => {
 
   const loadEmployees = async () => {
     try {
-      const response = await processRequestAuth("get", API_ENDPOINTS.GET_EMPLOYEE);
+      const response = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_EMPLOYEE);
       const employeesData = Array.isArray(response?.data?.data)
         ? response.data.data
         : Array.isArray(response?.data)
@@ -365,7 +374,7 @@ const SchedulesPage: React.FC = () => {
         return;
       }
 
-      await processRequestAuth("delete", API_ENDPOINTS.DELETE_SCHEDULE(employeeId));
+      await processRequestOfflineAuth("delete", API_ENDPOINTS.DELETE_SCHEDULE(employeeId));
       
       setSchedulesData(schedulesData.filter((schedule) => schedule.id !== scheduleToDelete.id));
       toast.success("Schedule deleted successfully", { toastId: "schedule-delete-success" });
@@ -403,23 +412,45 @@ const SchedulesPage: React.FC = () => {
 
       const employeeId = selectedEmployee.id;
       
-      // Prepare schedule data for API
+      // Backend expects availableDays[].day (string), startTime (HH:mm), endTime (HH:mm); no duplicate days
+      const toHHmm = (t: string | undefined): string => {
+        if (!t || typeof t !== "string") return "09:00";
+        const trimmed = t.trim();
+        const part = trimmed.slice(0, 5); // "HH:mm"
+        if (/^\d{1,2}:\d{2}$/.test(part)) return part;
+        if (trimmed.length >= 5) return trimmed.slice(0, 5);
+        return "09:00";
+      };
+      const seenDays = new Set<string>();
+      const availableDays: Array<{ day: string; startTime: string; endTime: string }> = [];
+      for (const schedule of formData.schedules) {
+        const dateVal = (schedule as any).date;
+        const dayStr = !dateVal
+          ? ""
+          : typeof dateVal === "string"
+            ? dateVal.split("T")[0]
+            : dateVal.toISOString?.().split("T")[0] ?? "";
+        if (!dayStr || seenDays.has(dayStr)) continue;
+        seenDays.add(dayStr);
+        availableDays.push({
+          day: dayStr,
+          startTime: toHHmm(schedule.startTime),
+          endTime: toHHmm(schedule.endTime),
+        });
+      }
+
       const schedulePayload = {
-        schedules: formData.schedules.map(schedule => ({
-          date: (schedule as any).date ? (typeof (schedule as any).date === 'string' ? (schedule as any).date : (schedule as any).date.toISOString().split('T')[0]) : undefined,
-          start_time: schedule.startTime,
-          end_time: schedule.endTime,
-        })),
+        availableDays,
       };
 
       if (isEditMode && scheduleToEdit) {
         // Update existing schedule
         const editEmployeeId = (scheduleToEdit as any).employeeId || scheduleToEdit.id;
-        await processRequestAuth("patch", API_ENDPOINTS.UPDATE_SCHEDULE(editEmployeeId), schedulePayload);
+        await processRequestOfflineAuth("patch", API_ENDPOINTS.UPDATE_SCHEDULE(editEmployeeId), schedulePayload);
         toast.success("Schedule updated successfully", { toastId: "schedule-update-success" });
       } else {
         // Create new schedule
-        await processRequestAuth("post", API_ENDPOINTS.CREATE_SCHEDULE(employeeId), schedulePayload);
+        await processRequestOfflineAuth("post", API_ENDPOINTS.CREATE_SCHEDULE(employeeId), schedulePayload);
         toast.success("Schedule created successfully", { toastId: "schedule-create-success" });
       }
       
@@ -507,18 +538,50 @@ const SchedulesPage: React.FC = () => {
           onSave={handleSave}
           employees={employees}
           editMode={isEditMode}
-          schedule={scheduleToEdit ? {
+          schedule={scheduleToEdit ? (() => {
+            const toHHmm = (t: string | undefined): string => {
+              if (!t || typeof t !== "string") return "09:00";
+              const s = t.trim();
+              if (/^\d{1,2}:\d{2}$/.test(s)) return s.length === 4 ? `0${s}` : s;
+              const match = s.match(/^(\d{1,2}):(\d{2})\s*(am|pm)?$/i);
+              if (match) {
+                let h = parseInt(match[1], 10);
+                const m = match[2]?.padStart(2, "0") ?? "00";
+                if (match[3]?.toLowerCase() === "pm" && h < 12) h += 12;
+                if (match[3]?.toLowerCase() === "am" && h === 12) h = 0;
+                return `${String(h).padStart(2, "0")}:${m}`;
+              }
+              return "09:00";
+            };
+            const sameScheduleRows = schedulesData.filter(
+              (r) => (r.scheduleId != null && r.scheduleId === (scheduleToEdit as TableDataItem).scheduleId) ||
+                      (r.employeeId != null && r.employeeId === (scheduleToEdit as TableDataItem).employeeId)
+            );
+            const rows = sameScheduleRows.length > 0 ? sameScheduleRows : [scheduleToEdit];
+            const schedules = rows.map((row) => {
+              const d = row.rawDay ?? row.date;
+              const dateParsed = !d ? undefined : typeof d === "string" && d.length === 10 ? new Date(d) : typeof d === "string" ? new Date(d) : d;
+              const dateObj = dateParsed instanceof Date && !isNaN(dateParsed.getTime()) ? dateParsed : undefined;
+              return {
+                day: typeof row.rawDay === "string" ? row.rawDay : "",
+                date: dateObj,
+                startTime: toHHmm(row.startTime),
+                endTime: toHHmm(row.endTime),
+              };
+            }).sort((a, b) => (a.day || "").localeCompare(b.day || ""));
+            return {
             employeeName: scheduleToEdit.name,
             role: "Doctor",
             department: scheduleToEdit.department,
             selectedDays: [],
-            schedules: [{
+              schedules: schedules.length > 0 ? schedules : [{
               day: "",
-              date: scheduleToEdit.date ? new Date(scheduleToEdit.date) : undefined,
-              startTime: scheduleToEdit.startTime,
-              endTime: scheduleToEdit.endTime,
-            }],
-          } : undefined}
+                date: undefined,
+                startTime: "09:00",
+                endTime: "17:00",
+              }],
+            };
+          })() : undefined}
         />
       )}
 

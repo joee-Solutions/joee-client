@@ -9,7 +9,7 @@ import { Plus, Search, Edit, Trash2, MoreVertical } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { usePathname, useParams } from "next/navigation";
-import { processRequestAuth } from "@/framework/https";
+import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { toast } from "react-toastify";
 import PatientStepper from "@/components/Org/Patients/PatientStepper";
@@ -36,6 +36,8 @@ type PatientCard = {
   lastName: string;
   email: string;
   picture: string;
+  rgbColorCode: string;
+  description: string;
 };
 
 type PatientDTO = {
@@ -48,15 +50,32 @@ type PatientDTO = {
   age?: number;
   phoneNumber: string;
   email: string;
+  gender?: string;
+  dateOfBirth?: string;
   [key: string]: string | number | undefined;
 };
 
 // Helper function to map API patient data to PatientCard
 const mapPatientToCard = (patient: any, index: number): PatientCard => {
-  const firstName = patient.first_name || patient.firstName || patient.name?.split(" ")[0] || "";
-  const lastName = patient.last_name || patient.lastName || patient.name?.split(" ").slice(1).join(" ") || "";
-  const email = patient.email || patient.email_address || "";
-  const picture = patient.profile_picture || patient.profilePicture || patient.picture || "/assets/imagePlaceholder.png";
+  // Extract name - API response uses: firstname, lastname (lowercase, no underscore)
+  // Check all variations to handle different API response formats
+  const firstName = patient.firstname || patient.first_name || patient.firstName || patient.name?.split(" ")[0] || "";
+  const lastName = patient.lastname || patient.last_name || patient.lastName || patient.name?.split(" ").slice(1).join(" ") || "";
+  
+  const email = patient.contact_info?.email || patient.contact_info?.email_work || patient.email || patient.email_address || "";
+  const picture = patient.profile_picture || patient.profilePicture || patient.picture || patient.image || patient.patient_image || "/assets/imagePlaceholder.png";
+  
+  // Color codes for patient cards (using default blue color)
+  const rgbColorCode = "0, 52, 101"; // Default blue color matching the theme
+  
+  // Description can be ailment or condition
+  const description = patient.diagnosis_history?.[0]?.diagnosis ||
+                     patient.diagnosis_history?.[0]?.condition ||
+                     patient.ailment || 
+                     patient.condition || 
+                     patient.diagnosis || 
+                     patient.medical_condition || 
+                     "Patient";
 
   return {
     id: patient.id || patient._id || index + 1,
@@ -64,13 +83,17 @@ const mapPatientToCard = (patient: any, index: number): PatientCard => {
     lastName,
     email,
     picture,
+    rgbColorCode,
+    description,
   };
 };
 
 // Helper function to map API patient data to PatientDTO
 const mapPatientToDTO = (patient: any, index: number): PatientDTO => {
-  const firstName = patient.first_name || patient.firstName || patient.name?.split(" ")[0] || "";
-  const lastName = patient.last_name || patient.lastName || patient.name?.split(" ").slice(1).join(" ") || "";
+  // Extract name - API response uses: firstname, lastname (lowercase, no underscore)
+  // Check all variations to handle different API response formats
+  const firstName = patient.firstname || patient.first_name || patient.firstName || patient.name?.split(" ")[0] || "";
+  const lastName = patient.lastname || patient.last_name || patient.lastName || patient.name?.split(" ").slice(1).join(" ") || "";
   
   // Extract address from contact_info or top-level
   const address = patient.contact_info?.address || 
@@ -88,19 +111,33 @@ const mapPatientToDTO = (patient: any, index: number): PatientDTO => {
                  patient.medical_condition || 
                  "";
   
-  // Calculate age from date_of_birth
+  // Extract date of birth
   const dob = patient.date_of_birth || patient.dob || patient.dateOfBirth || patient.birth_date;
+  const dateOfBirth = dob ? (typeof dob === 'string' ? dob : new Date(dob).toISOString().split('T')[0]) : undefined;
+  
+  // Calculate age from date_of_birth
   const age = dob ? calculateAge(dob) : patient.age || patient.Age || undefined;
   
+  // Extract gender
+  const gender = patient.sex || patient.gender || patient.Gender || "";
+  
   // Extract phone number from contact_info or top-level
-  const phoneNumber = patient.contact_info?.phone_number ||
-                     patient.contact_info?.phone ||
-                     patient.phone_number || 
-                     patient.phone || 
-                     patient.phoneNumber || 
-                     patient.Phone || 
-                     patient.mobile || 
-                     "N/A";
+  const phoneNumber =
+    // New API shape (nested contact_info)
+    patient.contact_info?.phone_number_mobile ||
+    patient.contact_info?.phone_number_home ||
+    patient.contact_info?.phone_number ||
+    patient.contact_info?.phone ||
+    patient.contact_info?.mobile ||
+    // Top-level variants
+    patient.phone_number_mobile ||
+    patient.phone_number_home ||
+    patient.phone_number ||
+    patient.phone ||
+    patient.phoneNumber ||
+    patient.Phone ||
+    patient.mobile ||
+    "N/A";
   
   // Extract email from contact_info or top-level
   const email = patient.contact_info?.email ||
@@ -114,6 +151,7 @@ const mapPatientToDTO = (patient: any, index: number): PatientDTO => {
                  patient.profilePicture || 
                  patient.picture || 
                  patient.image ||
+                 patient.patient_image ||
                  "/assets/imagePlaceholder.png";
 
   return {
@@ -126,6 +164,8 @@ const mapPatientToDTO = (patient: any, index: number): PatientDTO => {
     age,
     phoneNumber,
     email,
+    gender,
+    dateOfBirth,
   };
 };
 
@@ -162,21 +202,33 @@ const createColumns = (
     },
   },
   {
-    header: "Patient Name",
+    header: "Patient",
     render(row) {
+      const patientName = `${row.firstName || ""} ${row.lastName || ""}`.trim() || "Unknown Patient";
+      const imageSrc = row.picture && row.picture !== "/assets/imagePlaceholder.png" 
+        ? row.picture 
+        : "/assets/imagePlaceholder.png";
+      
       return (
         <div className="flex items-center gap-[10px]">
-          <span className="w-[42px] h-[42px] rounded-full overflow-hidden">
+          <span className="w-[42px] h-[42px] rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
           <Image
-            src={row.picture}
-              alt="patient image"
+              src={imageSrc}
+              alt={`${patientName} photo`}
             width={42}
             height={42}
               className="object-cover aspect-square w-full h-full rounded-full"
-          />
+              onError={(e) => {
+                // Fallback to placeholder if image fails to load
+                const target = e.target as HTMLImageElement;
+                if (target.src !== "/assets/imagePlaceholder.png") {
+                  target.src = "/assets/imagePlaceholder.png";
+                }
+              }}
+            />
           </span>
           <p className="font-medium text-xs text-black">
-            {row.firstName} {row.lastName}
+            {patientName}
           </p>
         </div>
       );
@@ -191,21 +243,31 @@ const createColumns = (
     },
   },
   {
-    header: "Ailment",
+    header: "Gender",
     render(row) {
       return (
-        <p className="font-semibold text-xs text-[#737373]">{row.ailment || "N/A"}</p>
+        <p className="font-semibold text-xs text-[#737373]">{row.gender || "N/A"}</p>
       );
     },
   },
   {
-    header: "Age",
-    render: (row) => (
-      <p className="font-semibold text-xs text-[#737373]">{row.age || "N/A"}</p>
-    ),
+    header: "Date Of Birth",
+    render: (row) => {
+      const dob = row.dateOfBirth;
+      if (!dob) return <p className="font-semibold text-xs text-[#737373]">N/A</p>;
+      
+      // Format date for display
+      try {
+        const date = typeof dob === 'string' ? new Date(dob) : dob;
+        const formatted = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        return <p className="font-semibold text-xs text-[#737373]">{formatted}</p>;
+      } catch {
+        return <p className="font-semibold text-xs text-[#737373]">{String(dob)}</p>;
+      }
+    },
   },
   {
-    header: "Phone",
+    header: "Phone Number",
     render: (row) => (
       <p className="font-semibold text-xs text-[#737373]">{row.phoneNumber}</p>
     ),
@@ -217,7 +279,7 @@ const createColumns = (
     ),
   },
   {
-    header: "Actions",
+    header: "Action",
     render(row) {
       return (
         <DropdownMenu modal={false}>
@@ -259,6 +321,8 @@ export default function PatientPage() {
   const params = useParams();
   const org = params?.tenant as string || pathname?.split('/organization/')[1]?.split('/')[0] || '';
   const [showForm, setShowForm] = useState(false);
+  /** When set, we're editing this patient in the stepper; when null and showForm true, we're creating. */
+  const [editingPatientId, setEditingPatientId] = useState<number | null>(null);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
@@ -268,14 +332,7 @@ export default function PatientPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPatient, setSelectedPatient] = useState<PatientDTO | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [editFormData, setEditFormData] = useState<Partial<PatientDTO & {
-    dob?: string;
-    gender?: string;
-    state?: string;
-    bio?: string;
-  }>>({});
 
   useEffect(() => {
     loadPatients();
@@ -283,7 +340,7 @@ export default function PatientPage() {
 
   // Ensure body scroll is restored when modals close
   useEffect(() => {
-    if (!isEditModalOpen && !isDeleteModalOpen && !isViewModalOpen) {
+    if (!isDeleteModalOpen && !isViewModalOpen) {
       const timer = setTimeout(() => {
         document.body.style.overflow = '';
         document.body.style.paddingRight = '';
@@ -297,12 +354,12 @@ export default function PatientPage() {
       }, 200);
       return () => clearTimeout(timer);
     }
-  }, [isEditModalOpen, isDeleteModalOpen, isViewModalOpen]);
+  }, [isDeleteModalOpen, isViewModalOpen]);
 
   const loadPatients = async () => {
     try {
       setIsLoading(true);
-      const response = await processRequestAuth("get", API_ENDPOINTS.GET_PATIENTS);
+      const response = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_PATIENTS);
       
       // Handle different API response structures
       const patients = Array.isArray(response?.data?.data)
@@ -370,76 +427,31 @@ export default function PatientPage() {
       patient.email.toLowerCase().includes(searchLower) ||
       patient.phoneNumber.toLowerCase().includes(searchLower) ||
       (patient.ailment && patient.ailment.toLowerCase().includes(searchLower)) ||
-      patient.address.toLowerCase().includes(searchLower)
+      patient.address.toLowerCase().includes(searchLower) ||
+      (patient.gender && patient.gender.toLowerCase().includes(searchLower)) ||
+      (patient.dateOfBirth && patient.dateOfBirth.toLowerCase().includes(searchLower))
     );
   });
 
-  // Get full patient data from API response
-  const getFullPatientData = (patient: PatientDTO) => {
-    let found = fullPatientData.find(p => {
-      const patientId = String(p.id || p._id || '');
-      return patientId === String(patient.id);
-    });
-    
-    if (!found) {
-      found = fullPatientData.find(p => {
-        const pFirstName = p.first_name || p.firstName || p.name?.split(" ")[0] || "";
-        const pLastName = p.last_name || p.lastName || p.name?.split(" ").slice(1).join(" ") || "";
-        return `${pFirstName} ${pLastName}`.trim() === `${patient.firstName} ${patient.lastName}`.trim();
-      });
-    }
-    
-    return found;
-  };
-
-  // Handle view (opens view modal, which can then open edit)
+  // Handle view (opens view modal, which can then open edit stepper)
   const handleView = (patient: PatientDTO) => {
     setSelectedPatient(patient);
-    const fullData = getFullPatientData(patient);
-    
-    setEditFormData({
-      firstName: patient.firstName,
-      lastName: patient.lastName,
-      address: patient.address,
-      email: patient.email,
-      phoneNumber: patient.phoneNumber,
-      ailment: patient.ailment,
-      age: patient.age,
-      picture: patient.picture,
-      dob: fullData?.dob || fullData?.date_of_birth || fullData?.dateOfBirth || fullData?.DOB || fullData?.birth_date || '',
-      gender: fullData?.gender || fullData?.Gender || '',
-      state: fullData?.state || fullData?.region_state || fullData?.State || fullData?.region || '',
-      bio: fullData?.bio || fullData?.biography || fullData?.short_biography || fullData?.Bio || '',
-    });
     setIsViewModalOpen(true);
   };
 
-  // Handle edit (opens edit modal directly)
+  // Handle edit: show the same stepper form used for create, with patient data loaded
   const handleEdit = (patient: PatientDTO) => {
     setSelectedPatient(patient);
-    const fullData = getFullPatientData(patient);
-    
-    setEditFormData({
-      firstName: patient.firstName,
-      lastName: patient.lastName,
-      address: patient.address,
-      email: patient.email,
-      phoneNumber: patient.phoneNumber,
-      ailment: patient.ailment,
-      age: patient.age,
-      picture: patient.picture,
-      dob: fullData?.dob || fullData?.date_of_birth || fullData?.dateOfBirth || fullData?.DOB || fullData?.birth_date || '',
-      gender: fullData?.gender || fullData?.Gender || '',
-      state: fullData?.state || fullData?.region_state || fullData?.State || fullData?.region || '',
-      bio: fullData?.bio || fullData?.biography || fullData?.short_biography || fullData?.Bio || '',
-    });
-    setIsEditModalOpen(true);
+    setEditingPatientId(patient.id);
+    setShowForm(true);
   };
 
-  // Open edit from view modal
+  // Open edit stepper from view modal
   const handleEditFromView = () => {
+    if (!selectedPatient) return;
     setIsViewModalOpen(false);
-    setIsEditModalOpen(true);
+    setEditingPatientId(selectedPatient.id);
+    setShowForm(true);
   };
 
   // Handle delete
@@ -453,7 +465,7 @@ export default function PatientPage() {
     if (!selectedPatient) return;
     
     try {
-      await processRequestAuth("delete", API_ENDPOINTS.DELETE_PATIENT(selectedPatient.id));
+      await processRequestOfflineAuth("delete", API_ENDPOINTS.DELETE_PATIENT(selectedPatient.id));
       
       setPatientsTableData((prev) => prev.filter((p) => p.id !== selectedPatient.id));
       setPatientCards((prev) => prev.filter((card) => card.id !== selectedPatient.id));
@@ -467,76 +479,25 @@ export default function PatientPage() {
     }
   };
 
-  // Handle edit save
-  const handleEditSave = async (updatedData: Partial<PatientDTO>) => {
-    if (!selectedPatient) return;
-    
-    try {
-      const patientData = {
-        first_name: updatedData.firstName || selectedPatient.firstName,
-        last_name: updatedData.lastName || selectedPatient.lastName,
-        email: updatedData.email || selectedPatient.email,
-        phone_number: updatedData.phoneNumber || selectedPatient.phoneNumber,
-        address: updatedData.address || selectedPatient.address,
-        ailment: updatedData.ailment || selectedPatient.ailment,
-        dob: (updatedData as any).dob || '',
-        gender: (updatedData as any).gender || '',
-        state: (updatedData as any).state || '',
-        bio: (updatedData as any).bio || '',
-      };
-
-      const response = await processRequestAuth("patch", API_ENDPOINTS.UPDATE_PATIENT(selectedPatient.id), patientData);
-
-      if (response?.data || response) {
-        toast.success("Patient updated successfully", { toastId: "patient-update-success" });
-        setIsEditModalOpen(false);
-        setSelectedPatient(null);
-        setEditFormData({});
-        await loadPatients();
-      } else {
-        throw new Error("Unexpected response from server");
-      }
-    } catch (error: any) {
-      console.error("Failed to update patient:", error);
-      if (error?.response?.status === 403) {
-        toast.error("Access denied. You don't have permission to update patients.", {
-          toastId: "patient-update-403-error",
-          autoClose: 5000,
-        });
-      } else if (error?.response?.status === 401) {
-        toast.error("Authentication failed. Please log in again.", {
-          toastId: "patient-update-401-error",
-          autoClose: 5000,
-        });
-      } else if (error?.response?.status === 400) {
-        const errorMessage = error?.response?.data?.message || error?.response?.data?.error || "Invalid patient data";
-        toast.error(errorMessage, {
-          toastId: "patient-update-400-error",
-          autoClose: 5000,
-        });
-      } else {
-        const errorMessage = error?.response?.data?.message || error?.message || "Failed to update patient";
-        toast.error(errorMessage, {
-          toastId: "patient-update-error",
-          autoClose: 5000,
-        });
-      }
-    }
-  };
-
   // Create columns with handlers
   const columns = createColumns(handleEdit, handleDelete);
 
   const handleFormCancel = () => {
     setShowForm(false);
+    setEditingPatientId(null);
+    setSelectedPatient(null);
   };
 
   const handleCreatePatientClick = () => {
+    setEditingPatientId(null);
+    setSelectedPatient(null);
     setShowForm(true);
   };
 
   const handleSaveComplete = () => {
     setShowForm(false);
+    setEditingPatientId(null);
+    setSelectedPatient(null);
     loadPatients(); // Reload patients list after successful save
   };
 
@@ -550,7 +511,9 @@ export default function PatientPage() {
         {showForm ? (
           <div className="w-full">
             <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-gray-900">Create New Patient</h2>
+              <h2 className="text-2xl font-bold text-gray-900">
+                {editingPatientId ? "Edit Patient" : "Create New Patient"}
+              </h2>
               <Button
                 onClick={handleFormCancel}
                 variant="outline"
@@ -559,18 +522,35 @@ export default function PatientPage() {
                 Back to Patient List
               </Button>
             </div>
-            <PatientStepper slug={org} onSaveComplete={handleSaveComplete} />
+            <PatientStepper
+              slug={org}
+              patientId={editingPatientId ?? undefined}
+              onSaveComplete={handleSaveComplete}
+            />
           </div>
         ) : (
           <>
-        <div className="grid grid-cols-[repeat(auto-fit,_minmax(260px,_1fr))] gap-[19px]">
+            {/* Patient Cards */}
+            <div className="grid grid-cols-[repeat(auto-fit,_minmax(260px,_1fr))] gap-[19px] mb-10">
               {patientCards.map((patientCard) => (
                 <div
                   key={patientCard.id}
-                  className="rounded-[10px] shadow-[0px_4px_4px_0px_#00000040] bg-white flex flex-col p-5"
+              className="rounded-[10px] shadow-[0px_4px_4px_0px_#00000040] bg-white flex flex-col overflow-hidden"
+            >
+              <div
+                style={{
+                      backgroundImage: `linear-gradient(to right, rgba(${patientCard.rgbColorCode},.8)), url('/assets/sectionHeaderBG.png')`,
+                }}
+                className={`h-[87.2px] bg-cover bg-no-repeat`}
+              ></div>
+              <div className="pb-5 flex flex-col items-center px-5">
+                <div
+                  style={{
+                    borderWidth: "3px",
+                        borderColor: `rgb(${patientCard.rgbColorCode})`,
+                  }}
+                  className="size-[80px] -mt-10 rounded-full mb-[10px] flex items-center justify-center overflow-hidden"
                 >
-                  <div className="flex flex-col items-center">
-                    <div className="size-[80px] rounded-full mb-4 flex items-center justify-center overflow-hidden border-2 border-[#D9D9D9]">
                   <Image
                         src={patientCard.picture}
                     width={80}
@@ -579,12 +559,27 @@ export default function PatientPage() {
                         className="object-cover w-full h-full"
                   />
                 </div>
-                    <h3 className="font-medium text-sm text-black text-center">
-                      {patientCard.firstName} {patientCard.lastName}
+                <h3 className="font-medium text-sm text-black">
+                      {`${patientCard.firstName || ""} ${patientCard.lastName || ""}`.trim() || "Unknown Patient"}
                 </h3>
-                    <p className="font-normal text-xs text-center mt-1 text-[#999999]">
-                      {patientCard.email}
-                    </p>
+                <p
+                      style={{ color: `rgb(${patientCard.rgbColorCode})` }}
+                  className="font-medium text-xs text-center mt-2"
+                >
+                      Patient
+                </p>
+                {/* Removed ailment/description text from card as requested */}
+                    <button
+                      onClick={() => {
+                        const patient = patientsTableData.find(p => p.id === patientCard.id);
+                        if (patient) {
+                          handleView(patient);
+                        }
+                      }}
+                      className="rounded-[4px] px-5 py-1 text-white font-medium text-xs bg-[#003465] hover:bg-[#003465]/90"
+                >
+                  View
+                    </button>
               </div>
             </div>
           ))}
@@ -644,10 +639,7 @@ export default function PatientPage() {
         onOpenChange={(open) => {
           setIsViewModalOpen(open);
           if (!open) {
-            setTimeout(() => {
-              setSelectedPatient(null);
-              setEditFormData({});
-            }, 150);
+            setTimeout(() => setSelectedPatient(null), 150);
           }
         }}
       >
@@ -685,14 +677,6 @@ export default function PatientPage() {
                 <label className="block text-sm font-medium text-black mb-1">Address</label>
                 <p className="text-sm text-[#737373]">{selectedPatient?.address || 'N/A'}</p>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-black mb-1">Ailment</label>
-                <p className="text-sm text-[#737373]">{selectedPatient?.ailment || 'N/A'}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-black mb-1">Age</label>
-                <p className="text-sm text-[#737373]">{selectedPatient?.age || 'N/A'}</p>
-              </div>
             </div>
           </div>
           <AlertDialogFooter>
@@ -707,150 +691,6 @@ export default function PatientPage() {
               className="bg-[#003465] hover:bg-[#002147] text-white"
             >
               Edit
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Edit Modal */}
-      <AlertDialog 
-        open={isEditModalOpen} 
-        onOpenChange={(open) => {
-          setIsEditModalOpen(open);
-          if (!open) {
-            setTimeout(() => {
-              setSelectedPatient(null);
-              setEditFormData({});
-            }, 150);
-          }
-        }}
-      >
-        <AlertDialogContent className="bg-white max-w-2xl max-h-[90vh] overflow-y-auto !z-[110]">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl font-semibold text-black">
-              Edit Patient
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-sm text-[#737373] pt-2">
-              Update patient information for{" "}
-              <span className="font-semibold">
-                {selectedPatient?.firstName} {selectedPatient?.lastName}
-              </span>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-black mb-1">First Name</label>
-                <input
-                  type="text"
-                  value={editFormData.firstName || ""}
-                  onChange={(e) => setEditFormData({ ...editFormData, firstName: e.target.value })}
-                  className="w-full px-3 py-2 border border-[#D9D9D9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#003465]"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-black mb-1">Last Name</label>
-                <input
-                  type="text"
-                  value={editFormData.lastName || ""}
-                  onChange={(e) => setEditFormData({ ...editFormData, lastName: e.target.value })}
-                  className="w-full px-3 py-2 border border-[#D9D9D9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#003465]"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-black mb-1">Email</label>
-                <input
-                  type="email"
-                  value={editFormData.email || ""}
-                  onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-[#D9D9D9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#003465]"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-black mb-1">Phone Number</label>
-                <input
-                  type="text"
-                  value={editFormData.phoneNumber || ""}
-                  onChange={(e) => setEditFormData({ ...editFormData, phoneNumber: e.target.value })}
-                  className="w-full px-3 py-2 border border-[#D9D9D9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#003465]"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-black mb-1">Address</label>
-                <input
-                  type="text"
-                  value={editFormData.address || ""}
-                  onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
-                  className="w-full px-3 py-2 border border-[#D9D9D9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#003465]"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-black mb-1">Region/State</label>
-                <input
-                  type="text"
-                  value={(editFormData as any).state || ""}
-                  onChange={(e) => setEditFormData({ ...editFormData, state: e.target.value })}
-                  className="w-full px-3 py-2 border border-[#D9D9D9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#003465]"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-black mb-1">Date of Birth</label>
-                <input
-                  type="date"
-                  value={(editFormData as any).dob || ""}
-                  onChange={(e) => setEditFormData({ ...editFormData, dob: e.target.value })}
-                  className="w-full px-3 py-2 border border-[#D9D9D9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#003465]"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-black mb-1">Gender</label>
-                <select
-                  value={(editFormData as any).gender || ""}
-                  onChange={(e) => setEditFormData({ ...editFormData, gender: e.target.value })}
-                  className="w-full px-3 py-2 border border-[#D9D9D9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#003465]"
-                >
-                  <option value="">Select Gender</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-black mb-1">Ailment</label>
-                <input
-                  type="text"
-                  value={editFormData.ailment || ""}
-                  onChange={(e) => setEditFormData({ ...editFormData, ailment: e.target.value })}
-                  className="w-full px-3 py-2 border border-[#D9D9D9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#003465]"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-black mb-1">Bio/Notes</label>
-              <textarea
-                value={(editFormData as any).bio || ""}
-                onChange={(e) => setEditFormData({ ...editFormData, bio: e.target.value })}
-                rows={4}
-                className="w-full px-3 py-2 border border-[#D9D9D9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#003465]"
-                placeholder="Enter notes..."
-              />
-            </div>
-      </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              onClick={() => {
-                setIsEditModalOpen(false);
-              }}
-              className="border border-[#D9D9D9] text-[#737373] hover:bg-gray-50"
-            >
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                handleEditSave(editFormData);
-              }}
-              className="bg-[#003465] hover:bg-[#002147] text-white"
-            >
-              Save Changes
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

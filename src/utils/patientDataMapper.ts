@@ -226,7 +226,49 @@ export function mapFormDataToPatientDto(formData: FormDataStepper) {
         pain_score: latest.painScore ? Number(latest.painScore) || 0 : 0,
       };
     })(),
-    // Transform reviewOfSystem flat structure to reviewOfSystems nested structure
+    // reviewOfSystem / reviewOfSystems nested structure (backend may expect either key)
+    reviewOfSystem: reviewOfSystem ? {
+      neurological: {
+        headache: reviewOfSystem.headaches || false,
+        dizziness: reviewOfSystem.dizziness || false,
+        weakness: reviewOfSystem.numbnessWeakness || false,
+        seizures: reviewOfSystem.seizures || false,
+        notes: reviewOfSystem.neurologicalDetails || "",
+      },
+      psychiatric: {
+        depression: reviewOfSystem.depression || false,
+        anxiety: reviewOfSystem.anxiety || false,
+        sleeping_disturbance: reviewOfSystem.sleepingDisturbances || false,
+        notes: reviewOfSystem.psychiatricDetails || "",
+      },
+      endocrine: {
+        heat_cold_intolerance: reviewOfSystem.heatColdIntolerance || false,
+        excessive_thirst_hunger: reviewOfSystem.excessiveThirstHunger || false,
+        notes: reviewOfSystem.endocrineDetails || "",
+      },
+      haematologic_lymphatic: {
+        easy_bruising: reviewOfSystem.easyBruising || false,
+        bleeding_tendencies: reviewOfSystem.bleedingTendencies || false,
+        notes: reviewOfSystem.haematologicDetails || "",
+      },
+      allergic_immunologic: {
+        frequent_infections: reviewOfSystem.frequentInfections || false,
+        allergic_reactions: reviewOfSystem.allergicReactions || false,
+        notes: reviewOfSystem.allergicDetails || "",
+      },
+      genitourinary: {
+        urinary_frequency: reviewOfSystem.urinaryFrequency || false,
+        dysuria: reviewOfSystem.dysuria || false,
+        incontinence: reviewOfSystem.incontinence || false,
+        notes: reviewOfSystem.genitourinaryDetails || "",
+      },
+      musculoskeletal: {
+        joint_pain: reviewOfSystem.jointPain || false,
+        muscle_weakness: reviewOfSystem.muscleWeakness || false,
+        stiffness: reviewOfSystem.stiffness || false,
+        notes: reviewOfSystem.musculoskeletalDetails || "",
+      },
+    } : {},
     reviewOfSystems: reviewOfSystem ? {
       neurological: {
         headache: reviewOfSystem.headaches || false,
@@ -453,8 +495,10 @@ export function normalizePatientData(mappedData: ReturnType<typeof mapFormDataTo
   mappedData.prescriptions = Array.isArray(mappedData.prescriptions) ? mappedData.prescriptions : [];
   // vitalSigns transformed to vitals object - handled in mapFormDataToPatientDto
   
-  // Ensure socialHistory is an object
-  if (mappedData.socialHistory && typeof mappedData.socialHistory === 'object') {
+  // Always send socialHistory, reviewOfSystem, additionalReview, diagnosisHistory (Patient model expects these)
+  if (!mappedData.socialHistory || typeof mappedData.socialHistory !== 'object') {
+    mappedData.socialHistory = {};
+  }
     mappedData.socialHistory.tobacco_use = mappedData.socialHistory.tobacco_use || '';
     mappedData.socialHistory.alcohol_use = mappedData.socialHistory.alcohol_use || '';
     mappedData.socialHistory.diet_and_exercise = mappedData.socialHistory.diet_and_exercise || '';
@@ -462,10 +506,16 @@ export function normalizePatientData(mappedData: ReturnType<typeof mapFormDataTo
     mappedData.socialHistory.protection = mappedData.socialHistory.protection || '';
     mappedData.socialHistory.comment = mappedData.socialHistory.comment || '';
     mappedData.socialHistory.notes = mappedData.socialHistory.notes || '';
+
+  if (!mappedData.reviewOfSystem || typeof mappedData.reviewOfSystem !== 'object') {
+    mappedData.reviewOfSystem = {};
   }
-  
-  // Ensure reviewOfSystems is an object
-  if (mappedData.reviewOfSystems && typeof mappedData.reviewOfSystems === 'object') {
+  if (!mappedData.reviewOfSystems || typeof mappedData.reviewOfSystems !== 'object') {
+    mappedData.reviewOfSystems = {};
+  }
+
+  // Ensure reviewOfSystems nested structure has defaults when present
+  if (Object.keys(mappedData.reviewOfSystems).length > 0) {
     // Ensure all nested objects exist with proper defaults matching the type structure
     const defaultNeurological = { headache: false, dizziness: false, weakness: false, seizures: false, notes: "" };
     const defaultPsychiatric = { depression: false, anxiety: false, sleeping_disturbance: false, notes: "" };
@@ -484,8 +534,10 @@ export function normalizePatientData(mappedData: ReturnType<typeof mapFormDataTo
     mappedData.reviewOfSystems.musculoskeletal = mappedData.reviewOfSystems.musculoskeletal || defaultMusculoskeletal;
   }
   
-  // Ensure additionalReview is an object
-  if (mappedData.additionalReview && typeof mappedData.additionalReview === 'object') {
+  // Always send additionalReview (Patient model expects it)
+  if (!mappedData.additionalReview || typeof mappedData.additionalReview !== 'object') {
+    mappedData.additionalReview = {};
+  }
     if (mappedData.additionalReview.psychiatric) {
       mappedData.additionalReview.psychiatric.notes = mappedData.additionalReview.psychiatric.notes || '';
     }
@@ -497,7 +549,6 @@ export function normalizePatientData(mappedData: ReturnType<typeof mapFormDataTo
     }
     if (mappedData.additionalReview.allergic) {
       mappedData.additionalReview.allergic.notes = mappedData.additionalReview.allergic.notes || '';
-    }
   }
   
   // Ensure interpreter_required is boolean (default to false if not set)

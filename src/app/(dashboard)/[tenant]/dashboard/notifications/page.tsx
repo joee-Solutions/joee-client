@@ -2,64 +2,61 @@
 
 import { useRouter } from "next/navigation";
 import NotificationList from "@/components/Org/Notifications/NotificationList";
-import { Notification } from "@/components/Org/Notifications/NotificationCard";
-
-// Mock notification data
-const mockNotifications: Notification[] = [
-  {
-    id: "1",
-    date: "13 Jan 2023",
-    sender: "Daniel James",
-    title: "Scheduled Notification for System Maintenance",
-    organization: "JON-KEN Hospital",
-    emailAddress: "jonkenhospitalgmail.com",
-    message: "Lorem ipsum dolor sit amet consectetur. Cursus nec amet ipsum a. Faucibus volutpat quis cras aliquam a sed. Mattis porttitor risus elementum feugiat mauris. Nec tortor quisque turpis blandit mauris at tellus.",
-  },
-  {
-    id: "2",
-    date: "27 Dec 2022",
-    sender: "Daniel James",
-    title: "Scheduled Notification for System Maintenance",
-    organization: "Brigerton Hospital",
-    emailAddress: "brigertonclinics@gmail.com",
-    message: "Lorem ipsum dolor sit amet consectetur. Cursus nec amet ipsum a. Faucibus volutpat quis cras aliquam a sed. Mattis porttitor risus elementum feugiat mauris. Nec tortor quisque turpis blandit mauris at tellus.",
-  },
-  {
-    id: "3",
-    date: "19 Nov 2022",
-    sender: "Daniel James",
-    title: "Scheduled Notification for System Maintenance",
-    organization: "All Organizations",
-    emailAddress: "N/A",
-    message: "Lorem ipsum dolor sit amet consectetur. Cursus nec amet ipsum a. Faucibus volutpat quis cras aliquam a sed. Mattis porttitor risus elementum feugiat mauris. Nec tortor quisque turpis blandit mauris at tellus.",
-  },
-  {
-    id: "4",
-    date: "19 Nov 2022",
-    sender: "Raven Heights Clinic",
-    title: "Subscription Payment Renewal",
-    organization: "JOEE Solutions",
-    emailAddress: "joeesolutions@gmail.com",
-    message: "Lorem ipsum dolor sit amet consectetur. Cursus nec amet ipsum a. Faucibus volutpat quis cras aliquam a sed. Mattis porttitor risus elementum feugiat mauris. Nec tortor quisque turpis blandit mauris at tellus.",
-  },
-];
+import { useState, useEffect } from "react";
+import { processRequestOfflineAuth } from "@/framework/offline-https";
+import { API_ENDPOINTS } from "@/framework/api-endpoints";
+import { toast } from "react-toastify";
 
 export default function NotificationsPage() {
   const router = useRouter();
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const response = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_NOTIFICATIONS);
+        const raw = Array.isArray(response?.data)
+          ? response.data
+          : Array.isArray((response as any)?.data?.data)
+            ? (response as any).data.data
+            : Array.isArray(response)
+              ? response
+              : [];
+        setNotifications(raw);
+      } catch (e: any) {
+        toast.error((e?.response?.data?.message as string) ?? "Failed to load notifications", { toastId: "notif-load" });
+        setNotifications([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchNotifications();
+  }, []);
 
   const handleViewNotification = (id: string) => {
     router.push(`/dashboard/notifications/${id}`);
   };
 
-  const handleDeleteNotification = (id: string) => {
-    // Handle delete logic
-    console.log("Delete notification:", id);
-    // In a real app, you would call an API here
-  };
+  const handleDeleteNotification = (_id: string) => {};
+
+  // Map API shape: { id, status, createdAt, notify: { title, message, sender, fileUrl, type } }
+  const mapped = notifications.map((n: any) => {
+    const notify = n.notify ?? {};
+    return {
+      id: String(n.id ?? n.notificationId ?? ""),
+      date: n.createdAt ?? n.created_at ?? n.date ? new Date(n.createdAt ?? n.created_at ?? n.date).toLocaleDateString() : "",
+      sender: notify.sender ?? n.sender ?? n.from ?? "System",
+      title: notify.title ?? n.title ?? n.subject ?? "Notification",
+      organization: n.organization ?? n.tenant?.name ?? notify.type ?? "",
+      emailAddress: n.emailAddress ?? n.email ?? "",
+      message: notify.message ?? n.message ?? n.body ?? n.content ?? "",
+    };
+  });
 
   return (
     <NotificationList
-      notifications={mockNotifications}
+      notifications={mapped}
       onViewNotification={handleViewNotification}
       onDeleteNotification={handleDeleteNotification}
     />

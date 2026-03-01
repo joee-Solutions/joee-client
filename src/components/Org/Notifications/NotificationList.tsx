@@ -2,7 +2,6 @@
 
 import { Search } from "lucide-react";
 import { useState } from "react";
-import Link from "next/link";
 import { ListView } from "@/components/shared/table/DataTableFilter";
 import Pagination from "@/components/shared/table/pagination";
 import NotificationCard, { Notification } from "./NotificationCard";
@@ -73,12 +72,6 @@ export default function NotificationList({
         <section className="bg-white rounded-lg shadow-[0px_0px_4px_1px_#0000004D] p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-xl font-bold text-black">NOTIFICATION HISTORY</h3>
-            <Link
-              href="/dashboard/notifications/send"
-              className="text-[#003465] font-medium text-base hover:underline"
-            >
-              Send New Notification
-            </Link>
           </div>
 
           {/* Filter Tabs and Show Dropdown */}

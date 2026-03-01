@@ -5,6 +5,7 @@ import Link from "next/link";
 import React from "react";
 import Cookies from "js-cookie";
 import { usePathname, useRouter } from "next/navigation";
+import { clearLastSession } from "@/lib/auth-store";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
 
@@ -20,6 +21,7 @@ const SideNavigation = ({ onClose }: SideNavigationProps) => {
       Cookies.remove("user");
       Cookies.remove("refresh_token");
       Cookies.remove("otp_verified");
+      await clearLastSession();
       router.push("/login");
     } catch (error) {
       console.log("Logout error:", error);

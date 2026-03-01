@@ -11,7 +11,7 @@ import Pagination from '@/components/shared/table/pagination';
 import { Button } from '@/components/ui/button';
 import { Search, MoreVertical, Edit, Trash2 } from 'lucide-react';
 import { ListView } from '@/components/shared/table/DataTableFilter';
-import { processRequestAuth } from '@/framework/https';
+import { processRequestOfflineAuth } from '@/framework/offline-https';
 import { API_ENDPOINTS } from '@/framework/api-endpoints';
 import { toast } from 'react-toastify';
 import {
@@ -114,7 +114,7 @@ const mapApiToDepartment = (dept: any, index: number): Department => {
   const name = dept.name || dept.department_name || 'Unnamed Department';
   const colors = getDepartmentColors(name, index);
   const code = dept.code || dept.code || generateDepartmentCode(name);
-  const employeeCount = dept.employee_count || dept.employeeCount || dept.users?.length || dept.employees?.length || 0;
+  const employeeCount = dept.userCount ?? dept.employee_count ?? dept.employeeCount ?? dept.users?.length ?? dept.employees?.length ?? 0;
   const status = dept.status || (dept.is_active !== false ? 'Active' : 'Inactive');
   const dateCreated = formatDate(dept.created_at || dept.dateCreated || dept.createdAt || new Date());
   const image = formatImageUrl(dept.image || dept.image_url || dept.imageUrl);
@@ -260,7 +260,7 @@ export default function DepartmentPage() {
   const loadDepartments = async () => {
     try {
       setIsLoading(true);
-      const response = await processRequestAuth("get", API_ENDPOINTS.GET_DEPARTMENTS);
+      const response = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_DEPARTMENTS);
       
       // Handle different response structures
       const depts = Array.isArray(response?.data) 
@@ -375,7 +375,7 @@ export default function DepartmentPage() {
       };
 
       // Make API call to create department using POST to /tenant/department
-      const response = await processRequestAuth("post", API_ENDPOINTS.GET_DEPARTMENTS, departmentData);
+      const response = await processRequestOfflineAuth("post", API_ENDPOINTS.GET_DEPARTMENTS, departmentData);
       
       // Handle response
       if (response?.data || response) {
@@ -447,7 +447,7 @@ export default function DepartmentPage() {
     
     try {
       // Make API call to delete department
-      await processRequestAuth("delete", `${API_ENDPOINTS.GET_DEPARTMENTS}/${selectedDepartment.id}`);
+      await processRequestOfflineAuth("delete", `${API_ENDPOINTS.GET_DEPARTMENTS}/${selectedDepartment.id}`);
       
       toast.success("Department deleted successfully", { toastId: "department-delete-success" });
       setIsDeleteModalOpen(false);
@@ -495,7 +495,7 @@ export default function DepartmentPage() {
       };
 
       // Make API call to update department using PATCH
-      const response = await processRequestAuth("patch", `${API_ENDPOINTS.GET_DEPARTMENTS}/${selectedDepartment.id}`, departmentData);
+      const response = await processRequestOfflineAuth("patch", `${API_ENDPOINTS.GET_DEPARTMENTS}/${selectedDepartment.id}`, departmentData);
       
       if (response?.data || response) {
         toast.success("Department updated successfully", { toastId: "department-update-success" });

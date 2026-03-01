@@ -149,38 +149,13 @@ async function handleStaticRequest(request) {
   }
 }
 
-// Background sync for queued requests
+// Background sync: queue replay is handled by the client (useOffline + processRequestAuth)
+// when the app loads and navigator.onLine is true. No IndexedDB in SW context.
 self.addEventListener('sync', (event) => {
   if (event.tag === 'background-sync') {
-    event.waitUntil(syncQueuedRequests());
+    event.waitUntil(Promise.resolve());
   }
 });
-
-// Sync queued requests when back online
-async function syncQueuedRequests() {
-  try {
-    const db = await openDB('joee-offline', 1);
-    const queuedRequests = await db.getAll('queuedRequests');
-    
-    for (const queuedRequest of queuedRequests) {
-      try {
-        const response = await fetch(queuedRequest.url, {
-          method: queuedRequest.method,
-          headers: queuedRequest.headers,
-          body: queuedRequest.body
-        });
-        
-        if (response.ok) {
-          await db.delete('queuedRequests', queuedRequest.id);
-        }
-      } catch (error) {
-        console.error('Failed to sync request:', queuedRequest, error);
-      }
-    }
-  } catch (error) {
-    console.error('Error syncing queued requests:', error);
-  }
-}
 
 // Handle push notifications
 self.addEventListener('push', (event) => {

@@ -14,7 +14,6 @@ interface Appointment {
   department: string;
   date: string;
   time: string;
-  status: "Approved" | "Upcoming" | "Pending" | "Canceled";
   description?: string;
   age?: number;
   appointmentDate: Date;
@@ -29,21 +28,6 @@ interface AppointmentCalendarProps {
   onViewAppointment: (appointment: Appointment) => void;
   onAddAppointment: () => void;
 }
-
-const getStatusColor = (status: Appointment["status"]) => {
-  switch (status) {
-    case "Approved":
-      return "bg-green-200 text-green-800";
-    case "Upcoming":
-      return "bg-blue-200 text-blue-800";
-    case "Pending":
-      return "bg-yellow-200 text-yellow-800";
-    case "Canceled":
-      return "bg-red-200 text-red-800";
-    default:
-      return "bg-gray-200 text-gray-800";
-  }
-};
 
 export default function AppointmentCalendar({
   viewMode,
@@ -129,7 +113,7 @@ export default function AppointmentCalendar({
                         e.stopPropagation();
                         onViewAppointment(apt);
                       }}
-                      className={`text-xs p-1 rounded truncate ${getStatusColor(apt.status)}`}
+                      className="text-xs p-1 rounded truncate bg-[#E6EBF0] text-[#003465]"
                     >
                       {apt.time} {apt.patientName}
                     </div>
@@ -199,7 +183,7 @@ export default function AppointmentCalendar({
                       <div
                         key={apt.id}
                         onClick={() => onViewAppointment(apt)}
-                        className={`absolute inset-x-1 my-1 p-1 rounded text-xs cursor-pointer ${getStatusColor(apt.status)}`}
+                        className="absolute inset-x-1 my-1 p-1 rounded text-xs cursor-pointer bg-[#E6EBF0] text-[#003465]"
                       >
                         {apt.time} {apt.patientName}
                       </div>
@@ -252,7 +236,7 @@ export default function AppointmentCalendar({
                     <div
                       key={apt.id}
                       onClick={() => onViewAppointment(apt)}
-                      className={`p-3 rounded mb-2 cursor-pointer ${getStatusColor(apt.status)}`}
+                      className="p-3 rounded mb-2 cursor-pointer bg-[#E6EBF0] text-[#003465]"
                     >
                       <div className="font-semibold">{apt.time} - {apt.patientName}</div>
                       <div className="text-sm">{apt.doctorName}</div>

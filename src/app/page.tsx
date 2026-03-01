@@ -2,55 +2,56 @@
 import React, { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
+import { restoreLastSessionToCookies, clearLastSession } from "@/lib/auth-store";
 
 const HomePage = () => {
   const router = useRouter();
   const [isRootDomain, setIsRootDomain] = useState<boolean | null>(null); // null = checking
   
   const handleLogout = async () => {
-    console.log("logout");
     Cookies.remove("auth_token");
     Cookies.remove("refresh_token");
     Cookies.remove("user");
-    Cookies.remove("otp_verified"); // Clear OTP verification so user needs to verify again
+    Cookies.remove("otp_verified");
+    await clearLastSession();
     router.push("/login");
   };
   
   useEffect(() => {
-    // Check if we're on a tenant subdomain
-    const host = window.location.host;
-    let isRoot = false;
-    
-    // For Vercel: {tenant}.{project}.vercel.app (4 parts) vs {project}.vercel.app (3 parts)
-    if (host.includes(".vercel.app")) {
-      const parts = host.split(".");
-      isRoot = parts.length === 3; // project.vercel.app (no tenant)
-    }
-    // For localhost: {tenant}.localhost:3000 vs localhost:3000
-    else if (host.includes("localhost")) {
-      const parts = host.split(".");
-      isRoot = parts[0] === "localhost" || host.indexOf(".") === -1;
-    }
-    // For production domains
-    else {
-      const parts = host.split(".");
-      isRoot = parts.length <= 2 || parts[0] === "www";
-    }
-    
-    setIsRootDomain(isRoot);
-    
-    if (isRoot) {
-      // Root domain access - don't redirect, just show message
-      console.log("Root domain accessed - tenant subdomain required");
-      return;
-    }
-    
-    // Tenant subdomain - check auth and redirect to login if needed
-    // Only redirect if we're not already on login page and no auth token exists
-    const currentPath = window.location.pathname;
-    if (!Cookies.get("auth_token") && !currentPath.includes("/login") && !currentPath.includes("/verify-otp")) {
-      router.push("/login");
-    }
+    const run = async () => {
+      // Check if we're on a tenant subdomain
+      const host = window.location.host;
+      let isRoot = false;
+      
+      if (host.includes(".vercel.app")) {
+        const parts = host.split(".");
+        isRoot = parts.length === 3;
+      } else if (host.includes("localhost")) {
+        const parts = host.split(".");
+        isRoot = parts[0] === "localhost" || host.indexOf(".") === -1;
+      } else {
+        const parts = host.split(".");
+        isRoot = parts.length <= 2 || parts[0] === "www";
+      }
+      
+      setIsRootDomain(isRoot);
+      
+      if (isRoot) return;
+      
+      const currentPath = window.location.pathname;
+      let hasAuth = !!Cookies.get("auth_token");
+      
+      // If no cookie, try restoring last session from IndexedDB (offline or after browser restart)
+      if (!hasAuth) {
+        const restored = await restoreLastSessionToCookies();
+        if (restored) hasAuth = true;
+      }
+      
+      if (!hasAuth && !currentPath.includes("/login") && !currentPath.includes("/verify-otp")) {
+        router.push("/login");
+      }
+    };
+    run();
   }, [router]);
   
   // Show loading state while checking

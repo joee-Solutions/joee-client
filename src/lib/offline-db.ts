@@ -57,59 +57,73 @@ interface JoeeOfflineDB extends DBSchema {
     };
     indexes: { 'by-timestamp': number; 'by-entity': string };
   };
+  /** Last session for offline restore (single record: id = "lastSession") */
+  authSession: {
+    key: string;
+    value: {
+      id: string;
+      tenant?: string;
+      auth_token: string;
+      refresh_token?: string;
+      user: any;
+      savedAt: number;
+    };
+    indexes: { 'by-tenant': string };
+  };
 }
 
 class OfflineDatabase {
   private db: IDBPDatabase<JoeeOfflineDB> | null = null;
   private readonly DB_NAME = 'joee-offline';
-  private readonly DB_VERSION = 1;
+  private readonly DB_VERSION = 2;
 
   async init(): Promise<void> {
     if (this.db) return;
 
     this.db = await openDB<JoeeOfflineDB>(this.DB_NAME, this.DB_VERSION, {
-      upgrade(db) {
-        // Patients store
-        const patientsStore = db.createObjectStore('patients', { keyPath: 'id' });
-        patientsStore.createIndex('by-tenant', 'tenantId');
-        patientsStore.createIndex('by-updated', 'updatedAt');
+      upgrade(db, oldVersion, newVersion) {
+        // v1: original stores
+        if (oldVersion < 1) {
+          const patientsStore = db.createObjectStore('patients', { keyPath: 'id' });
+          patientsStore.createIndex('by-tenant', 'tenantId');
+          patientsStore.createIndex('by-updated', 'updatedAt');
 
-        // Employees store
-        const employeesStore = db.createObjectStore('employees', { keyPath: 'id' });
-        employeesStore.createIndex('by-tenant', 'tenantId');
-        employeesStore.createIndex('by-updated', 'updatedAt');
+          const employeesStore = db.createObjectStore('employees', { keyPath: 'id' });
+          employeesStore.createIndex('by-tenant', 'tenantId');
+          employeesStore.createIndex('by-updated', 'updatedAt');
 
-        // Departments store
-        const departmentsStore = db.createObjectStore('departments', { keyPath: 'id' });
-        departmentsStore.createIndex('by-tenant', 'tenantId');
-        departmentsStore.createIndex('by-updated', 'updatedAt');
+          const departmentsStore = db.createObjectStore('departments', { keyPath: 'id' });
+          departmentsStore.createIndex('by-tenant', 'tenantId');
+          departmentsStore.createIndex('by-updated', 'updatedAt');
 
-        // Appointments store
-        const appointmentsStore = db.createObjectStore('appointments', { keyPath: 'id' });
-        appointmentsStore.createIndex('by-tenant', 'tenantId');
-        appointmentsStore.createIndex('by-date', 'date');
-        appointmentsStore.createIndex('by-updated', 'updatedAt');
+          const appointmentsStore = db.createObjectStore('appointments', { keyPath: 'id' });
+          appointmentsStore.createIndex('by-tenant', 'tenantId');
+          appointmentsStore.createIndex('by-date', 'date');
+          appointmentsStore.createIndex('by-updated', 'updatedAt');
 
-        // Organizations store
-        const organizationsStore = db.createObjectStore('organizations', { keyPath: 'id' });
-        organizationsStore.createIndex('by-tenant', 'tenantId');
-        organizationsStore.createIndex('by-updated', 'updatedAt');
+          const organizationsStore = db.createObjectStore('organizations', { keyPath: 'id' });
+          organizationsStore.createIndex('by-tenant', 'tenantId');
+          organizationsStore.createIndex('by-updated', 'updatedAt');
 
-        // Schedules store
-        const schedulesStore = db.createObjectStore('schedules', { keyPath: 'id' });
-        schedulesStore.createIndex('by-tenant', 'tenantId');
-        schedulesStore.createIndex('by-date', 'date');
-        schedulesStore.createIndex('by-updated', 'updatedAt');
+          const schedulesStore = db.createObjectStore('schedules', { keyPath: 'id' });
+          schedulesStore.createIndex('by-tenant', 'tenantId');
+          schedulesStore.createIndex('by-date', 'date');
+          schedulesStore.createIndex('by-updated', 'updatedAt');
 
-        // Queued requests store
-        const queuedRequestsStore = db.createObjectStore('queuedRequests', { keyPath: 'id' });
-        queuedRequestsStore.createIndex('by-timestamp', 'timestamp');
-        queuedRequestsStore.createIndex('by-retry-count', 'retryCount');
+          const queuedRequestsStore = db.createObjectStore('queuedRequests', { keyPath: 'id' });
+          queuedRequestsStore.createIndex('by-timestamp', 'timestamp');
+          queuedRequestsStore.createIndex('by-retry-count', 'retryCount');
 
-        // Sync queue store
-        const syncQueueStore = db.createObjectStore('syncQueue', { keyPath: 'id' });
-        syncQueueStore.createIndex('by-timestamp', 'timestamp');
-        syncQueueStore.createIndex('by-entity', 'entity');
+          const syncQueueStore = db.createObjectStore('syncQueue', { keyPath: 'id' });
+          syncQueueStore.createIndex('by-timestamp', 'timestamp');
+          syncQueueStore.createIndex('by-entity', 'entity');
+        }
+
+        // v2: auth session store for offline restore
+        if (oldVersion < 2) {
+          const authSessionStore = db.createObjectStore('authSession', { keyPath: 'id' });
+          authSessionStore.createIndex('by-tenant', 'tenant');
+        }
       },
     });
   }
@@ -172,6 +186,41 @@ class OfflineDatabase {
 
   async getOrganizations(tenantId: string): Promise<any[]> {
     return this.getAll('organizations', 'by-tenant', tenantId);
+  }
+
+  // Auth session (offline restore)
+  private readonly AUTH_SESSION_KEY = 'lastSession';
+
+  async saveAuthSession(session: {
+    tenant?: string;
+    auth_token: string;
+    refresh_token?: string;
+    user: any;
+  }): Promise<void> {
+    await this.put('authSession', {
+      id: this.AUTH_SESSION_KEY,
+      tenant: session.tenant,
+      auth_token: session.auth_token,
+      refresh_token: session.refresh_token,
+      user: session.user,
+      savedAt: Date.now(),
+    });
+  }
+
+  async getAuthSession(): Promise<{
+    tenant?: string;
+    auth_token: string;
+    refresh_token?: string;
+    user: any;
+    savedAt: number;
+  } | null> {
+    await this.init();
+    const row = await this.db!.get('authSession', this.AUTH_SESSION_KEY);
+    return row ?? null;
+  }
+
+  async clearAuthSession(): Promise<void> {
+    await this.delete('authSession', this.AUTH_SESSION_KEY);
   }
 
   // Queue operations

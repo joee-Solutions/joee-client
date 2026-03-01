@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, Trash2 } from "lucide-react";
+import { Eye } from "lucide-react";
 
 export interface Notification {
   id: string;
@@ -16,7 +16,7 @@ interface NotificationCardProps {
   notification: Notification;
   index: number;
   onView: (id: string) => void;
-  onDelete: (id: string) => void;
+  onDelete?: (id: string) => void;
 }
 
 export default function NotificationCard({
@@ -54,11 +54,6 @@ export default function NotificationCard({
               <span className="font-semibold">Organization:</span> {notification.organization}
             </p>
           </div>
-          <div>
-            <p className="text-sm text-[#737373]">
-              <span className="font-semibold">Email Address:</span> {notification.emailAddress}
-            </p>
-          </div>
           <div className="md:col-span-2">
             <p className="text-sm text-[#737373]">
               <span className="font-semibold">Message:</span> {notification.message.substring(0, 100)}...
@@ -66,19 +61,13 @@ export default function NotificationCard({
           </div>
         </div>
 
-        {/* Action Icons */}
+        {/* Action: View */}
         <div className="flex gap-2">
           <button
             onClick={() => onView(notification.id)}
             className="w-8 h-8 flex items-center justify-center rounded border border-[#BFBFBF] bg-white hover:bg-[#EDF0F6] transition-colors"
           >
             <Eye className="size-4 text-[#003465]" />
-          </button>
-          <button
-            onClick={() => onDelete(notification.id)}
-            className="w-8 h-8 flex items-center justify-center rounded border border-[#EC0909] bg-white hover:bg-red-50 transition-colors"
-          >
-            <Trash2 className="size-4 text-[#EC0909]" />
           </button>
         </div>
       </div>

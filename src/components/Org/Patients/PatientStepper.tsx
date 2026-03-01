@@ -636,15 +636,19 @@ export default function PatientStepper({ slug, patientId: propPatientId, onSaveC
   }, [hasFormData, isSavedToAPI]);
   
   // Intercept navigation attempts (for back button and other navigation)
+  // Special case: url === "__HISTORY_BACK__" means "go to previous page" instead of a fixed route.
   const handleNavigationAttempt = useCallback((url: string) => {
     const hasData = hasFormData();
-    // Show warning if there's form data AND it hasn't been saved to API
     if (hasData && !isSavedToAPI) {
       setPendingNavigation(url);
       setShowNavigationWarning(true);
-      return false; // Prevent navigation
+      return false;
     } else {
-      router.push(url);
+      if (url === "__HISTORY_BACK__") {
+        router.back();
+      } else {
+        router.push(url);
+      }
     }
   }, [hasFormData, isSavedToAPI, router]);
   
@@ -674,7 +678,11 @@ export default function PatientStepper({ slug, patientId: propPatientId, onSaveC
     if (pendingNavigation) {
       setHasUnsavedChanges(false);
       setShowNavigationWarning(false);
-      router.push(pendingNavigation);
+      if (pendingNavigation === "__HISTORY_BACK__") {
+        router.back();
+      } else {
+        router.push(pendingNavigation);
+      }
       setPendingNavigation(null);
     }
   };
@@ -896,15 +904,6 @@ export default function PatientStepper({ slug, patientId: propPatientId, onSaveC
           {/* Header */}
           <div className="flex justify-between items-center mb-8">
             <div className="flex items-center gap-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                onClick={() => handleNavigationAttempt(`/dashboard/organization/${slug}/patients`)}
-                  className="h-[60px] border border-[#003465] text-[#003465] hover:bg-[#003465] hover:text-white font-medium text-base px-6"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back
-                </Button>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
                   {steps[currentStep].title}

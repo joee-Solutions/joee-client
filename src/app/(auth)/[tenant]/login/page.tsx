@@ -14,6 +14,7 @@ import { Spinner } from "@/components/icons/Spinner";
 import Cookies from "js-cookie";
 import { useRouter, useParams } from "next/navigation";
 import { toast } from "react-toastify";
+import { saveLastSession, getLastSession, restoreLastSessionToCookies } from "@/lib/auth-store";
 
 type LoginProps = z.infer<typeof schema>;
 
@@ -39,6 +40,8 @@ const TenantLoginPage = () => {
   const tenant = params?.tenant as string;
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [errMessage, setErrMessage] = useState<string>("");
+  const [offlineSession, setOfflineSession] = useState<{ name: string } | null>(null);
+  const [isOffline, setIsOffline] = useState(false);
   const {
     handleSubmit,
     formState: { errors, isSubmitting },
@@ -48,6 +51,41 @@ const TenantLoginPage = () => {
     resolver: zodResolver(schema),
     // reValidateMode: "onChange",
   });
+
+  // Check for saved session when offline (for "Continue as [user]")
+  useEffect(() => {
+    const check = async () => {
+      const offline = typeof navigator !== "undefined" && !navigator.onLine;
+      setIsOffline(offline);
+      if (offline) {
+        const session = await getLastSession();
+        if (session?.user) {
+          const name =
+            session.user?.name ||
+            session.user?.email ||
+            session.user?.first_name ||
+            [session.user?.first_name, session.user?.last_name].filter(Boolean).join(" ") ||
+            "Saved account";
+          setOfflineSession({ name: String(name) });
+        } else {
+          setOfflineSession(null);
+        }
+      } else {
+        setOfflineSession(null);
+      }
+    };
+    check();
+  }, []);
+
+  const handleContinueOffline = async () => {
+    const restored = await restoreLastSessionToCookies();
+    if (restored) {
+      toast.success("Restored your session. You're viewing cached data.", { toastId: "offline-restore" });
+      router.push(tenant ? `/${tenant}/dashboard` : "/dashboard");
+    } else {
+      toast.error("No saved session found. Connect to the internet to sign in.", { toastId: "offline-no-session" });
+    }
+  };
 
   // Check if user has already verified OTP (skip OTP for returning users)
   useEffect(() => {
@@ -61,18 +99,28 @@ const TenantLoginPage = () => {
     setShowPassword((prev) => !prev);
   };
   const handleFormSubmit = async (data: LoginProps) => {
+    if (isOffline) {
+      toast.error("You're offline. Connect to the internet to sign in, or use \"Continue with saved account\".", {
+        toastId: "login-offline",
+      });
+      return;
+    }
     try {
       setErrMessage("");
       
+      // Include tenant/domain so backend can resolve organization (avoids "Organization not found")
+      const payload = {
+        email: data.email,
+        password: data.password,
+        ...(tenant ? { domain: tenant, tenant } : {}),
+      };
+
       // Make API call to login endpoint
-      // The x-tenant-id header is automatically added by the API proxy based on the host header
+      // x-tenant-id header is set by https interceptor from path; domain in body for backend lookup
       const response = await processRequestNoAuth(
         "post",
         API_ENDPOINTS.LOGIN,
-        {
-        email: data.email,
-          password: data.password,
-        }
+        payload
       );
 
       // Check if response is successful
@@ -121,7 +169,15 @@ const TenantLoginPage = () => {
             autoClose: 3000,
           });
           
-          router.push("/verify-otp");
+          router.push(
+            typeof window !== "undefined" &&
+              window.location.hostname.split(".").length > 1 &&
+              window.location.hostname.split(".")[0] !== "www"
+              ? "/verify-otp"
+              : tenant
+                ? `/${tenant}/verify-otp`
+                : "/verify-otp"
+          );
           return;
         }
         
@@ -184,12 +240,23 @@ const TenantLoginPage = () => {
             });
           }
 
+          // Persist session for offline restore
+          saveLastSession(tenant).catch(() => {});
+
       toast.success("Login successful!", {
             toastId: "login-success",
             autoClose: 3000,
       });
           
-      router.push("/dashboard");
+      router.push(
+            typeof window !== "undefined" &&
+              window.location.hostname.split(".").length > 1 &&
+              window.location.hostname.split(".")[0] !== "www"
+              ? "/dashboard"
+              : tenant
+                ? `/${tenant}/dashboard`
+                : "/dashboard"
+          );
         } else {
           // Unexpected response format - no token found
           console.error("Login response:", response);
@@ -312,6 +379,23 @@ const TenantLoginPage = () => {
                 Forgot password?
               </Link>
             </div>
+            {isOffline && (
+              <div className="mb-4 space-y-2">
+                <p className="text-sm text-amber-200">You&apos;re offline. Connect to the internet to sign in, or continue with your saved session.</p>
+                {offlineSession ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full border-white text-white hover:bg-white/20"
+                    onClick={handleContinueOffline}
+                  >
+                    Continue as {offlineSession.name}
+                  </Button>
+                ) : (
+                  <p className="text-xs text-gray-300">No saved session. Sign in when you&apos;re back online.</p>
+                )}
+              </div>
+            )}
             <Button
               className="font-medium mb-3 bg-[#003465]"
               type="submit"

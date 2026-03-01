@@ -9,7 +9,7 @@ import OrgBackupRestore from "./OrgBackupRestore";
 import Image from "next/image";
 import orgProfileImage from "./../../../../../../public/assets/orgProfileImage.png";
 import { CloudIcon, WebIcon } from "@/components/icons/icon";
-import { processRequestAuth } from "@/framework/https";
+import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 
 interface OrgManagementProps {
@@ -25,7 +25,7 @@ export default function OrgManagement({ setIsAddOrg }: OrgManagementProps) {
     const loadProfile = async () => {
       try {
         setIsLoading(true);
-        const response = await processRequestAuth("get", API_ENDPOINTS.GET_PROFILE);
+        const response = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_PROFILE);
         const profileData = response?.data || response;
         setOrgData(profileData);
       } catch (error: any) {

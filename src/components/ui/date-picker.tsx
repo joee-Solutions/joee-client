@@ -13,6 +13,10 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 
+function isValidDate(d: unknown): d is Date {
+  return d instanceof Date && !isNaN(d.getTime())
+}
+
 export interface DatePickerProps {
   date?: Date
   onDateChange?: (date: Date | undefined) => void
@@ -28,6 +32,7 @@ export function DatePicker({
   className,
   disabled = false,
 }: DatePickerProps) {
+  const safeDate = date != null && isValidDate(date) ? date : undefined
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -35,19 +40,19 @@ export function DatePicker({
           variant={"outline"}
           className={cn(
             "w-full justify-start text-left font-normal h-14 p-3 border border-[#737373] rounded",
-            !date && "text-muted-foreground",
+            !safeDate && "text-muted-foreground",
             className
           )}
           disabled={disabled}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? format(date, "PPP") : <span>{placeholder}</span>}
+          {safeDate ? format(safeDate, "PPP") : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0 z-[10000]" align="start" style={{ zIndex: 10000 }}>
         <Calendar
           mode="single"
-          selected={date}
+          selected={safeDate}
           onSelect={onDateChange}
           captionLayout="dropdown"
         />

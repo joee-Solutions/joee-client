@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { toast } from "react-toastify";
 import { FormDataStepper } from "@/components/Org/Patients/PatientStepper";
-import { processRequestAuth } from "@/framework/https";
+import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { mapFormDataToPatientDto, normalizePatientData } from "../utils/patientDataMapper";
 import { validateRequiredFields, getFirstStepWithMissingData } from "@/utils/patientValidation";
@@ -78,7 +78,7 @@ export function usePatientForm({
           let response;
           if (patientId) {
             // Update existing patient
-            response = await processRequestAuth(
+            response = await processRequestOfflineAuth(
               "patch",
               API_ENDPOINTS.UPDATE_PATIENT(patientId),
               mappedData
@@ -89,7 +89,7 @@ export function usePatientForm({
             if (patientEmail) {
               try {
                 // Fetch all patients to check for duplicate email
-                const allPatientsResponse = await processRequestAuth(
+                const allPatientsResponse = await processRequestOfflineAuth(
                   "get",
                   API_ENDPOINTS.GET_PATIENTS
                 );
@@ -119,7 +119,7 @@ export function usePatientForm({
             }
             
             // Create new patient
-            response = await processRequestAuth(
+            response = await processRequestOfflineAuth(
               "post",
               API_ENDPOINTS.CREATE_PATIENT,
               mappedData

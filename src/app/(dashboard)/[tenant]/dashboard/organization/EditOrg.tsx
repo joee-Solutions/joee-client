@@ -16,7 +16,7 @@ import { CheckCircle2, CircleArrowLeft, Edit, Trash2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useEffect, useState } from "react";
-import { processRequestAuth } from "@/framework/https";
+import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { toast } from "react-toastify";
 
@@ -67,7 +67,7 @@ export default function EditOrg() {
     const loadProfile = async () => {
       try {
         setIsLoading(true);
-        const response = await processRequestAuth("get", API_ENDPOINTS.GET_PROFILE);
+        const response = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_PROFILE);
         
         // Extract data from response (handle different response structures)
         const profileData = response?.data || response;
@@ -125,7 +125,7 @@ export default function EditOrg() {
         is_active: payload.status === "Active",
       };
 
-      const response = await processRequestAuth("patch", API_ENDPOINTS.UPDATE_PROFILE, updateData);
+      const response = await processRequestOfflineAuth("patch", API_ENDPOINTS.UPDATE_PROFILE, updateData);
 
       if (response?.data || response) {
         setShowSuccessDialog(true);

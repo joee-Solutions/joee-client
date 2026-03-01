@@ -23,7 +23,7 @@ import {
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import FieldBox from "../shared/form/FieldBox";
-import { processRequestAuth } from "@/framework/https";
+import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { toast } from "react-toastify";
 import Cookies from "js-cookie";
@@ -96,7 +96,7 @@ export default function ProfileForm({ profileData, onProfileUpdate, isLoading }:
         organization: payload.company,
       };
 
-      const response = await processRequestAuth("put", API_ENDPOINTS.UPDATE_PROFILE, updateData);
+      const response = await processRequestOfflineAuth("put", API_ENDPOINTS.UPDATE_PROFILE, updateData);
       
       if (response) {
         // Update cookie with new data

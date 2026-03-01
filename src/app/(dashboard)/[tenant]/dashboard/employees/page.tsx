@@ -10,7 +10,7 @@ import { ChevronRight, Ellipsis, Plus, Search, Edit, Trash2, MoreVertical } from
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
-import { processRequestAuth } from "@/framework/https";
+import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { toast } from "react-toastify";
 import { useForm } from "react-hook-form";
@@ -277,7 +277,7 @@ export default function EmployeePage() {
   const loadEmployees = async () => {
     try {
       setIsLoading(true);
-      const response = await processRequestAuth("get", API_ENDPOINTS.GET_EMPLOYEE);
+      const response = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_EMPLOYEE);
       
       // Handle different response structures
       const users = Array.isArray(response?.data) 
@@ -373,7 +373,7 @@ export default function EmployeePage() {
   // Fetch employee details from API
   const fetchEmployeeDetails = async (employeeId: number | string) => {
     try {
-      const response = await processRequestAuth("get", `/tenant/user/${employeeId}`);
+      const response = await processRequestOfflineAuth("get", `/tenant/user/${employeeId}`);
       // Handle response structure - could be direct object or wrapped in data
       const employeeData = response?.data || response;
       console.log("Fetched employee details:", employeeData);
@@ -495,7 +495,7 @@ export default function EmployeePage() {
     
     try {
       // TODO: Replace with actual delete API endpoint when available
-      // await processRequestAuth("delete", `${API_ENDPOINTS.GET_EMPLOYEE}/${selectedEmployee.id}`);
+      // await processRequestOfflineAuth("delete", `${API_ENDPOINTS.GET_EMPLOYEE}/${selectedEmployee.id}`);
       
       // Remove from local state for now
       setEmployeesTableData((prev) => prev.filter((emp) => emp.id !== selectedEmployee.id));
@@ -572,7 +572,7 @@ export default function EmployeePage() {
         }
       }
       
-      await processRequestAuth(
+      await processRequestOfflineAuth(
         "patch",
         `/tenant/user/${selectedEmployee.id}`,
         transformedData,
@@ -689,7 +689,7 @@ export default function EmployeePage() {
       // Pass the file separately if it exists
       const fileToUpload = employeeImage instanceof File ? employeeImage : undefined;
       
-      await processRequestAuth(
+      await processRequestOfflineAuth(
         "post", 
         `${API_ENDPOINTS.GET_EMPLOYEE}/${departmentId}`, 
         transformedData, 
@@ -739,7 +739,7 @@ export default function EmployeePage() {
   useEffect(() => {
     const loadDepartments = async () => {
       try {
-        const response = await processRequestAuth("get", API_ENDPOINTS.GET_DEPARTMENTS);
+        const response = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_DEPARTMENTS);
         const depts = Array.isArray(response?.data) 
           ? response.data 
           : Array.isArray(response) 

@@ -1,36 +1,40 @@
 "use client";
 
-import { CloudBackupIcon, CloudIcon, TrashIcon } from "@/components/icons/icon";
+import { CloudBackupIcon } from "@/components/icons/icon";
 import { Button } from "@/components/ui/button";
-import { CircleArrowLeft, Trash } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { CircleArrowLeft } from "lucide-react";
+import { useRouter, useParams, usePathname } from "next/navigation";
 import { useState } from "react";
 import RecentBackup from "./RecentBackup";
-import EmptyTrash from "./EmptyTrash";
+const RestoreTabIcon = ({ fill = "#737373" }: { fill?: string }) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" stroke={fill} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M3 3v5h5" stroke={fill} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
 
 const tabBtns = [
-  {
-    icon: CloudBackupIcon,
-    label: "Backup",
-    currTab: 1,
-  },
-  {
-    icon: TrashIcon,
-    label: "Trash",
-    currTab: 2,
-  },
+  { icon: CloudBackupIcon, label: "Backup", currTab: 1 },
+  { icon: RestoreTabIcon, label: "Restore", currTab: 2 },
 ];
 
 export default function Backup() {
   const router = useRouter();
+  const params = useParams();
+  const tenant = (params?.tenant as string) || "";
   const [currTab, setCurrTab] = useState(1);
+
+  const pathname = usePathname() ?? "";
+  const segments = pathname.split("/").filter(Boolean);
+  const isSubdomainMode = segments[0] === "dashboard";
+  const settingsHref = isSubdomainMode ? "/dashboard/settings" : tenant ? `/${tenant}/dashboard/settings` : "/dashboard/settings";
 
   return (
     <section className="py-[50px] px-[30px]">
       <header className="flex flex-col gap-10">
         <div>
           <Button
-            onClick={() => router.back()}
+            onClick={() => router.push(settingsHref)}
             className="font-semibold text-2xl text-black gap-1 p-0"
           >
             <CircleArrowLeft className="fill-[#003465] text-white size-[39px]" />
@@ -56,7 +60,7 @@ export default function Backup() {
           ))}
         </div>
       </header>
-      <div>{currTab === 1 ? <RecentBackup /> : <EmptyTrash />}</div>
+      <div>{currTab === 1 ? <RecentBackup /> : <RecentBackup showRestoreOnly />}</div>
     </section>
   );
 }

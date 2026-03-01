@@ -19,6 +19,7 @@ import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { Spinner } from "@/components/icons/Spinner";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import { saveLastSession } from "@/lib/auth-store";
 
 type VerifyOtpLogin = z.infer<typeof schema>;
 const schema = z.object({
@@ -113,6 +114,9 @@ const VerifyOtpLoginClient = ({ token }: { token: string }) => {
           sameSite: 'lax',
           path: '/'
         });
+        
+        // Persist session for offline restore
+        saveLastSession().catch(() => {});
         
         toast.success("Login successful!", {
           toastId: "success",

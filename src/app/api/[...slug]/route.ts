@@ -70,7 +70,8 @@ export async function GET(req: NextRequest) {
   console.log("clientInfo-->", clientInfo);
   const authorization =
     req.headers.get("authorization") || req.headers.get("Authorization");
-  const tenantId = getTenantId(req);
+  // Prefer tenant from Host subdomain (e.g. doe.localhost:3000 → "doe"); fallback to client-sent x-tenant-id for path-based (e.g. localhost:3000/doe/login)
+  const tenantId = getTenantId(req) || req.headers.get("x-tenant-id");
   const query = req.nextUrl.searchParams;
   const queryString = query.toString();
 
@@ -125,7 +126,8 @@ export async function POST(req: NextRequest) {
   console.log("clientInfo-->", clientInfo);
   const authorization =
     req.headers.get("authorization") || req.headers.get("Authorization");
-  const tenantId = getTenantId(req);
+  // Prefer tenant from Host subdomain (e.g. doe.localhost:3000 → "doe"); fallback to client-sent x-tenant-id for path-based (e.g. localhost:3000/doe/login)
+  const tenantId = getTenantId(req) || req.headers.get("x-tenant-id");
   const contentType = req.headers.get("Content-Type");
   const isMultipart = contentType?.includes("multipart/form-data");
   const body = isMultipart
@@ -155,6 +157,12 @@ export async function POST(req: NextRequest) {
     
     if (authorization) {
       headers["Authorization"] = authorization;
+    }
+    
+    // Forward cookies for auth endpoints so backend can read refresh_token cookie (avoids "reading 'domain'" 500)
+    const cookie = req.headers.get("cookie");
+    if (cookie && (pathName.includes("/auth/") || pathName.includes("/tenant/auth/"))) {
+      headers["Cookie"] = cookie;
     }
     
     // Always include x-tenant-id if we have it
@@ -202,7 +210,7 @@ export async function PUT(req: NextRequest) {
   console.log("clientInfo-->", clientInfo);
   const authorization =
     req.headers.get("authorization") || req.headers.get("Authorization");
-  const tenantId = getTenantId(req);
+  const tenantId = getTenantId(req) || req.headers.get("x-tenant-id");
   const contentType = req.headers.get("Content-Type");
   const isMultipart = contentType?.includes("multipart/form-data");
   const body = isMultipart
@@ -263,7 +271,7 @@ export async function DELETE(req: NextRequest) {
   console.log("clientInfo-->", clientInfo);
   const authorization =
     req.headers.get("authorization") || req.headers.get("Authorization");
-  const tenantId = getTenantId(req);
+  const tenantId = getTenantId(req) || req.headers.get("x-tenant-id");
   const query = req.nextUrl.searchParams;
   const queryString = query.toString();
   
@@ -314,7 +322,7 @@ export async function PATCH(req: NextRequest) {
   console.log("clientInfo-->", clientInfo);
   const authorization =
     req.headers.get("authorization") || req.headers.get("Authorization");
-  const tenantId = getTenantId(req);
+  const tenantId = getTenantId(req) || req.headers.get("x-tenant-id");
   const contentType = req.headers.get("Content-Type");
   const isMultipart = contentType?.includes("multipart/form-data");
   const body = isMultipart

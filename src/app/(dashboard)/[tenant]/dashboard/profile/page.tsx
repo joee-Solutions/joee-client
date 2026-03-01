@@ -11,7 +11,7 @@ import ProfileForm from "@/components/admin/ProfileForm";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import ChangePasswordComponent from "@/components/admin/ChangePasswordComponent";
-import { processRequestAuth } from "@/framework/https";
+import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import Cookies from "js-cookie";
 import { toast } from "react-toastify";
@@ -64,7 +64,7 @@ const ProfilePage = () => {
 
       // Then fetch fresh data from API
       try {
-        const response = await processRequestAuth("get", API_ENDPOINTS.GET_PROFILE);
+        const response = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_PROFILE);
         if (response?.data || response) {
           const user = response.data || response;
           setProfileData(user);

@@ -5,7 +5,7 @@ import FormComposer from "../shared/form/FormComposer";
 import FieldBox from "../shared/form/FieldBox";
 import { Button } from "../ui/button";
 import { PlusSquareIcon } from "lucide-react";
-import { processRequestAuth } from "@/framework/https";
+import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { toast } from "react-toastify";
 
@@ -37,7 +37,7 @@ export default function ChangePasswordComponent({ onPasswordChange }: ChangePass
 
   const onSubmit = async (payload: ChangePasswordSchemaType) => {
     try {
-      const response = await processRequestAuth("post", API_ENDPOINTS.CHANGE_PASSWORD, {
+      const response = await processRequestOfflineAuth("post", API_ENDPOINTS.CHANGE_PASSWORD, {
         old_password: payload.oldPassword,
         new_password: payload.newPassword,
         confirm_password: payload.confirmPassword,

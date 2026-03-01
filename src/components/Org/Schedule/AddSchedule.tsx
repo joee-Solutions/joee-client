@@ -50,10 +50,21 @@ const AddScheduleModal: React.FC<AddScheduleModalProps> = ({
   // Pre-fill the form when editing
   useEffect(() => {
     if (editMode && schedule) {
+      const normalizeDate = (d: unknown): Date | undefined => {
+        if (d instanceof Date && !isNaN(d.getTime())) return d
+        if (typeof d === "string") {
+          const parsed = new Date(d)
+          return !isNaN(parsed.getTime()) ? parsed : undefined
+        }
+        return undefined
+      }
       setFormData({
         ...schedule,
         schedules: schedule.schedules.length > 0 
-          ? schedule.schedules 
+          ? schedule.schedules.map((s) => ({
+              ...s,
+              date: normalizeDate(s.date),
+            }))
           : [{ day: "", startTime: "", endTime: "" }],
       });
     }

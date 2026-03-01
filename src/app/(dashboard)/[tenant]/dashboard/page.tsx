@@ -8,7 +8,7 @@ import EmployeeSection from "@/components/dashboard/EmployeeSection";
 import PatientsDonut from "@/components/dashboard/PatientsDonut";
 import ScheduleList from "@/components/dashboard/ScheduleList";
 import DepartmentsStatus from "@/components/dashboard/DepartmentsStatus";
-import { processRequestAuth } from "@/framework/https";
+import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import Cookies from "js-cookie";
 import { colors } from "@/utils/dashboard";
@@ -100,10 +100,10 @@ const DashboardPage: NextPage = () => {
       
       // Fetch all stats in parallel
       const [departmentsRes, patientsRes, appointmentsRes, usersRes] = await Promise.allSettled([
-        processRequestAuth("get", API_ENDPOINTS.GET_DEPARTMENTS),
-        processRequestAuth("get", API_ENDPOINTS.GET_PATIENTS),
-        processRequestAuth("get", API_ENDPOINTS.GET_APPOINTMENTS),
-        processRequestAuth("get", API_ENDPOINTS.GET_EMPLOYEE),
+        processRequestOfflineAuth("get", API_ENDPOINTS.GET_DEPARTMENTS),
+        processRequestOfflineAuth("get", API_ENDPOINTS.GET_PATIENTS),
+        processRequestOfflineAuth("get", API_ENDPOINTS.GET_APPOINTMENTS),
+        processRequestOfflineAuth("get", API_ENDPOINTS.GET_EMPLOYEE),
       ]);
 
       // Extract counts from responses
@@ -201,7 +201,7 @@ const DashboardPage: NextPage = () => {
   const loadDashboardData = async () => {
     // Load patients
     try {
-      const patientsRes = await processRequestAuth("get", API_ENDPOINTS.GET_PATIENTS);
+      const patientsRes = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_PATIENTS);
       // Handle different response structures
       const patients = Array.isArray(patientsRes?.data?.data)
         ? patientsRes.data.data
@@ -218,7 +218,7 @@ const DashboardPage: NextPage = () => {
 
     // Load employees (limit to 5)
     try {
-      const employeesRes = await processRequestAuth("get", API_ENDPOINTS.GET_EMPLOYEE);
+      const employeesRes = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_EMPLOYEE);
       // Handle different response structures
       const employees = Array.isArray(employeesRes?.data?.data)
         ? employeesRes.data.data
@@ -235,7 +235,7 @@ const DashboardPage: NextPage = () => {
 
     // Load appointments
     try {
-      const appointmentsRes = await processRequestAuth("get", API_ENDPOINTS.GET_APPOINTMENTS);
+      const appointmentsRes = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_APPOINTMENTS);
       // Handle different response structures
       const appointments = Array.isArray(appointmentsRes?.data?.data)
         ? appointmentsRes.data.data
@@ -252,7 +252,7 @@ const DashboardPage: NextPage = () => {
 
     // Load departments
     try {
-      const departmentsRes = await processRequestAuth("get", API_ENDPOINTS.GET_DEPARTMENTS);
+      const departmentsRes = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_DEPARTMENTS);
       // Handle different response structures
       const departments = Array.isArray(departmentsRes?.data?.data)
         ? departmentsRes.data.data
@@ -269,7 +269,7 @@ const DashboardPage: NextPage = () => {
 
     // Load schedules (handle errors gracefully - endpoint may not be available)
     try {
-      const schedulesRes = await processRequestAuth("get", API_ENDPOINTS.GET_SCHEDULES);
+      const schedulesRes = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_SCHEDULES);
       // Handle different response structures
       const schedules = Array.isArray(schedulesRes?.data?.data)
         ? schedulesRes.data.data

@@ -40,12 +40,18 @@ interface BackupTableProps<T extends Record<string, Primitives>> {
   tableColumnNames: string[];
   tableRows: T[];
   tableTitle: string;
+  loading?: boolean;
+  onRestore?: (backupId: string | number) => void;
+  onDelete?: (backupId: string | number) => void;
 }
 
 export default function BackupTable<T extends Record<string, Primitives>>({
   tableTitle,
   tableColumnNames,
   tableRows,
+  loading = false,
+  onRestore,
+  onDelete,
 }: BackupTableProps<T>) {
   const [columnSort, setColumnSort] = useState<
     `${string} ASC` | `${string} DESC`
@@ -90,13 +96,14 @@ export default function BackupTable<T extends Record<string, Primitives>>({
   };
 
   const keys =
-    tableRows.length > 0 ? (Object.keys(tableRows[0]) as (keyof T)[]) : [];
+    tableRows.length > 0
+      ? (Object.keys(tableRows[0]).filter((k) => k !== "id") as (keyof T)[])
+      : [];
 
   return (
     <section className="py-10">
       <header className="flex items-center gap-10 justify-between">
         <h2 className="font-medium text-xl text-black">{tableTitle}</h2>
-
         <div className="flex items-center gap-[10px]">
           <Select
             value={sortBy}
@@ -119,21 +126,6 @@ export default function BackupTable<T extends Record<string, Primitives>>({
               ))}
             </SelectContent>
           </Select>
-
-          <Button
-            type="button"
-            className="h-[50px] text-[#737373] bg-[#E6EBF0] font-normal text-base rounded-[8px] border border-[#B2B2B2] focus:ring-transparent min-w-[140px]"
-          >
-            <MdOutlineRestorePage size={20} />
-            Restore all
-          </Button>
-          <Button
-            type="button"
-            className="h-[50px] text-[#737373] bg-[#E6EBF0] font-normal text-base rounded-[8px] border border-[#B2B2B2] focus:ring-transparent min-w-[140px]"
-          >
-            <FaRegTrashAlt size={20} />
-            Delete all
-          </Button>
         </div>
       </header>
       <div className="mt-10">
@@ -203,7 +195,14 @@ export default function BackupTable<T extends Record<string, Primitives>>({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {tableRows.map((tr, idx) => (
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={tableColumnNames.length + 2} className="text-center py-10 text-gray-500">
+                  Loading backups...
+                </TableCell>
+              </TableRow>
+            ) : (
+            tableRows.map((tr, idx) => (
               <TableRow
                 key={idx}
                 className={`border-b border-[#D9D9D9] h-[90px] ${
@@ -229,18 +228,48 @@ export default function BackupTable<T extends Record<string, Primitives>>({
                     !tableColumnNames.includes("Actions") && "hidden"
                   } w-10`}
                 >
-                  <Button type="button">
-                    <EllipsisVertical size={24} />
-                  </Button>
+                  {"id" in tr && (tr as any).id != null ? (
+                    <div className="flex items-center gap-2">
+                      {onRestore && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onRestore((tr as any).id)}
+                          className="h-[36px] text-[#003465] border-[#003465] hover:bg-[#003465] hover:text-white"
+                        >
+                          <MdOutlineRestorePage size={18} className="mr-1" />
+                          Restore
+                        </Button>
+                      )}
+                      {onDelete && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onDelete((tr as any).id)}
+                          className="h-[36px] text-[#EC0909] border-[#EC0909] hover:bg-[#EC0909] hover:text-white"
+                        >
+                          <FaRegTrashAlt size={16} className="mr-1" />
+                          Delete
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <Button type="button">
+                      <EllipsisVertical size={24} />
+                    </Button>
+                  )}
                 </TableCell>
               </TableRow>
-            ))}
+            ))
+            )}
           </TableBody>
         </Table>
-        <Pagination 
-          dataLength={5} 
-          numOfPages={7} 
-          pageSize={5} 
+        <Pagination
+          dataLength={tableRows.length}
+          numOfPages={Math.max(1, Math.ceil(tableRows.length / 10))}
+          pageSize={10}
           handlePageClick={handlePageClick}
         />
       </div>

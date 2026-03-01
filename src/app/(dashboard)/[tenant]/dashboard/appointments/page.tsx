@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import AppointmentCalendar from "@/components/Org/Appointments/AppointmentCalendar";
 import AppointmentList from "@/components/Org/Appointments/AppointmentList";
@@ -18,24 +18,40 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "react-toastify";
+import { processRequestOfflineAuth } from "@/framework/offline-https";
+import { API_ENDPOINTS } from "@/framework/api-endpoints";
 
 type ViewMode = "month" | "week" | "day" | "list";
 type ModalMode = "add" | "view" | "edit" | null;
 
 interface Appointment {
   id: string;
+  patientId?: string;
+  doctorId?: string;
   patientName: string;
   doctorName: string;
   department: string;
   date: string;
   time: string;
-  status: "Approved" | "Upcoming" | "Pending" | "Canceled";
+  startTime?: string;
+  endTime?: string;
   description?: string;
   age?: number;
   appointmentDate: Date;
 }
 
-// Mock appointment data
+function formatTime(t: string): string {
+  if (!t || typeof t !== "string") return "";
+  const parts = t.trim().split(/[:\s]/).filter(Boolean);
+  const h = parseInt(parts[0] ?? "0", 10);
+  const m = parseInt(parts[1] ?? "0", 10);
+  if (isNaN(h)) return t;
+  const ampm = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 || 12;
+  return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
+}
+
+// Mock appointment data (fallback)
 const mockAppointments: Appointment[] = [
   {
     id: "JOE101",
@@ -44,7 +60,6 @@ const mockAppointments: Appointment[] = [
     department: "Cardiology",
     date: "10 February, 2022",
     time: "09:00 - 10:00 AM",
-    status: "Pending",
     description: "Back pain, Discomfort at back.",
     age: 43,
     appointmentDate: new Date(2022, 1, 10, 9, 0),
@@ -56,7 +71,6 @@ const mockAppointments: Appointment[] = [
     department: "Neurology",
     date: "10 February, 2022",
     time: "10:00 - 11:00 AM",
-    status: "Approved",
     age: 34,
     appointmentDate: new Date(2022, 1, 10, 10, 0),
   },
@@ -64,12 +78,58 @@ const mockAppointments: Appointment[] = [
 
 export default function AppointmentsPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("month");
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date(2022, 1, 10));
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
-  const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [appointmentToDelete, setAppointmentToDelete] = useState<Appointment | null>(null);
+
+  useEffect(() => {
+    const fetchAppointments = async () => {
+      try {
+        setLoading(true);
+        const response = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_APPOINTMENTS);
+        const raw = Array.isArray(response?.data) ? response.data : Array.isArray((response as any)?.data?.data) ? (response as any).data.data : Array.isArray(response) ? response : [];
+        setAppointments(raw.map((a: any) => {
+          const dateStr = a.date ?? a.appointmentDate ?? a.scheduledAt ?? a.createdAt;
+          const d = dateStr ? new Date(dateStr) : new Date();
+          const patient = a.patient ?? {};
+          const user = a.user ?? {};
+          const patientName = a.patientName ?? ([patient.first_name, patient.middle_name, patient.last_name].filter(Boolean).join(" ") || "—");
+          const doctorName = a.doctorName ?? ([user.firstname, user.lastname].filter(Boolean).join(" ") || user.name || "—");
+          const startTime = a.startTime ?? "";
+          const endTime = a.endTime ?? "";
+          const timeStr = startTime && endTime ? `${formatTime(startTime)} - ${formatTime(endTime)}` : a.time ?? a.timeSlot ?? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+          const dept = a.department ?? a.department?.name ?? a.departmentName ?? "—";
+          const patientId = patient.id ?? patient._id ?? a.patientId;
+          const doctorId = user.id ?? user._id ?? a.userId ?? a.doctorId;
+          return {
+            id: String(a.id ?? a.appointmentId ?? ""),
+            patientId: patientId != null ? String(patientId) : undefined,
+            doctorId: doctorId != null ? String(doctorId) : undefined,
+            patientName,
+            doctorName,
+            department: typeof dept === "string" ? dept : (dept?.name ?? "—"),
+            date: d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
+            time: timeStr,
+            startTime: a.startTime ?? startTime,
+            endTime: a.endTime ?? endTime,
+            description: a.description ?? a.notes,
+            age: a.age ?? patient?.age,
+            appointmentDate: d,
+          };
+        }));
+      } catch (e: any) {
+        toast.error((e?.response?.data?.message as string) ?? "Failed to load appointments", { toastId: "appointments-load" });
+        setAppointments([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAppointments();
+  }, []);
 
   const handleAddAppointment = () => {
     setModalMode("add");
@@ -141,27 +201,7 @@ export default function AppointmentsPage() {
       <div className="w-full px-4 md:px-6 lg:px-8 py-8">
         {/* Title and Controls */}
         <div className="mb-6">
-          <h2 className="text-3xl font-bold text-black mb-4">Appointments</h2>
-          
-          {/* Status Legend */}
-          <div className="flex flex-wrap items-center gap-4 mb-4">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-green-200"></div>
-              <span className="text-sm text-gray-700">Approved</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-blue-200"></div>
-              <span className="text-sm text-gray-700">Upcoming</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-yellow-200"></div>
-              <span className="text-sm text-gray-700">Pending</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-red-200"></div>
-              <span className="text-sm text-gray-700">Canceled</span>
-            </div>
-          </div>
+          <h2 className="text-3xl font-bold text-black">Appointments</h2>
         </div>
 
         {/* Calendar or List View */}

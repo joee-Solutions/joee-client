@@ -1,9 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { CircleArrowLeft, Search, Reply, Trash2 } from "lucide-react";
+import { CircleArrowLeft, Search, Reply } from "lucide-react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useState } from "react";
 import { Notification } from "./NotificationCard";
 
@@ -11,18 +10,21 @@ interface ViewNotificationProps {
   notification: Notification & { time?: string };
   onDelete?: (id: string) => void;
   onReply?: (id: string) => void;
+  /** URL to navigate when back is clicked (e.g. /dashboard/notifications) */
+  backHref?: string;
 }
 
 export default function ViewNotification({
   notification,
   onDelete,
   onReply,
+  backHref = "/dashboard/notifications",
 }: ViewNotificationProps) {
   const router = useRouter();
   const [search, setSearch] = useState("");
 
   const handleBack = () => {
-    router.back();
+    router.push(backHref);
   };
 
   const handleDelete = () => {
@@ -75,14 +77,8 @@ export default function ViewNotification({
         </div>
 
         {/* View Notification Section */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="mb-6">
           <h2 className="text-2xl font-bold text-black">VIEW NOTIFICATION</h2>
-          <Link
-            href="/dashboard/notifications/send"
-            className="text-[#003465] font-medium text-base hover:underline"
-          >
-            Send New Notification
-          </Link>
         </div>
 
         {/* Notification Details Card */}
@@ -96,12 +92,6 @@ export default function ViewNotification({
                 className="w-10 h-10 flex items-center justify-center rounded border border-[#003465] bg-white hover:bg-[#EDF0F6] transition-colors"
               >
                 <Reply className="size-5 text-[#003465]" />
-              </button>
-              <button
-                onClick={handleDelete}
-                className="w-10 h-10 flex items-center justify-center rounded border border-[#EC0909] bg-white hover:bg-red-50 transition-colors"
-              >
-                <Trash2 className="size-5 text-[#EC0909]" />
               </button>
             </div>
           </div>
@@ -121,11 +111,6 @@ export default function ViewNotification({
             <div>
               <p className="font-semibold text-sm text-black mb-1">Organization:</p>
               <p className="text-sm text-[#737373]">{notification.organization}</p>
-            </div>
-
-            <div>
-              <p className="font-semibold text-sm text-black mb-1">Email Address:</p>
-              <p className="text-sm text-[#737373]">{notification.emailAddress}</p>
             </div>
 
             {notification.time && (

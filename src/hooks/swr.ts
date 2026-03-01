@@ -1,17 +1,15 @@
-import { processRequestAuth } from "@/framework/https";
+import { processRequestOfflineAuth } from "@/framework/offline-https";
 
 /**
- * Authenticated fetcher function for SWR
- * @param url - The API endpoint URL to fetch
- * @returns Promise with the fetched data
+ * Authenticated fetcher function for SWR (offline-aware: returns cache when offline)
  */
 export const authFectcher = async (url: string) => {
   if (!url) {
     throw new Error("URL is required");
   }
-  
+
   try {
-    const data = await processRequestAuth("get", url);
+    const data = await processRequestOfflineAuth("get", url);
     return data;
   } catch (error: any) {
     // Handle 403 errors gracefully - return null instead of throwing

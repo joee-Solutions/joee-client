@@ -11,7 +11,6 @@ interface Appointment {
   department: string;
   date: string;
   time: string;
-  status: "Approved" | "Upcoming" | "Pending" | "Canceled";
   description?: string;
   age?: number;
   appointmentDate: Date;
@@ -86,18 +85,6 @@ export default function ViewAppointmentModal({
                 type="text"
                 name="time"
                 value={appointment.time}
-                disabled
-                className="w-full p-3 border border-[#737373] h-14 rounded bg-gray-50"
-              />
-            </div>
-
-            {/* Status */}
-            <div>
-              <label className="block text-base text-black font-normal mb-2">Status</label>
-              <input
-                type="text"
-                name="status"
-                value={appointment.status}
                 disabled
                 className="w-full p-3 border border-[#737373] h-14 rounded bg-gray-50"
               />

@@ -16,7 +16,7 @@ import { authFectcher } from "@/hooks/swr";
 import useSWR from "swr";
 import Link from "next/link";
 import { formatDateFn } from "@/utils/helper";
-import { processRequestAuth } from "@/framework/https";
+import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { toast } from "react-toastify";
 import DeleteWarningModal from "@/components/shared/modals/DeleteWarningModal";
 
@@ -98,7 +98,7 @@ export default function PatientList({ org }: { org: string }) {
     if (!patientToDelete) return;
     setDeletingId(patientToDelete.id);
     try {
-      await processRequestAuth(
+      await processRequestOfflineAuth(
         "delete",
         API_ENDPOINTS.DELETE_PATIENT(patientToDelete.id)
       );
@@ -122,7 +122,7 @@ export default function PatientList({ org }: { org: string }) {
           <header className="flex justify-between items-center border-b-2  py-4 mb-8">
             <h2 className="font-semibold text-xl text-black">Patient List</h2>
 
-            <Link href={`/dashboard/organization/${org}/patients/new`}>
+            <Link href={`/${org}/dashboard/patients/new`}>
               <Button className="h-[60px] bg-[#003465] text-white font-medium text-base px-6">
                 Add Patient
               </Button>
@@ -208,13 +208,13 @@ export default function PatientList({ org }: { org: string }) {
                             onClick={(e) => e.stopPropagation()}
                             style={{ position: 'absolute' }}
                           >
-                            <div
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                // Navigate to edit page
-                                window.location.href = `/dashboard/organization/${org}/patients/${patient.id}/edit`;
-                              }}
-                              className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-gray-100 focus:bg-gray-100"
+                              <div
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  // Navigate to edit page
+                                  window.location.href = `/${org}/dashboard/patients/${patient.id}/edit`;
+                                }}
+                                className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-gray-100 focus:bg-gray-100"
                             >
                               <Edit className="mr-2 h-4 w-4" />
                               Edit

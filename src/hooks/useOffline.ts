@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { offlineDB, type JoeeOfflineDB } from '@/lib/offline-db';
-import { localStorageUtils } from '@/utils/localstorage';
+import { processRequestAuth } from '@/framework/https';
 
 export interface OfflineStatus {
   isOnline: boolean;
@@ -64,38 +64,35 @@ export const useOffline = () => {
     }
   }, [updateQueueSizes]);
 
-  // Sync data when back online
+  // Sync data when back online (replay queued requests via processRequestAuth for token refresh)
   const syncData = useCallback(async () => {
     if (!status.isOnline) return;
 
     try {
-      // Sync queued requests
       const queuedRequests = await offlineDB.getQueuedRequests();
       for (const request of queuedRequests) {
         try {
-          const response = await fetch(request.url, {
-            method: request.method,
-            headers: request.headers,
-            body: request.body,
-          });
-
-          if (response.ok) {
-            await offlineDB.removeQueuedRequest(request.id);
-          } else {
-            await offlineDB.incrementRetryCount(request.id);
+          const path = request.url.replace(/^\/api/, '') || request.url;
+          const method = (request.method?.toLowerCase() || 'get') as 'get' | 'post' | 'put' | 'patch' | 'delete';
+          let body: any = request.body;
+          if (typeof body === 'string' && body) {
+            try {
+              body = JSON.parse(body);
+            } catch {
+              body = undefined;
+            }
           }
+          await processRequestAuth(method, path, body);
+          await offlineDB.removeQueuedRequest(request.id);
         } catch (error) {
           console.error('Failed to sync request:', request, error);
           await offlineDB.incrementRetryCount(request.id);
         }
       }
 
-      // Sync queue
       const syncQueue = await offlineDB.getSyncQueue();
       for (const item of syncQueue) {
         try {
-          // Here you would implement the actual sync logic based on the entity and action
-          // For now, we'll just remove successful items
           await offlineDB.removeFromSyncQueue(item.id);
         } catch (error) {
           console.error('Failed to sync item:', item, error);

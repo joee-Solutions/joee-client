@@ -2,37 +2,40 @@
 import { DownloadIcon } from "@/components/icons/icon";
 import FieldBox from "@/components/shared/form/FieldBox";
 import FieldFileInput from "@/components/shared/form/FieldFileInput";
-import FieldSelect from "@/components/shared/form/FieldSelect";
 import FormComposer from "@/components/shared/form/FormComposer";
 import { Button } from "@/components/ui/button";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CloudUpload, Edit, Plus } from "lucide-react";
+import { CloudUpload, Edit } from "lucide-react";
 import Image from "next/image";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { processRequestOfflineAuth } from "@/framework/offline-https";
+import { API_ENDPOINTS } from "@/framework/api-endpoints";
+import { toast } from "react-toastify";
+import type { ProfileData } from "./page";
 
 const SettingSchema = z.object({
   systemLogo: z
     .instanceof(File)
-    .refine((f) => ["image/png", "image/jpeg", "image/jpg"].includes(f.type), {
+    .optional()
+    .refine((f) => !f || ["image/png", "image/jpeg", "image/jpg"].includes(f.type), {
       message: "Unsupported image file",
     }),
   systemName: z.string({ required_error: "This field is required" }),
-  title: z.string({ required_error: "This field is required" }),
-  address: z.string({ required_error: "This field is required" }),
+  title: z.string().optional(),
+  address: z.string().optional(),
   email: z.string({ required_error: "This field is required" }),
-  phoneNumber: z.string({ required_error: "This field is required" }),
-  organization: z.string({ required_error: "This field is required" }),
+  phoneNumber: z.string().optional(),
+  organization: z.string().optional(),
 });
 
 type SettingSchemaType = z.infer<typeof SettingSchema>;
 
-export default function Settings() {
+export default function Settings({ initialData }: { initialData?: ProfileData | null }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [logoPreview, setLogoPreview] = useState("");
   const [isDropZoneHover, setIsDropZoneHover] = useState(false);
-
   const [isDisabled, setIsDisabled] = useState(true);
 
   const form = useForm<SettingSchemaType>({
@@ -48,6 +51,23 @@ export default function Settings() {
       organization: "",
     },
   });
+
+  useEffect(() => {
+    const source = initialData ?? null;
+    if (source) {
+      const meta = source.address_metadata;
+      const addressStr = source.address ?? (meta ? [meta.address, meta.city, meta.state, meta.zip, meta.country].filter(Boolean).join(", ") : "") ?? "";
+      form.reset({
+        systemName: source.name ?? "",
+        title: source.status ?? "",
+        address: addressStr,
+        email: source.email ?? "",
+        phoneNumber: source.phone_number ?? "",
+        organization: source.domain ?? source.name ?? "",
+      });
+      if (source.logo && typeof source.logo === "string") setLogoPreview(source.logo);
+    }
+  }, [initialData, form]);
 
   const triggerFileUpload = () => {
     fileInputRef.current?.click();
@@ -103,23 +123,29 @@ export default function Settings() {
     }
   };
 
-  const onSubmitHandler = (payload: SettingSchemaType) => {
-    console.log(payload);
-    const formData = new FormData();
-
-    const { systemLogo } = payload;
-
-    for (const [key, value] of Object.entries(payload)) {
-      if (systemLogo) {
-        formData.append("systemLogo", systemLogo);
+  const onSubmitHandler = async (payload: SettingSchemaType) => {
+    try {
+      const body: any = {
+        name: payload.systemName,
+        email: payload.email,
+        phone_number: payload.phoneNumber,
+        address: payload.address,
+        domain: payload.organization,
+        status: payload.title,
+      };
+      if (payload.systemLogo && payload.systemLogo instanceof File) {
+        const formData = new FormData();
+        formData.append("logo", payload.systemLogo);
+        Object.entries(body).forEach(([k, v]) => v != null && formData.append(k, String(v)));
+        await processRequestOfflineAuth("patch", API_ENDPOINTS.UPDATE_PROFILE, formData);
+      } else {
+        await processRequestOfflineAuth("patch", API_ENDPOINTS.UPDATE_PROFILE, body);
       }
-
-      formData.append(key, JSON.stringify(value));
+      toast.success("Settings saved successfully", { toastId: "settings-save" });
+      setIsDisabled(true);
+    } catch (e: any) {
+      toast.error((e?.response?.data?.message as string) ?? "Failed to save settings", { toastId: "settings-save-error" });
     }
-
-    // send the formData to the backend
-
-    setIsDisabled(true);
   };
 
   return (
@@ -205,13 +231,13 @@ export default function Settings() {
             placeholder="Enter here"
             disabled={isDisabled}
           />
-          <FieldSelect
-            bgSelectClass="bg-[#D9EDFF] border-[#D9EDFF]"
+          <FieldBox
+            bgInputClass="bg-[#D9EDFF] border-[#D9EDFF]"
             name="title"
             control={form.control}
-            options={["admin"]}
-            labelText="Title"
-            placeholder="Select"
+            labelText="Status"
+            type="text"
+            placeholder="e.g. active"
             disabled={isDisabled}
           />
           <FieldBox

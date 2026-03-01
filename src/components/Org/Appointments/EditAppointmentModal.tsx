@@ -20,15 +20,15 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useEffect, useState } from "react";
-import { processRequestAuth } from "@/framework/https";
+import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 
 const AppointmentSchema = z.object({
-  patientName: z.string().min(1, "Patient name is required"),
-  appointmentWith: z.string().min(1, "Appointment with is required"),
+  patientId: z.string().min(1, "Patient is required"),
+  appointmentWithId: z.string().min(1, "Appointment with is required"),
   appointmentDate: z.string().min(1, "Appointment date is required"),
   appointmentTime: z.string().min(1, "Appointment time is required"),
-  status: z.enum(["Approved", "Upcoming", "Pending", "Canceled"]),
+  appointmentEndTime: z.string().optional(),
   appointmentDescription: z.string().optional(),
 });
 
@@ -36,12 +36,15 @@ type AppointmentSchemaType = z.infer<typeof AppointmentSchema>;
 
 interface Appointment {
   id: string;
+  patientId?: string;
+  doctorId?: string;
   patientName: string;
   doctorName: string;
   department: string;
   date: string;
   time: string;
-  status: "Approved" | "Upcoming" | "Pending" | "Canceled";
+  startTime?: string;
+  endTime?: string;
   description?: string;
   age?: number;
   appointmentDate: Date;
@@ -58,62 +61,95 @@ export default function EditAppointmentModal({
   onClose,
   onSave,
 }: EditAppointmentModalProps) {
-  const [patients, setPatients] = useState<Array<{ id: string | number; name: string }>>([]);
-  const [employees, setEmployees] = useState<Array<{ id: string | number; name: string }>>([]);
+  const [patients, setPatients] = useState<Array<{ id: string; name: string }>>([]);
+  const [employees, setEmployees] = useState<Array<{ id: string; name: string }>>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  function formatDateForInput(dateString: string): string {
+    if (!dateString) return new Date().toISOString().split("T")[0];
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return new Date().toISOString().split("T")[0];
+      return date.toISOString().split("T")[0];
+    } catch {
+      return new Date().toISOString().split("T")[0];
+    }
+  }
+
+  function timeToInput(t: string | undefined): string {
+    if (!t || typeof t !== "string") return "";
+    const part = t.trim().slice(0, 5);
+    return part.length === 5 ? part : t;
+  }
 
   const form = useForm<AppointmentSchemaType>({
     resolver: zodResolver(AppointmentSchema),
     mode: "onChange",
     defaultValues: {
-      patientName: appointment.patientName || "",
-      appointmentWith: appointment.doctorName || "",
+      patientId: appointment.patientId ?? "",
+      appointmentWithId: appointment.doctorId ?? "",
       appointmentDate: formatDateForInput(appointment.date),
-      appointmentTime: appointment.time?.split(" - ")[0] || appointment.time || "",
-      status: appointment.status || "Pending",
-      appointmentDescription: appointment.description || "",
+      appointmentTime: timeToInput(appointment.startTime) ?? appointment.time?.split(" - ")[0] ?? appointment.time ?? "",
+      appointmentEndTime: timeToInput(appointment.endTime) ?? appointment.time?.split(" - ")[1] ?? "",
+      appointmentDescription: appointment.description ?? "",
     },
   });
+
+  // Reset form when appointment changes (e.g. opening edit from view or list)
+  useEffect(() => {
+    form.reset({
+      patientId: appointment.patientId ?? "",
+      appointmentWithId: appointment.doctorId ?? "",
+      appointmentDate: formatDateForInput(appointment.date),
+      appointmentTime: timeToInput(appointment.startTime) ?? appointment.time?.split(" - ")[0] ?? appointment.time ?? "",
+      appointmentEndTime: timeToInput(appointment.endTime) ?? appointment.time?.split(" - ")[1] ?? "",
+      appointmentDescription: appointment.description ?? "",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset when appointment changes
+  }, [appointment.id, appointment.patientId, appointment.doctorId, appointment.date, appointment.startTime, appointment.endTime, appointment.time, appointment.description]);
 
   // Load patients and employees from API
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
       try {
-        // Load patients
-        const patientsResponse = await processRequestAuth("get", API_ENDPOINTS.GET_PATIENTS);
-        const patientsData = Array.isArray(patientsResponse?.data) 
-          ? patientsResponse.data 
-          : Array.isArray(patientsResponse) 
-          ? patientsResponse 
+        const patientsResponse = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_PATIENTS);
+        const patientsData = Array.isArray(patientsResponse?.data?.data)
+          ? patientsResponse.data.data
+          : Array.isArray(patientsResponse?.data)
+          ? patientsResponse.data
+          : Array.isArray(patientsResponse)
+          ? patientsResponse
           : [];
-        
+
         const patientsList = patientsData.map((patient: any) => {
           const firstName = patient.first_name || patient.firstName || patient.name?.split(" ")[0] || "";
           const lastName = patient.last_name || patient.lastName || patient.name?.split(" ").slice(1).join(" ") || "";
-          const name = `${firstName} ${lastName}`.trim() || patient.email || "Unknown Patient";
+          const name = `${firstName} ${lastName}`.trim() || "Unknown Patient";
           return {
-            id: patient.id || patient._id || "",
+            id: String(patient.id ?? patient._id ?? ""),
             name,
           };
         });
         setPatients(patientsList);
 
-        // Load employees
-        const employeesResponse = await processRequestAuth("get", API_ENDPOINTS.GET_EMPLOYEE);
-        const employeesData = Array.isArray(employeesResponse?.data) 
-          ? employeesResponse.data 
-          : Array.isArray(employeesResponse) 
-          ? employeesResponse 
+        const employeesResponse = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_EMPLOYEE);
+        const employeesData = Array.isArray(employeesResponse?.data?.data)
+          ? employeesResponse.data.data
+          : Array.isArray(employeesResponse?.data)
+          ? employeesResponse.data
+          : Array.isArray(employeesResponse)
+          ? employeesResponse
           : [];
         
+        // Display firstname + lastname only (never email)
         const employeesList = employeesData.map((employee: any) => {
-          const firstName = employee.first_name || employee.firstName || employee.name?.split(" ")[0] || "";
-          const lastName = employee.last_name || employee.lastName || employee.name?.split(" ").slice(1).join(" ") || "";
-          const name = `${firstName} ${lastName}`.trim() || employee.email || "Unknown Employee";
+          const firstName = employee.first_name || employee.firstName || employee.firstname || employee.name?.split(" ")[0] || "";
+          const lastName = employee.last_name || employee.lastName || employee.lastname || employee.name?.split(" ").slice(1).join(" ") || "";
+          const name = `${firstName} ${lastName}`.trim() || "Unknown";
           return {
-            id: employee.id || employee._id || "",
-            name: `Dr. ${name}`,
+            id: String(employee.id ?? employee._id ?? ""),
+            name,
           };
         });
         setEmployees(employeesList);
@@ -127,6 +163,28 @@ export default function EditAppointmentModal({
     loadData();
   }, []);
 
+  // When lists load, set patientId/appointmentWithId by name if we have names but no ids
+  useEffect(() => {
+    if (isLoading) return;
+    const pid = form.getValues("patientId");
+    const did = form.getValues("appointmentWithId");
+    if (!pid && appointment.patientName && patients.length > 0) {
+      const name = appointment.patientName.trim();
+      const found = patients.find(
+        (p) =>
+          p.name === name ||
+          p.name.includes(name) ||
+          name.includes(p.name) ||
+          (p.name && name.startsWith(p.name.split(" ")[0] || ""))
+      );
+      if (found) form.setValue("patientId", found.id);
+    }
+    if (!did && appointment.doctorName && employees.length > 0) {
+      const found = employees.find((e) => e.name === appointment.doctorName || e.name.includes(appointment.doctorName) || `Dr. ${e.name}` === appointment.doctorName);
+      if (found) form.setValue("appointmentWithId", found.id);
+    }
+  }, [isLoading, appointment.patientName, appointment.doctorName, patients, employees]);
+
   // Restore body scroll when modal closes
   useEffect(() => {
     return () => {
@@ -139,33 +197,28 @@ export default function EditAppointmentModal({
 
   const onSubmit = (data: AppointmentSchemaType) => {
     const appointmentDate = new Date(data.appointmentDate);
+    const timeStr = data.appointmentEndTime
+      ? `${data.appointmentTime} - ${data.appointmentEndTime}`
+      : data.appointmentTime;
+    const patientName = patients.find((p) => p.id === data.patientId)?.name ?? appointment.patientName;
+    const doctorName = employees.find((e) => e.id === data.appointmentWithId)?.name ?? appointment.doctorName;
     onSave({
-      ...data,
+      patientId: data.patientId,
+      doctorId: data.appointmentWithId,
+      patientName,
+      doctorName,
       appointmentDate,
       date: appointmentDate.toLocaleDateString("en-GB", {
         day: "numeric",
         month: "long",
         year: "numeric",
       }),
-      doctorName: data.appointmentWith,
+      time: timeStr,
+      startTime: data.appointmentTime,
+      endTime: data.appointmentEndTime,
+      description: data.appointmentDescription,
     });
   };
-
-  // Helper function to format date for input
-  function formatDateForInput(dateString: string): string {
-    if (!dateString) return new Date().toISOString().split("T")[0];
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) {
-        return new Date().toISOString().split("T")[0];
-      }
-      return date.toISOString().split("T")[0];
-    } catch {
-      return new Date().toISOString().split("T")[0];
-    }
-  }
-
-  const statuses = ["Approved", "Upcoming", "Pending", "Canceled"];
 
   return (
     <AlertDialog open={true} onOpenChange={(open) => !open && onClose()}>
@@ -182,8 +235,8 @@ export default function EditAppointmentModal({
             <div>
               <label className="block text-base text-black font-normal mb-2">Patient name</label>
               <Select
-                value={form.watch("patientName")}
-                onValueChange={(value) => form.setValue("patientName", value)}
+                value={form.watch("patientId")}
+                onValueChange={(value) => form.setValue("patientId", value)}
               >
                 <SelectTrigger className="w-full p-3 border border-[#737373] h-14 rounded flex justify-between items-center">
                   <SelectValue placeholder="select" />
@@ -193,7 +246,7 @@ export default function EditAppointmentModal({
                     <SelectItem value="loading" disabled>Loading...</SelectItem>
                   ) : patients.length > 0 ? (
                     patients.map((patient) => (
-                      <SelectItem key={patient.id} value={patient.name} className="hover:bg-gray-200">
+                      <SelectItem key={patient.id} value={patient.id} className="hover:bg-gray-200">
                         {patient.name}
                       </SelectItem>
                     ))
@@ -204,12 +257,12 @@ export default function EditAppointmentModal({
               </Select>
             </div>
 
-            {/* Appointment With */}
+            {/* Appointment With (doctor name, not email) */}
             <div>
               <label className="block text-base text-black font-normal mb-2">Appointment with</label>
               <Select
-                value={form.watch("appointmentWith")}
-                onValueChange={(value) => form.setValue("appointmentWith", value)}
+                value={form.watch("appointmentWithId")}
+                onValueChange={(value) => form.setValue("appointmentWithId", value)}
               >
                 <SelectTrigger className="w-full p-3 border border-[#737373] h-14 rounded flex justify-between items-center">
                   <SelectValue placeholder="select" />
@@ -219,7 +272,7 @@ export default function EditAppointmentModal({
                     <SelectItem value="loading" disabled>Loading...</SelectItem>
                   ) : employees.length > 0 ? (
                     employees.map((employee) => (
-                      <SelectItem key={employee.id} value={employee.name} className="hover:bg-gray-200">
+                      <SelectItem key={employee.id} value={employee.id} className="hover:bg-gray-200">
                         {employee.name}
                       </SelectItem>
                     ))
@@ -240,9 +293,9 @@ export default function EditAppointmentModal({
               />
             </div>
 
-            {/* Appointment Time */}
+            {/* Appointment Time (Start) */}
             <div>
-              <label className="block text-base text-black font-normal mb-2">Appointment Time</label>
+              <label className="block text-base text-black font-normal mb-2">Start Time</label>
               <Input
                 placeholder="Enter here"
                 type="time"
@@ -251,24 +304,15 @@ export default function EditAppointmentModal({
               />
             </div>
 
-            {/* Status */}
+            {/* Appointment End Time */}
             <div>
-              <label className="block text-base text-black font-normal mb-2">Status</label>
-              <Select
-                value={form.watch("status")}
-                onValueChange={(value) => form.setValue("status", value as any)}
-              >
-                <SelectTrigger className="w-full p-3 border border-[#737373] h-14 rounded flex justify-between items-center">
-                  <SelectValue placeholder="select" />
-                </SelectTrigger>
-                <SelectContent className="!z-[150] bg-white">
-                  {statuses.map((status) => (
-                    <SelectItem key={status} value={status} className="hover:bg-gray-200">
-                      {status}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <label className="block text-base text-black font-normal mb-2">End Time</label>
+              <Input
+                placeholder="Enter here"
+                type="time"
+                {...form.register("appointmentEndTime")}
+                className="w-full p-3 border border-[#737373] h-14 rounded"
+              />
             </div>
           </div>
 

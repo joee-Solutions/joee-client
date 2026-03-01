@@ -23,7 +23,6 @@ interface Appointment {
   department: string;
   date: string;
   time: string;
-  status: "Approved" | "Upcoming" | "Pending" | "Canceled";
   description?: string;
   age?: number;
   appointmentDate: Date;
@@ -62,7 +61,6 @@ export default function AppointmentList({
       appointment.department?.toLowerCase().includes(query) ||
       appointment.date?.toLowerCase().includes(query) ||
       appointment.time?.toLowerCase().includes(query) ||
-      appointment.status?.toLowerCase().includes(query) ||
       appointment.id?.toLowerCase().includes(query)
     );
   });
@@ -96,20 +94,8 @@ export default function AppointmentList({
       size: 200,
     },
     {
-      header: "Age",
-      render: (row) => (
-        <span className="font-semibold text-xs text-[#737373]">{row.age || "-"}</span>
-      ),
-      size: 80,
-    },
-    {
       header: "Doctor name",
       key: "doctorName" as keyof Appointment,
-      size: 150,
-    },
-    {
-      header: "Department",
-      key: "department" as keyof Appointment,
       size: 150,
     },
     {

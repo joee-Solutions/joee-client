@@ -1,6 +1,9 @@
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import BackupTable from "./BackupTable";
+import { processRequestOfflineAuth } from "@/framework/offline-https";
+import { API_ENDPOINTS } from "@/framework/api-endpoints";
+import { toast } from "react-toastify";
 
 const tableColumnNames = [
   "Date",
@@ -11,113 +14,114 @@ const tableColumnNames = [
   "Actions",
 ];
 
-const tableRows = [
-  {
-    date: "17/01/2023",
-    fileName: "Oncology",
-    backupTime: "17/01/2023 - 13:45 PM",
-    fileSize: "207.12 MB",
-    status: "Successful",
-  },
-  {
-    date: "18/12/2022",
-    fileName: "Opthamology",
-    backupTime: "118/12/2022 - 11:45 AM",
-    fileSize: "210.45 MB",
-    status: "Successful",
-  },
-  {
-    date: "26/11/2022",
-    fileName: "Nephrology",
-    backupTime: "26/11/2022 - 11:45 AM",
-    fileSize: "210.45 MB",
-    status: "Failed",
-  },
-  {
-    date: "12/01/2023",
-    fileName: "Gynaecology",
-    backupTime: "12/01/2023 - 12:34 PM",
-    fileSize: "324.67 MB",
-    status: "Successful",
-  },
-  {
-    date: "18/12/2022",
-    fileName: "Cardiology",
-    backupTime: "18/12/2022 - 14:28 PM",
-    fileSize: "210.45 MB",
-    status: "Successful",
-  },
-  {
-    date: "26/11/2022",
-    fileName: "Radiology",
-    backupTime: "26/11/2022 - 10:45 AM",
-    fileSize: "324.67 MB",
-    status: "Failed",
-  },
-];
+function formatDate(val: string | undefined): string {
+  if (!val) return "—";
+  try {
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? String(val) : d.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
+  } catch {
+    return String(val);
+  }
+}
 
-const tabBtns = [
-  {
-    currTab: 1,
-    label: "Departments",
-  },
-  {
-    currTab: 2,
-    label: "Employees",
-  },
-  {
-    currTab: 3,
-    label: "Patients",
-  },
-  {
-    currTab: 4,
-    label: "Appointments",
-  },
-  {
-    currTab: 5,
-    label: "Schedule",
-  },
-  {
-    currTab: 6,
-    label: "Medical records",
-  },
-  {
-    currTab: 7,
-    label: "Medical records",
-  },
-];
+interface RecentBackupProps {
+  showRestoreOnly?: boolean;
+}
 
-export default function RecentBackup() {
-  const [currTab, setCurrTab] = useState({
-    currTab: 1,
-    label: "Departments",
-  });
+export default function RecentBackup({ showRestoreOnly = false }: RecentBackupProps) {
+  const [tableRows, setTableRows] = useState<Record<string, string | number>[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+
+  const fetchBackups = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_BACKUPS);
+      const raw = Array.isArray(response?.data)
+        ? response.data
+        : Array.isArray((response as any)?.data?.data)
+          ? (response as any).data.data
+          : Array.isArray(response)
+            ? response
+            : [];
+      const rows = raw.map((b: any) => ({
+        id: b.id ?? b.backupId,
+        date: formatDate(b.date ?? b.createdAt ?? b.created_at),
+        fileName: b.fileName ?? b.name ?? b.file_name ?? "—",
+        backupTime: formatDate(b.completedAt ?? b.completed_at ?? b.date ?? b.createdAt),
+        fileSize: b.fileSize ?? b.size ?? b.file_size ?? "—",
+        status: b.status ?? "Successful",
+      }));
+      setTableRows(rows);
+    } catch (e: any) {
+      toast.error((e?.response?.data?.message as string) ?? "Failed to load backups", { toastId: "backup-load" });
+      setTableRows([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchBackups();
+  }, [fetchBackups]);
+
+  const handleCreateBackup = async () => {
+    try {
+      setCreating(true);
+      await processRequestOfflineAuth("post", API_ENDPOINTS.CREATE_BACKUP);
+      toast.success("Backup created successfully", { toastId: "backup-create" });
+      await fetchBackups();
+    } catch (e: any) {
+      toast.error((e?.response?.data?.message as string) ?? "Failed to create backup", { toastId: "backup-create-error" });
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleRestore = async (backupId: string | number) => {
+    try {
+      await processRequestOfflineAuth("post", API_ENDPOINTS.RESTORE_BACKUP(backupId));
+      toast.success("Restore initiated successfully", { toastId: "backup-restore" });
+      await fetchBackups();
+    } catch (e: any) {
+      toast.error((e?.response?.data?.message as string) ?? "Failed to restore", { toastId: "backup-restore-error" });
+    }
+  };
+
+  const handleDelete = async (backupId: string | number) => {
+    try {
+      await processRequestOfflineAuth("delete", API_ENDPOINTS.DELETE_BACKUP(backupId));
+      toast.success("Backup deleted", { toastId: "backup-delete" });
+      await fetchBackups();
+    } catch (e: any) {
+      toast.error((e?.response?.data?.message as string) ?? "Failed to delete backup", { toastId: "backup-delete-error" });
+    }
+  };
 
   return (
     <div>
-      <h2 className="font-bold text-base text-black my-7">Recent Backup</h2>
-      <div className="flex gap-4 border-b border-[#D9D9D9]">
-        {tabBtns.map((tab) => (
+      <div className="flex items-center justify-between my-7">
+        <h2 className="font-bold text-base text-black">Recent Backup</h2>
+        {!showRestoreOnly && (
           <Button
-            key={tab.currTab}
             type="button"
-            onClick={() => setCurrTab(tab)}
-            className={`text-base font-medium text-black border-b-4 ${
-              currTab.currTab === tab.currTab
-                ? "border-[#003465]"
-                : "border-transparent"
-            } rounded-none pb-[10px]`}
+            onClick={handleCreateBackup}
+            disabled={creating}
+            className="h-[50px] bg-[#003465] text-white font-medium text-base rounded-[8px] px-6 hover:bg-[#003465]/90"
           >
-            {tab.label}
+            {creating ? "Creating…" : "Backup"}
           </Button>
-        ))}
+        )}
       </div>
 
       <div>
         <BackupTable
-          tableTitle={currTab.label}
+          tableTitle="Backups"
           tableColumnNames={tableColumnNames}
           tableRows={tableRows}
+          loading={loading}
+          onRestore={handleRestore}
+          onDelete={handleDelete}
         />
       </div>
     </div>
