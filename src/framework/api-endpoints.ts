@@ -10,7 +10,7 @@ export const API_ENDPOINTS = {
   // Profile endpoints (GET, PATCH)
   GET_PROFILE: "/tenant/profile",
   UPDATE_PROFILE: "/tenant/profile",
-  CHANGE_PASSWORD: "/auth/tenant/reset-password",
+  CHANGE_PASSWORD: "/tenant/change-password",
 
   // Dashboard endpoints
   GET_DEPARTMENTS: "/tenant/department",

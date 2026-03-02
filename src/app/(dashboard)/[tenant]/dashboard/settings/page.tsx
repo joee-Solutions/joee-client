@@ -70,7 +70,23 @@ export default function SettingsPage() {
   const pathname = usePathname() ?? "";
   const segments = pathname.split("/").filter(Boolean);
   const isSubdomainMode = segments[0] === "dashboard";
-  const backupHref = isSubdomainMode ? "/dashboard/settings/backup" : tenant ? `/${tenant}/dashboard/settings/backup` : "/dashboard/settings/backup";
+  // Backup route is /[tenant]/dashboard/settings/backup — always need tenant. When path is /dashboard/... (subdomain), params.tenant is "dashboard"; fix href using tenant from host.
+  const [backupHref, setBackupHref] = useState(
+    tenant ? `/${tenant}/dashboard/settings/backup` : "/dashboard/settings/backup"
+  );
+  useEffect(() => {
+    if (typeof window === "undefined" || !isSubdomainMode) return;
+    const h = window.location.hostname;
+    let t: string | undefined;
+    if (h.includes("localhost")) {
+      const p = h.split(".");
+      t = p.length >= 2 && p[0] !== "localhost" ? p[0] : undefined;
+    } else {
+      const p = h.split(".");
+      t = p.length >= 3 && p[0] !== "www" ? p[0] : undefined;
+    }
+    if (t) setBackupHref(`/${t}/dashboard/settings/backup`);
+  }, [isSubdomainMode, pathname]);
 
   return (
     <>

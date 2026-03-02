@@ -3,6 +3,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/Textarea";
@@ -14,12 +15,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { X } from "lucide-react";
+import { processRequestOfflineAuth } from "@/framework/offline-https";
+import { API_ENDPOINTS } from "@/framework/api-endpoints";
 
 const AppointmentSchema = z.object({
-  patientName: z.string().min(1, "Patient name is required"),
-  appointmentWith: z.string().min(1, "Appointment with is required"),
+  patientId: z.string().min(1, "Patient is required"),
+  appointmentWithId: z.string().min(1, "Appointment with is required"),
   appointmentDate: z.string().min(1, "Appointment date is required"),
-  appointmentTime: z.string().min(1, "Appointment time is required"),
+  appointmentTime: z.string().min(1, "Start time is required"),
+  appointmentEndTime: z.string().optional(),
   appointmentDescription: z.string().optional(),
 });
 
@@ -31,22 +35,79 @@ interface AddAppointmentModalProps {
 }
 
 export default function AddAppointmentModal({ onClose, onSave }: AddAppointmentModalProps) {
+  const [patients, setPatients] = useState<Array<{ id: string; name: string }>>([]);
+  const [employees, setEmployees] = useState<Array<{ id: string; name: string }>>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
   const form = useForm<AppointmentSchemaType>({
     resolver: zodResolver(AppointmentSchema),
     mode: "onChange",
     defaultValues: {
-      patientName: "",
-      appointmentWith: "",
+      patientId: "",
+      appointmentWithId: "",
       appointmentDate: "",
       appointmentTime: "",
+      appointmentEndTime: "",
       appointmentDescription: "",
     },
   });
 
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        const patientsResponse = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_PATIENTS);
+        const patientsData = Array.isArray(patientsResponse?.data?.data)
+          ? patientsResponse.data.data
+          : Array.isArray(patientsResponse?.data)
+          ? patientsResponse.data
+          : Array.isArray(patientsResponse)
+          ? patientsResponse
+          : [];
+        const patientsList = patientsData.map((patient: any) => {
+          const firstName = patient.first_name || patient.firstName || patient.name?.split(" ")[0] || "";
+          const lastName = patient.last_name || patient.lastName || patient.name?.split(" ").slice(1).join(" ") || "";
+          const name = `${firstName} ${lastName}`.trim() || "Unknown Patient";
+          return { id: String(patient.id ?? patient._id ?? ""), name };
+        });
+        setPatients(patientsList);
+
+        const employeesResponse = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_EMPLOYEE);
+        const employeesData = Array.isArray(employeesResponse?.data?.data)
+          ? employeesResponse.data.data
+          : Array.isArray(employeesResponse?.data)
+          ? employeesResponse.data
+          : Array.isArray(employeesResponse)
+          ? employeesResponse
+          : [];
+        const employeesList = employeesData.map((employee: any) => {
+          const firstName = employee.first_name || employee.firstName || employee.firstname || employee.name?.split(" ")[0] || "";
+          const lastName = employee.last_name || employee.lastName || employee.lastname || employee.name?.split(" ").slice(1).join(" ") || "";
+          const name = `${firstName} ${lastName}`.trim() || "Unknown";
+          return { id: String(employee.id ?? employee._id ?? ""), name };
+        });
+        setEmployees(employeesList);
+      } catch (error) {
+        console.error("Failed to load patients/employees:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
   const onSubmit = (data: AppointmentSchemaType) => {
     const appointmentDate = new Date(data.appointmentDate);
+    const patientName = patients.find((p) => p.id === data.patientId)?.name ?? "";
+    const doctorName = employees.find((e) => e.id === data.appointmentWithId)?.name ?? "";
+    const timeStr = data.appointmentEndTime
+      ? `${data.appointmentTime} - ${data.appointmentEndTime}`
+      : data.appointmentTime;
     onSave({
-      ...data,
+      patientId: data.patientId,
+      doctorId: data.appointmentWithId,
+      patientName,
+      doctorName,
       appointmentDate,
       status: "Pending",
       date: appointmentDate.toLocaleDateString("en-GB", {
@@ -54,16 +115,16 @@ export default function AddAppointmentModal({ onClose, onSave }: AddAppointmentM
         month: "long",
         year: "numeric",
       }),
+      time: timeStr,
+      startTime: data.appointmentTime,
+      endTime: data.appointmentEndTime,
+      description: data.appointmentDescription,
     });
   };
 
-  // Sample data for dropdowns
-  const patients = ["John Janet Esther", "Temitope Denilson", "Jane Smith", "Robert Johnson"];
-  const doctors = ["Dr. Deniis Hampton", "Dr. Smith", "Dr. Johnson", "Dr. Williams"];
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 z-[110] flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto my-auto">
         <div className="flex justify-between items-center border-b p-6 sticky top-0 bg-white z-10">
           <h2 className="text-2xl font-semibold text-[#003465]">ADD APPOINTMENT</h2>
           <button
@@ -79,16 +140,25 @@ export default function AddAppointmentModal({ onClose, onSave }: AddAppointmentM
             {/* Patient Name */}
             <div>
               <label className="block text-base text-black font-normal mb-2">Patient name</label>
-              <Select onValueChange={(value) => form.setValue("patientName", value)}>
+              <Select
+                value={form.watch("patientId")}
+                onValueChange={(value) => form.setValue("patientId", value)}
+              >
                 <SelectTrigger className="w-full p-3 border border-[#737373] h-14 rounded flex justify-between items-center">
                   <SelectValue placeholder="select" />
                 </SelectTrigger>
-                <SelectContent className="z-50 bg-white">
-                  {patients.map((patient) => (
-                    <SelectItem key={patient} value={patient} className="hover:bg-gray-200">
-                      {patient}
-                    </SelectItem>
-                  ))}
+                <SelectContent className="!z-[150] bg-white">
+                  {isLoading ? (
+                    <SelectItem value="loading" disabled>Loading...</SelectItem>
+                  ) : patients.length > 0 ? (
+                    patients.map((patient) => (
+                      <SelectItem key={patient.id} value={patient.id} className="hover:bg-gray-200">
+                        {patient.name}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-patients" disabled>No patients available</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -121,29 +191,45 @@ export default function AddAppointmentModal({ onClose, onSave }: AddAppointmentM
             {/* Appointment With */}
             <div>
               <label className="block text-base text-black font-normal mb-2">Appointment with</label>
-              <div className="relative">
-                <Select onValueChange={(value) => form.setValue("appointmentWith", value)}>
-                  <SelectTrigger className="w-full p-3 border border-[#737373] h-14 rounded flex justify-between items-center">
-                    <SelectValue placeholder="select" />
-                  </SelectTrigger>
-                  <SelectContent className="z-50 bg-white">
-                    {doctors.map((doctor) => (
-                      <SelectItem key={doctor} value={doctor} className="hover:bg-gray-200">
-                        {doctor}
+              <Select
+                value={form.watch("appointmentWithId")}
+                onValueChange={(value) => form.setValue("appointmentWithId", value)}
+              >
+                <SelectTrigger className="w-full p-3 border border-[#737373] h-14 rounded flex justify-between items-center">
+                  <SelectValue placeholder="select" />
+                </SelectTrigger>
+                <SelectContent className="!z-[150] bg-white">
+                  {isLoading ? (
+                    <SelectItem value="loading" disabled>Loading...</SelectItem>
+                  ) : employees.length > 0 ? (
+                    employees.map((employee) => (
+                      <SelectItem key={employee.id} value={employee.id} className="hover:bg-gray-200">
+                        {employee.name}
                       </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                    ))
+                  ) : (
+                    <SelectItem value="no-employees" disabled>No employees available</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
 
-            {/* Appointment Time */}
+            {/* Start Time */}
             <div>
-              <label className="block text-base text-black font-normal mb-2">Appointment Time</label>
+              <label className="block text-base text-black font-normal mb-2">Start Time</label>
               <Input
-                placeholder="Enter here"
                 type="time"
                 {...form.register("appointmentTime")}
+                className="w-full p-3 border border-[#737373] h-14 rounded"
+              />
+            </div>
+
+            {/* End Time */}
+            <div>
+              <label className="block text-base text-black font-normal mb-2">End Time</label>
+              <Input
+                type="time"
+                {...form.register("appointmentEndTime")}
                 className="w-full p-3 border border-[#737373] h-14 rounded"
               />
             </div>

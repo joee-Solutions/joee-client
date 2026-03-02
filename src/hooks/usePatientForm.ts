@@ -137,11 +137,12 @@ export function usePatientForm({
               }
             }
           }
-          
-          toast.success(patientId ? "Patient updated successfully" : "Patient created successfully", { 
+
+          // Show a single success alert for both create and update
+          toast.success("Patient saved successfully", {
             toastId: "save-success",
             autoClose: 2000,
-            position: "bottom-right"
+            position: "bottom-right",
           });
           setHasUnsavedChanges(false);
           setIsSavedToAPI(true); // Mark as saved to API

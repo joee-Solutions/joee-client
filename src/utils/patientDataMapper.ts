@@ -167,13 +167,13 @@ export function mapFormDataToPatientDto(formData: FormDataStepper) {
 
     // Medical data arrays
     allergies: allergies || [],
-    medicalHistories: medHistory || [],
+    medicalHistory: medHistory || [],
     diagnosisHistory: diagnosisHistory || [],
     surgeries: surgeryHistory || [],
     immunizations: immunizationHistory || [],
     familyHistory: famhistory || [],
     status: patientStatus || {},
-    socialHistory: lifeStyle ? {
+    socailHistory: lifeStyle ? {
       tobacco_use: lifeStyle.tobaccoUse || "",
       tobacco_quantity: lifeStyle.tobaccoQuantity ? Number(lifeStyle.tobaccoQuantity) || 0 : 0,
       years: lifeStyle.tobaccoDuration ? Number(lifeStyle.tobaccoDuration) || 0 : 0,
@@ -226,50 +226,8 @@ export function mapFormDataToPatientDto(formData: FormDataStepper) {
         pain_score: latest.painScore ? Number(latest.painScore) || 0 : 0,
       };
     })(),
-    // reviewOfSystem / reviewOfSystems nested structure (backend may expect either key)
+    // Backend expects reviewOfSystem (singular)
     reviewOfSystem: reviewOfSystem ? {
-      neurological: {
-        headache: reviewOfSystem.headaches || false,
-        dizziness: reviewOfSystem.dizziness || false,
-        weakness: reviewOfSystem.numbnessWeakness || false,
-        seizures: reviewOfSystem.seizures || false,
-        notes: reviewOfSystem.neurologicalDetails || "",
-      },
-      psychiatric: {
-        depression: reviewOfSystem.depression || false,
-        anxiety: reviewOfSystem.anxiety || false,
-        sleeping_disturbance: reviewOfSystem.sleepingDisturbances || false,
-        notes: reviewOfSystem.psychiatricDetails || "",
-      },
-      endocrine: {
-        heat_cold_intolerance: reviewOfSystem.heatColdIntolerance || false,
-        excessive_thirst_hunger: reviewOfSystem.excessiveThirstHunger || false,
-        notes: reviewOfSystem.endocrineDetails || "",
-      },
-      haematologic_lymphatic: {
-        easy_bruising: reviewOfSystem.easyBruising || false,
-        bleeding_tendencies: reviewOfSystem.bleedingTendencies || false,
-        notes: reviewOfSystem.haematologicDetails || "",
-      },
-      allergic_immunologic: {
-        frequent_infections: reviewOfSystem.frequentInfections || false,
-        allergic_reactions: reviewOfSystem.allergicReactions || false,
-        notes: reviewOfSystem.allergicDetails || "",
-      },
-      genitourinary: {
-        urinary_frequency: reviewOfSystem.urinaryFrequency || false,
-        dysuria: reviewOfSystem.dysuria || false,
-        incontinence: reviewOfSystem.incontinence || false,
-        notes: reviewOfSystem.genitourinaryDetails || "",
-      },
-      musculoskeletal: {
-        joint_pain: reviewOfSystem.jointPain || false,
-        muscle_weakness: reviewOfSystem.muscleWeakness || false,
-        stiffness: reviewOfSystem.stiffness || false,
-        notes: reviewOfSystem.musculoskeletalDetails || "",
-      },
-    } : {},
-    reviewOfSystems: reviewOfSystem ? {
       neurological: {
         headache: reviewOfSystem.headaches || false,
         dizziness: reviewOfSystem.dizziness || false,
@@ -485,7 +443,7 @@ export function normalizePatientData(mappedData: ReturnType<typeof mapFormDataTo
   }
   
   // Ensure arrays are arrays (not undefined or null)
-  mappedData.medicalHistories = Array.isArray(mappedData.medicalHistories) ? mappedData.medicalHistories : [];
+  mappedData.medicalHistory = Array.isArray(mappedData.medicalHistory) ? mappedData.medicalHistory : [];
   mappedData.immunizations = Array.isArray(mappedData.immunizations) ? mappedData.immunizations : [];
   mappedData.familyHistory = Array.isArray(mappedData.familyHistory) ? mappedData.familyHistory : [];
   mappedData.surgeries = Array.isArray(mappedData.surgeries) ? mappedData.surgeries : [];
@@ -495,28 +453,24 @@ export function normalizePatientData(mappedData: ReturnType<typeof mapFormDataTo
   mappedData.prescriptions = Array.isArray(mappedData.prescriptions) ? mappedData.prescriptions : [];
   // vitalSigns transformed to vitals object - handled in mapFormDataToPatientDto
   
-  // Always send socialHistory, reviewOfSystem, additionalReview, diagnosisHistory (Patient model expects these)
-  if (!mappedData.socialHistory || typeof mappedData.socialHistory !== 'object') {
-    mappedData.socialHistory = {};
+  // Backend Patient model uses "socailHistory" (typo)
+  if (!mappedData.socailHistory || typeof mappedData.socailHistory !== 'object') {
+    mappedData.socailHistory = {};
   }
-    mappedData.socialHistory.tobacco_use = mappedData.socialHistory.tobacco_use || '';
-    mappedData.socialHistory.alcohol_use = mappedData.socialHistory.alcohol_use || '';
-    mappedData.socialHistory.diet_and_exercise = mappedData.socialHistory.diet_and_exercise || '';
-    mappedData.socialHistory.partners = mappedData.socialHistory.partners || '';
-    mappedData.socialHistory.protection = mappedData.socialHistory.protection || '';
-    mappedData.socialHistory.comment = mappedData.socialHistory.comment || '';
-    mappedData.socialHistory.notes = mappedData.socialHistory.notes || '';
+  mappedData.socailHistory.tobacco_use = mappedData.socailHistory.tobacco_use || '';
+  mappedData.socailHistory.alcohol_use = mappedData.socailHistory.alcohol_use || '';
+  mappedData.socailHistory.diet_and_exercise = mappedData.socailHistory.diet_and_exercise || '';
+  mappedData.socailHistory.partners = mappedData.socailHistory.partners || '';
+  mappedData.socailHistory.protection = mappedData.socailHistory.protection || '';
+  mappedData.socailHistory.comment = mappedData.socailHistory.comment || '';
+  mappedData.socailHistory.notes = mappedData.socailHistory.notes || '';
 
   if (!mappedData.reviewOfSystem || typeof mappedData.reviewOfSystem !== 'object') {
     mappedData.reviewOfSystem = {};
   }
-  if (!mappedData.reviewOfSystems || typeof mappedData.reviewOfSystems !== 'object') {
-    mappedData.reviewOfSystems = {};
-  }
 
-  // Ensure reviewOfSystems nested structure has defaults when present
-  if (Object.keys(mappedData.reviewOfSystems).length > 0) {
-    // Ensure all nested objects exist with proper defaults matching the type structure
+  // Ensure reviewOfSystem nested structure has defaults when present
+  if (Object.keys(mappedData.reviewOfSystem).length > 0) {
     const defaultNeurological = { headache: false, dizziness: false, weakness: false, seizures: false, notes: "" };
     const defaultPsychiatric = { depression: false, anxiety: false, sleeping_disturbance: false, notes: "" };
     const defaultEndocrine = { heat_cold_intolerance: false, excessive_thirst_hunger: false, notes: "" };
@@ -524,16 +478,16 @@ export function normalizePatientData(mappedData: ReturnType<typeof mapFormDataTo
     const defaultAllergic = { frequent_infections: false, allergic_reactions: false, notes: "" };
     const defaultGenitourinary = { urinary_frequency: false, dysuria: false, incontinence: false, notes: "" };
     const defaultMusculoskeletal = { joint_pain: false, muscle_weakness: false, stiffness: false, notes: "" };
-    
-    mappedData.reviewOfSystems.neurological = mappedData.reviewOfSystems.neurological || defaultNeurological;
-    mappedData.reviewOfSystems.psychiatric = mappedData.reviewOfSystems.psychiatric || defaultPsychiatric;
-    mappedData.reviewOfSystems.endocrine = mappedData.reviewOfSystems.endocrine || defaultEndocrine;
-    mappedData.reviewOfSystems.haematologic_lymphatic = mappedData.reviewOfSystems.haematologic_lymphatic || defaultHaematologic;
-    mappedData.reviewOfSystems.allergic_immunologic = mappedData.reviewOfSystems.allergic_immunologic || defaultAllergic;
-    mappedData.reviewOfSystems.genitourinary = mappedData.reviewOfSystems.genitourinary || defaultGenitourinary;
-    mappedData.reviewOfSystems.musculoskeletal = mappedData.reviewOfSystems.musculoskeletal || defaultMusculoskeletal;
+
+    mappedData.reviewOfSystem.neurological = mappedData.reviewOfSystem.neurological || defaultNeurological;
+    mappedData.reviewOfSystem.psychiatric = mappedData.reviewOfSystem.psychiatric || defaultPsychiatric;
+    mappedData.reviewOfSystem.endocrine = mappedData.reviewOfSystem.endocrine || defaultEndocrine;
+    mappedData.reviewOfSystem.haematologic_lymphatic = mappedData.reviewOfSystem.haematologic_lymphatic || defaultHaematologic;
+    mappedData.reviewOfSystem.allergic_immunologic = mappedData.reviewOfSystem.allergic_immunologic || defaultAllergic;
+    mappedData.reviewOfSystem.genitourinary = mappedData.reviewOfSystem.genitourinary || defaultGenitourinary;
+    mappedData.reviewOfSystem.musculoskeletal = mappedData.reviewOfSystem.musculoskeletal || defaultMusculoskeletal;
   }
-  
+
   // Always send additionalReview (Patient model expects it)
   if (!mappedData.additionalReview || typeof mappedData.additionalReview !== 'object') {
     mappedData.additionalReview = {};

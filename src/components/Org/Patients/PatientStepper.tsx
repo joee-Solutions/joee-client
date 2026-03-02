@@ -281,7 +281,7 @@ const mapPatientDataToForm = (patientData: any): Partial<FormDataStepper> => {
       sex: data.guardian_info.Guardian_sex || data.guardian_info.guardian_sex || '',
     } : undefined,
     allergies: data.allergies || [],
-    medHistory: data.medHistory || data.medicalHistories || data.medical_history || [],
+    medHistory: data.medHistory || data.medicalHistory || data.medicalHistories || data.medical_history || [],
     diagnosisHistory: data.diagnosisHistory || data.diagnosis_history || [],
     surgeryHistory: data.surgeryHistory || data.surgeries || data.surgery_history || [],
     immunizationHistory: data.immunizationHistory || data.immunizations || data.immunization_history || [],
@@ -401,9 +401,10 @@ const mapPatientDataToForm = (patientData: any): Partial<FormDataStepper> => {
       if (data.lifestyle && typeof data.lifestyle === 'object') {
         return data.lifestyle;
       }
-      // Backend returns socialHistory, transform to lifeStyle
-      if (data.socialHistory && typeof data.socialHistory === 'object') {
-        const sh = data.socialHistory;
+      // Backend returns socailHistory (typo) or socialHistory, transform to lifeStyle
+      const shSource = data.socailHistory || data.socialHistory;
+      if (shSource && typeof shSource === 'object') {
+        const sh = shSource;
         return {
           tobaccoUse: sh.tobacco_use || "",
           tobaccoQuantity: sh.tobacco_quantity ? String(sh.tobacco_quantity) : "",
@@ -697,42 +698,47 @@ export default function PatientStepper({ slug, patientId: propPatientId, onSaveC
     saveToLocalStorage();
   }, [currentStep, saveToLocalStorage]);
 
-  // Load from localStorage on mount - only if not a new patient page
+  // Load from localStorage on mount:
+  // - For new patient page: always start fresh (clear any stale draft)
+  // - For edit page: only use draft when we don't yet have a patientId (i.e., unsaved draft, not an existing API patient)
   useEffect(() => {
     if (isNewPatient) {
-      // For new patient page, clear localStorage and start fresh
       localStorage.removeItem(`patient-${slug}`);
       setCurrentStep(0);
       setCompletedSteps(new Set());
       setPatientId(null);
       methods.reset();
-    } else {
-      // For existing patient or when returning to form, try to load saved data
-      const patientData = localStorage.getItem(`patient-${slug}`);
-      if (patientData) {
-        try {
-        const parsedData = JSON.parse(patientData);
-          // Load patient ID if it exists
-          if (parsedData.patientId) {
-            setPatientId(parsedData.patientId);
-            setIsSavedToAPI(true); // If patient ID exists, it was saved to API
-          }
-          if (parsedData.data) {
-        methods.reset(parsedData.data);
-            if (parsedData.currentStep !== undefined) {
-        setCurrentStep(parsedData.currentStep);
-            }
-            if (parsedData.completedSteps) {
-        setCompletedSteps(new Set(parsedData.completedSteps));
-            }
-            toast.success("Patient data loaded successfully", { autoClose: 2000 });
-          }
-        } catch (error) {
-          console.error("Failed to load patient data:", error);
-        }
-      }
+      return;
     }
-  }, [slug, methods, isNewPatient]);
+
+    // If we're editing an existing patient (patientId already known), prefer API data and skip local draft
+    if (patientId) {
+      return;
+    }
+
+    const stored = localStorage.getItem(`patient-${slug}`);
+    if (!stored) return;
+
+    try {
+      const parsedData = JSON.parse(stored);
+      if (parsedData.patientId && !patientId) {
+        setPatientId(parsedData.patientId);
+        setIsSavedToAPI(true);
+      }
+      if (parsedData.data) {
+        methods.reset(parsedData.data);
+        if (parsedData.currentStep !== undefined) {
+          setCurrentStep(parsedData.currentStep);
+        }
+        if (parsedData.completedSteps) {
+          setCompletedSteps(new Set(parsedData.completedSteps));
+        }
+        toast.success("Patient draft loaded successfully", { autoClose: 2000 });
+      }
+    } catch (error) {
+      console.error("Failed to load patient data from localStorage:", error);
+    }
+  }, [slug, methods, isNewPatient, patientId, setIsSavedToAPI]);
 
   const handleNext = () => {
     // Save before moving to next step
