@@ -1,5 +1,4 @@
 import React, { useEffect } from "react";
-import FieldSelect from "@/components/shared/form/FieldSelect";
 import FormComposer from "@/components/shared/form/FormComposer";
 import {
   AlertDialog,
@@ -36,14 +35,11 @@ const EditOrganizationSchema = z.object({
     .string()
     .email("Invalid email address")
     .min(1, "This field is required"),
-  role: z.string().optional(),
   phoneNumber: z.string().optional(),
   company: z.string().optional(),
 });
 
 type EditOrganizationSchemaType = z.infer<typeof EditOrganizationSchema>;
-
-const orgStatus = ["Admin", "Super Admin", "User", "Tenant_Admin"];
 
 interface ProfileFormProps {
   profileData?: any;
@@ -61,7 +57,6 @@ export default function ProfileForm({ profileData, onProfileUpdate, isLoading }:
       address: "",
       email: "",
       phoneNumber: "",
-      role: "",
       company: "",
     },
   });
@@ -75,8 +70,7 @@ export default function ProfileForm({ profileData, onProfileUpdate, isLoading }:
         address: profileData.address || "",
         email: profileData.email || "",
         phoneNumber: profileData.phone || profileData.phoneNumber || profileData.phone_number || "",
-        role: Array.isArray(profileData.roles) ? profileData.roles[0] : profileData.role || "",
-        company: profileData.company || profileData.organization || "",
+        company: profileData.domain || profileData.company || profileData.organization || "",
       });
     }
   }, [profileData, isLoading, form]);
@@ -94,6 +88,7 @@ export default function ProfileForm({ profileData, onProfileUpdate, isLoading }:
         phone_number: payload.phoneNumber,
         company: payload.company,
         organization: payload.company,
+        domain: payload.company,
       };
 
       const response = await processRequestOfflineAuth("put", API_ENDPOINTS.UPDATE_PROFILE, updateData);
@@ -197,14 +192,6 @@ export default function ProfileForm({ profileData, onProfileUpdate, isLoading }:
             disabled={isDisabled}
           />
 
-          <FieldSelect
-            bgSelectClass="bg-[#D9EDFF] border-[#D9EDFF]"
-            name="role"
-            control={form.control}
-            options={orgStatus}
-            labelText="Role"
-            placeholder="Select"
-          />
           <FieldBox
             bgInputClass="bg-[#D9EDFF] border-[#D9EDFF]"
             name="company"
@@ -212,6 +199,7 @@ export default function ProfileForm({ profileData, onProfileUpdate, isLoading }:
             labelText="Company"
             type="text"
             placeholder="Enter here"
+            disabled={isDisabled}
           />
 
           <div className="flex items-center gap-7">

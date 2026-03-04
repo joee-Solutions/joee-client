@@ -44,6 +44,12 @@ export const API_ENDPOINTS = {
   GET_NOTIFICATION_UNREAD: "/tenant/notification/unread",
   POST_NOTIFICATION_READ: "/tenant/notification/read",
 
+  // Admin
+  GET_ADMINS: "/tenant/admin",
+  CREATE_ADMIN: "/tenant/create-admin",
+  GET_ADMIN: (id: number | string) => `/tenant/admin/${id}`,
+  DELETE_ADMIN: (id: number | string) => `/tenant/admin/${id}`,
+
   // Backup
   GET_BACKUPS: "/tenant/backup",
   GET_BACKUP: (backupId: number | string) => `/tenant/backup/${backupId}`,

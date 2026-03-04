@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import FieldSelect from "@/components/shared/form/FieldSelect";
 import FormComposer from "@/components/shared/form/FormComposer";
 import {
@@ -14,18 +14,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Check,
-  CheckCircle2,
-  CircleArrowLeft,
-  Edit,
-  Trash2,
-} from "lucide-react";
+import { ArrowLeft, Check, CheckCircle2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import FieldBox from "../shared/form/FieldBox";
 import ProfileImageUploader from "../ui/ImageUploader";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
+import { processRequestOfflineAuth } from "@/framework/offline-https";
+import { API_ENDPOINTS } from "@/framework/api-endpoints";
+import { toast } from "react-toastify";
 
 const AdminFormSchema = z.object({
   firstName: z.string().min(1, "This field is required"),
@@ -45,31 +42,70 @@ type AdminFormSchemaType = z.infer<typeof AdminFormSchema>;
 
 const orgStatus = ["Admin", "Super Admin", "User"];
 
+function useAdminBasePath() {
+  const pathname = usePathname() ?? "";
+  const segments = pathname.split("/").filter(Boolean);
+  const tenant = segments[0] && segments[0] !== "dashboard" ? segments[0] : null;
+  return tenant ? `/${tenant}/dashboard/admin` : "/dashboard/admin";
+}
+
 export default function AdminForm() {
+  const router = useRouter();
+  const basePath = useAdminBasePath();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
   const form = useForm<AdminFormSchemaType>({
     resolver: zodResolver(AdminFormSchema),
     mode: "onChange",
     defaultValues: {
-      firstName: "JP",
-      lastName: "Morgan",
-      email: "jpMorgan@gmail.com",
-      phoneNumber: "0818888888",
+      firstName: "",
+      lastName: "",
+      email: "",
+      phoneNumber: "",
       role: "",
-      company: "Joee Solution",
+      company: "",
     },
   });
 
-  const onSubmit = (payload: AdminFormSchemaType) => {
-    console.log(payload);
+  const onSubmit = async (payload: AdminFormSchemaType) => {
+    try {
+      setIsSubmitting(true);
+      const data = {
+        first_name: payload.firstName,
+        last_name: payload.lastName,
+        email: payload.email,
+        phone_number: payload.phoneNumber,
+        role: payload.role,
+        company: payload.company,
+      };
+      await processRequestOfflineAuth("post", API_ENDPOINTS.CREATE_ADMIN, data);
+      toast.success("Admin created successfully", { toastId: "admin-create-success" });
+      setShowSuccess(true);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message ?? "Failed to create admin", { toastId: "admin-create-error" });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleEdit = () => {};
-  const router = useRouter();
   return (
     <>
-      <h2 className="font-bold text-base text-black mb-[30px]">
-        Create New Admin
-      </h2>
+      <div className="flex items-center gap-4 mb-[30px]">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={() => router.back()}
+          className="shrink-0"
+          aria-label="Back"
+        >
+          <ArrowLeft className="size-5" />
+        </Button>
+        <h2 className="font-bold text-base text-black">
+          Create New Admin
+        </h2>
+      </div>
       <FormComposer form={form} onSubmit={onSubmit}>
         <div className="flex flex-col gap-[30px]">
           <ProfileImageUploader />
@@ -127,12 +163,7 @@ export default function AdminForm() {
           />
 
           <div className="flex items-center gap-7">
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button className="h-[60px] bg-[#003465] text-base font-medium text-white rounded w-full">
-                  Submit
-                </Button>
-              </AlertDialogTrigger>
+            <AlertDialog open={showSuccess} onOpenChange={setShowSuccess}>
               <AlertDialogContent className="bg-white flex flex-col items-center text-center">
                 <AlertDialogHeader className="flex flex-col items-center">
                   <CheckCircle2 className="size-[100px] fill-[#3FA907] text-white" />
@@ -140,28 +171,27 @@ export default function AdminForm() {
                     Success
                   </AlertDialogTitle>
                   <AlertDialogDescription className="font-normal text-base text-[#737373]">
-                    You have successfully saved changes
+                    You have successfully created the admin
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogAction className="h-[60px] w-[291px] bg-[#3FA907] text-white font-medium text-base">
-                    <button
-                      onClick={() => router.push("/dashboard/admin/list")}
-                    >
-                      Continue
-                    </button>
+                  <AlertDialogAction
+                    className="h-[60px] w-[291px] bg-[#3FA907] text-white font-medium text-base"
+                    onClick={() => router.push(`${basePath}/list`)}
+                  >
+                    Continue
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
 
-            {/* <Button
-              onClick={handleEdit}
-              type="button"
+            <Button
+              type="submit"
+              disabled={isSubmitting}
               className="h-[60px] bg-[#003465] text-base font-medium text-white rounded w-full"
             >
-              Submit
-            </Button> */}
+              {isSubmitting ? "Submitting..." : "Submit"}
+            </Button>
           </div>
         </div>
       </FormComposer>

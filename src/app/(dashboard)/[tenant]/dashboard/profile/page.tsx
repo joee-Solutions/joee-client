@@ -25,8 +25,6 @@ interface UserProfile {
   lastName?: string;
   name?: string;
   username?: string;
-  role?: string;
-  roles?: string[];
   profile_picture?: string;
   profilePicture?: string;
   phone?: string;
@@ -34,6 +32,7 @@ interface UserProfile {
   address?: string;
   company?: string;
   organization?: string;
+  domain?: string;
   [key: string]: any;
 }
 
@@ -101,10 +100,8 @@ const ProfilePage = () => {
       "User"
     : "Loading...";
   
-  const roleArray = Array.isArray(profileData?.roles) ? profileData.roles : profileData?.role ? [profileData.role] : [];
-  const role = roleArray.length > 0 ? roleArray[0] : profileData?.role || "Admin";
   const profilePicture = profileData?.profile_picture || profileData?.profilePicture || profileImage;
-  const organization = profileData?.company || profileData?.organization || "Joee Solutions";
+  const organization = profileData?.domain || profileData?.company || profileData?.organization || "Joee Solutions";
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-[398px_1fr] gap-5">
@@ -119,10 +116,7 @@ const ProfilePage = () => {
           />
           <div className="text-center">
             <p className="font-semibold text-2xl text-black">{fullName}</p>
-            <p className="text-xs font-normal text-[#999999] mt-1">
-              {role.split("_").join(" ")}
-            </p>
-            <p className="text-xs font-semibold text-[#595959]">
+            <p className="text-xs font-semibold text-[#595959] mt-1">
               {organization}
             </p>
           </div>
