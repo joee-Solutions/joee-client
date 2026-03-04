@@ -4,6 +4,16 @@ import BackupTable from "./BackupTable";
 import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { toast } from "react-toastify";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const tableColumnNames = [
   "Date",
@@ -24,6 +34,22 @@ function formatDate(val: string | undefined): string {
   }
 }
 
+/** Format bytes to KB, MB, GB */
+function formatFileSize(value: string | number | undefined): string {
+  if (value === undefined || value === null || value === "") return "—";
+  const num = typeof value === "string" ? parseFloat(value) : value;
+  if (Number.isNaN(num) || num < 0) return "—";
+  if (num === 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB"];
+  let u = 0;
+  let n = num;
+  while (n >= 1024 && u < units.length - 1) {
+    n /= 1024;
+    u += 1;
+  }
+  return `${n.toFixed(u === 0 ? 0 : 1)} ${units[u]}`;
+}
+
 interface RecentBackupProps {
   showRestoreOnly?: boolean;
 }
@@ -32,6 +58,7 @@ export default function RecentBackup({ showRestoreOnly = false }: RecentBackupPr
   const [tableRows, setTableRows] = useState<Record<string, string | number>[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | number | null>(null);
 
   const fetchBackups = useCallback(async () => {
     try {
@@ -44,12 +71,12 @@ export default function RecentBackup({ showRestoreOnly = false }: RecentBackupPr
           : Array.isArray(response)
             ? response
             : [];
-      const rows = raw.map((b: any) => ({
+      const rows = raw.map((b: any, index: number) => ({
         id: b.id ?? b.backupId,
         date: formatDate(b.date ?? b.createdAt ?? b.created_at),
-        fileName: b.fileName ?? b.name ?? b.file_name ?? "—",
+        fileName: `Backup ${index + 1}`,
         backupTime: formatDate(b.completedAt ?? b.completed_at ?? b.date ?? b.createdAt),
-        fileSize: b.fileSize ?? b.size ?? b.file_size ?? "—",
+        fileSize: formatFileSize(b.fileSize ?? b.size ?? b.file_size),
         status: b.status ?? "Successful",
       }));
       setTableRows(rows);
@@ -81,7 +108,7 @@ export default function RecentBackup({ showRestoreOnly = false }: RecentBackupPr
   const handleRestore = async (backupId: string | number) => {
     try {
       await processRequestOfflineAuth("post", API_ENDPOINTS.RESTORE_BACKUP(backupId));
-      toast.success("Restore initiated successfully", { toastId: "backup-restore" });
+      toast.success("Backup restored successfully", { toastId: "backup-restore" });
       await fetchBackups();
     } catch (e: any) {
       toast.error((e?.response?.data?.message as string) ?? "Failed to restore", { toastId: "backup-restore-error" });
@@ -91,10 +118,12 @@ export default function RecentBackup({ showRestoreOnly = false }: RecentBackupPr
   const handleDelete = async (backupId: string | number) => {
     try {
       await processRequestOfflineAuth("delete", API_ENDPOINTS.DELETE_BACKUP(backupId));
-      toast.success("Backup deleted", { toastId: "backup-delete" });
+      toast.success("Backup deleted successfully", { toastId: "backup-delete" });
+      setPendingDeleteId(null);
       await fetchBackups();
     } catch (e: any) {
       toast.error((e?.response?.data?.message as string) ?? "Failed to delete backup", { toastId: "backup-delete-error" });
+      setPendingDeleteId(null);
     }
   };
 
@@ -121,9 +150,29 @@ export default function RecentBackup({ showRestoreOnly = false }: RecentBackupPr
           tableRows={tableRows}
           loading={loading}
           onRestore={handleRestore}
-          onDelete={handleDelete}
+          onDelete={(id) => setPendingDeleteId(id)}
         />
       </div>
+
+      <AlertDialog open={pendingDeleteId != null} onOpenChange={(open) => !open && setPendingDeleteId(null)}>
+        <AlertDialogContent className="bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete backup?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the backup from the list.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingDeleteId(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => pendingDeleteId != null && handleDelete(pendingDeleteId)}
+              className="bg-[#EC0909] hover:bg-[#EC0909]/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

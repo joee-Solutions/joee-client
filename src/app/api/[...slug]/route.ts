@@ -130,11 +130,18 @@ export async function POST(req: NextRequest) {
   const tenantId = getTenantId(req) || req.headers.get("x-tenant-id");
   const contentType = req.headers.get("Content-Type");
   const isMultipart = contentType?.includes("multipart/form-data");
-  const body = isMultipart
-    ? await req.formData()
-    : contentType?.includes("application/json")
-    ? await req.json()
-    : await req.json();
+  let body: any;
+  if (isMultipart) {
+    body = await req.formData();
+  } else if (contentType?.includes("application/json")) {
+    try {
+      body = await req.json();
+    } catch {
+      body = {};
+    }
+  } else {
+    body = {};
+  }
   console.log("body-->", body, isMultipart);
   const query = req.nextUrl.searchParams;
   const queryString = query.toString();
@@ -213,11 +220,18 @@ export async function PUT(req: NextRequest) {
   const tenantId = getTenantId(req) || req.headers.get("x-tenant-id");
   const contentType = req.headers.get("Content-Type");
   const isMultipart = contentType?.includes("multipart/form-data");
-  const body = isMultipart
-    ? await req.formData()
-    : contentType?.includes("application/json")
-    ? await req.json()
-    : await req.json();
+  let body: any;
+  if (isMultipart) {
+    body = await req.formData();
+  } else if (contentType?.includes("application/json")) {
+    try {
+      body = await req.json();
+    } catch {
+      body = {};
+    }
+  } else {
+    body = {};
+  }
   console.log("body-->", body, isMultipart);
   const query = req.nextUrl.searchParams;
   const queryString = query.toString();
@@ -325,11 +339,18 @@ export async function PATCH(req: NextRequest) {
   const tenantId = getTenantId(req) || req.headers.get("x-tenant-id");
   const contentType = req.headers.get("Content-Type");
   const isMultipart = contentType?.includes("multipart/form-data");
-  const body = isMultipart
-    ? await req.formData()
-    : contentType?.includes("application/json")
-    ? await req.json()
-    : await req.json();
+  let body: any;
+  if (isMultipart) {
+    body = await req.formData();
+  } else if (contentType?.includes("application/json")) {
+    try {
+      body = await req.json();
+    } catch {
+      body = {};
+    }
+  } else {
+    body = {};
+  }
   console.log("body-->", body, isMultipart);
   const query = req.nextUrl.searchParams;
   const queryString = query.toString();

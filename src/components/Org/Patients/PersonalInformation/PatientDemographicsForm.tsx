@@ -36,7 +36,8 @@ export const PatientDemoSchema = z.object({
   patientImage: z.string().optional(),
 });
 
-const dropdownOptions = {
+// Exported so PatientStepper can normalize API values to match these options (selects need exact match)
+export const dropdownOptions = {
   suffix: ["Mr.", "Mrs.", "Ms.", "Dr.", "Jr.", "Sr.", "II", "III", "IV"],
   sex: ["Male", "Female", "Other", "Prefer not to say"],
   maritalStatus: [
@@ -141,7 +142,6 @@ export default function PatientInfoForm() {
     }
   };
 
-  console.log("Form errors:", errors);
 
   // Dropdown options as arrays
 
@@ -259,9 +259,7 @@ export default function PatientInfoForm() {
               key={key}
               name={`demographic.${key}` as const}
               control={control}
-              render={({ field }) => {
-                console.log(field,"field")
-                return (
+              render={({ field }) => (
                   <div>
                     <label
                       htmlFor={key}
@@ -272,7 +270,6 @@ export default function PatientInfoForm() {
                     <Select 
                       value={field.value || undefined} 
                       onValueChange={(value) => {
-                        console.log(`Select ${key} changed:`, value);
                         field.onChange(value);
                       }}
                     >
@@ -293,8 +290,7 @@ export default function PatientInfoForm() {
                       </p>
                     )}
                   </div>
-                )
-              }}
+                )}
             />
           ))
           }

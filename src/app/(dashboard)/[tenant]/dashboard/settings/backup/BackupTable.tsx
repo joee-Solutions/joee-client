@@ -32,7 +32,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Pagination from "@/components/shared/table/pagination";
-import { Checkbox } from "@/components/ui/Checkbox";
 
 type Primitives = string | number | boolean;
 
@@ -57,7 +56,6 @@ export default function BackupTable<T extends Record<string, Primitives>>({
     `${string} ASC` | `${string} DESC`
   >();
   const [sortBy, setSortBy] = useState("");
-  const [rowSelectionIds, setRowSelectionIds] = useState<number[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
 
   const handlePageClick = (event: { selected: number }) => {
@@ -66,33 +64,6 @@ export default function BackupTable<T extends Record<string, Primitives>>({
 
   const handleColumnSort = (sortVal: `${string} ASC` | `${string} DESC`) => {
     setColumnSort(sortVal);
-  };
-
-  const handleRowSelection = (val: number) => {
-    if (rowSelectionIds.includes(val)) {
-      setRowSelectionIds((prev) => {
-        const index = prev.indexOf(val);
-
-        const res = [...prev];
-        res.splice(index, 1);
-        return res;
-      });
-      return;
-    }
-    setRowSelectionIds((prev) => {
-      return [...prev, val];
-    });
-  };
-
-  const handleRowSelectionAll = () => {
-    const ids = tableRows.map((_, idx) => idx);
-
-    if (rowSelectionIds.length > 0) {
-      setRowSelectionIds([]);
-      return;
-    }
-
-    setRowSelectionIds(ids);
   };
 
   const keys =
@@ -132,72 +103,47 @@ export default function BackupTable<T extends Record<string, Primitives>>({
         <Table>
           <TableHeader className="h-[60px] border-y border-[#D9D9D9] bg-[#003465]">
             <TableRow className="">
-              {tableColumnNames.map((col, i) => {
-                return (
-                  <>
-                    {i === 0 && (
-                      <TableHead
-                        key="Checkbox"
-                        className="px-4 w-2 font-medium text-base text-white"
+              {tableColumnNames.map((col, i) => (
+                <TableHead key={col} className="font-medium text-base text-white">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        className={`flex items-center gap-2 text-base focus-visible:ring-0 ${
+                          i === 0 && "pl-1"
+                        }`}
                       >
-                        <Checkbox
-                          size={20}
-                          onChange={() => handleRowSelectionAll()}
-                          checked={
-                            rowSelectionIds.length < tableRows.length
-                              ? false
-                              : rowSelectionIds.length === tableRows.length
-                              ? true
-                              : false
-                          }
-                        />
-                      </TableHead>
-                    )}
-                    <TableHead
-                      key={col}
-                      className="font-medium text-base text-white"
-                    >
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            type="button"
-                            className={`flex items-center gap-2 text-base focus-visible:ring-0 ${
-                              i === 0 && "pl-1"
-                            }`}
-                          >
-                            {col}{" "}
-                            {col.toLowerCase() !== "actions" && (
-                              <RiExpandUpDownFill />
-                            )}
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-24 bg-white">
-                          <DropdownMenuItem
-                            className="cursor-pointer hover:bg-[#003465] hover:text-white"
-                            onClick={() => handleColumnSort(`${col} ASC`)}
-                          >
-                            <ArrowUp />
-                            ASC
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="cursor-pointer hover:bg-[#003465] hover:text-white"
-                            onClick={() => handleColumnSort(`${col} DESC`)}
-                          >
-                            <ArrowDown />
-                            DESC
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableHead>
-                  </>
-                );
-              })}
+                        {col}{" "}
+                        {col.toLowerCase() !== "actions" && (
+                          <RiExpandUpDownFill />
+                        )}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-24 bg-white">
+                      <DropdownMenuItem
+                        className="cursor-pointer hover:bg-[#003465] hover:text-white"
+                        onClick={() => handleColumnSort(`${col} ASC`)}
+                      >
+                        <ArrowUp />
+                        ASC
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="cursor-pointer hover:bg-[#003465] hover:text-white"
+                        onClick={() => handleColumnSort(`${col} DESC`)}
+                      >
+                        <ArrowDown />
+                        DESC
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableHead>
+              ))}
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={tableColumnNames.length + 2} className="text-center py-10 text-gray-500">
+                <TableCell colSpan={tableColumnNames.length} className="text-center py-10 text-gray-500">
                   Loading backups...
                 </TableCell>
               </TableRow>
@@ -205,17 +151,8 @@ export default function BackupTable<T extends Record<string, Primitives>>({
             tableRows.map((tr, idx) => (
               <TableRow
                 key={idx}
-                className={`border-b border-[#D9D9D9] h-[90px] ${
-                  rowSelectionIds.includes(idx) ? "bg-[#EDF0F6]" : ""
-                }`}
+                className="border-b border-[#D9D9D9] h-[90px]"
               >
-                <TableCell className="w-2 px-4">
-                  <Checkbox
-                    size={20}
-                    checked={rowSelectionIds.includes(idx)}
-                    onChange={() => handleRowSelection(idx)}
-                  />
-                </TableCell>
                 {keys.map((key) => {
                   return (
                     <TableCell key={key as string} className="px-4">

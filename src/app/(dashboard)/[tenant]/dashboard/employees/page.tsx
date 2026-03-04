@@ -248,9 +248,11 @@ export default function EmployeePage() {
     gender?: string;
     hireDate?: string;
     bio?: string;
-    employeeImage?: string;
+    employeeImage?: string | File;
     is_active?: boolean;
   }>>({});
+  const [editImagePreviewUrl, setEditImagePreviewUrl] = useState<string | null>(null);
+  const editImageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadEmployees();
@@ -475,11 +477,13 @@ export default function EmployeePage() {
     
     console.log("Mapped employee data for edit:", mappedData);
     setEditFormData(mappedData);
+    setEditImagePreviewUrl(null);
   };
 
   // Open edit from view modal
   const handleEditFromView = () => {
     setIsViewModalOpen(false);
+    setEditImagePreviewUrl(null);
     setIsEditModalOpen(true);
   };
 
@@ -521,7 +525,7 @@ export default function EmployeePage() {
     gender?: string;
     hireDate?: string;
     bio?: string;
-    employeeImage?: string;
+    employeeImage?: string | File;
     is_active?: boolean;
   }>) => {
     if (!selectedEmployee) return;
@@ -1266,6 +1270,10 @@ export default function EmployeePage() {
         onOpenChange={(open) => {
           setIsEditModalOpen(open);
           if (!open) {
+            if (editImagePreviewUrl) {
+              URL.revokeObjectURL(editImagePreviewUrl);
+              setEditImagePreviewUrl(null);
+            }
             setTimeout(() => {
               setSelectedEmployee(null);
               setEditFormData({});
@@ -1286,6 +1294,62 @@ export default function EmployeePage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto">
+            {/* Employee image select */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pb-4 border-b border-[#D9D9D9]">
+              <div className="flex items-center gap-4">
+                <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-[#D9D9D9] bg-gray-100 flex-shrink-0">
+                  {editFormData.employeeImage instanceof File && editImagePreviewUrl ? (
+                    <img
+                      src={editImagePreviewUrl}
+                      alt="Employee preview"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <Image
+                      src={
+                        typeof editFormData.employeeImage === "string" && editFormData.employeeImage
+                          ? editFormData.employeeImage
+                          : "/assets/doctorFemale.png"
+                      }
+                      alt="Employee"
+                      fill
+                      sizes="96px"
+                      className="object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = "/assets/doctorFemale.png";
+                      }}
+                    />
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-black mb-1">Profile picture</label>
+                  <input
+                    ref={editImageInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        if (editImagePreviewUrl) URL.revokeObjectURL(editImagePreviewUrl);
+                        setEditImagePreviewUrl(URL.createObjectURL(file));
+                        setEditFormData((prev) => ({ ...prev, employeeImage: file }));
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => editImageInputRef.current?.click()}
+                    className="border-[#003465] text-[#003465] hover:bg-[#003465] hover:text-white"
+                  >
+                    Choose image
+                  </Button>
+                </div>
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-black mb-1">First Name</label>

@@ -76,18 +76,23 @@ export default function ChangeAdminPassword() {
     },
   });
 
+  const [saving, setSaving] = useState(false);
+
   const onSubmit = async (payload: ChangePasswordSchemaType) => {
     try {
-      await processRequestOfflineAuth("post", API_ENDPOINTS.CHANGE_PASSWORD, {
-        currentPassword: payload.oldPassword,
-        newPassword: payload.password,
-        confirmPassword: payload.confirmPassword,
+      setSaving(true);
+      await processRequestOfflineAuth("patch", API_ENDPOINTS.CHANGE_PASSWORD, {
+        old_password: payload.oldPassword,
+        new_password: payload.password,
+        confirm_password: payload.confirmPassword,
       });
       toast.success("Password changed successfully", { toastId: "password-change" });
       form.reset({ oldPassword: "", password: "", confirmPassword: "" });
       setIsDisable(true);
     } catch (e: any) {
-      toast.error((e?.response?.data?.message as string) ?? "Failed to change password", { toastId: "password-change-error" });
+      toast.error((e?.response?.data?.message as string) ?? e?.response?.data?.error ?? "Failed to change password", { toastId: "password-change-error" });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -223,9 +228,17 @@ export default function ChangeAdminPassword() {
             </Button>
             <Button
               type="submit"
+              disabled={saving}
               className={`${isDisable && "hidden"} h-[60px] bg-[#003465] text-base font-medium text-white rounded w-full`}
             >
-              Save Changes <DownloadIcon />
+              {saving ? (
+                <>
+                  <span className="inline-block size-5 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
+                  Saving...
+                </>
+              ) : (
+                <>Save Changes <DownloadIcon /></>
+              )}
             </Button>
           </div>
         </div>

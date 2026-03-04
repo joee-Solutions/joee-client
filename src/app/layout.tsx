@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "react-toastify/dist/ReactToastify.css";
 import { ToastContainer } from "react-toastify";
-import BackendHealthCheck from "@/components/BackendHealthCheck";
 import OfflineSync from "@/components/OfflineSync";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 
@@ -24,7 +23,6 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="font-poppins" suppressHydrationWarning>
-        <BackendHealthCheck />
         <OfflineSync />
         <ServiceWorkerRegistration />
         {children}

@@ -60,6 +60,8 @@ const MainHeaderContent = ({ onToggleMobileMenu }: MainHeaderProps) => {
   const [markingAsRead, setMarkingAsRead] = useState<number | null>(null);
 
   const { status: offlineStatus } = useOffline();
+  const [offlineBannerMounted, setOfflineBannerMounted] = useState(false);
+  useEffect(() => setOfflineBannerMounted(true), []);
 
   // Fetch notifications using SWR
   const { data: notificationsData, error: notificationsError } = useSWR(
@@ -358,13 +360,13 @@ const MainHeaderContent = ({ onToggleMobileMenu }: MainHeaderProps) => {
 
   return (
     <header className="flex flex-col shadow-[0px_4px_25px_0px_#0000001A]">
-      {/* Offline / Syncing indicator */}
-      {offlineStatus.isOffline && (
+      {/* Offline / Syncing indicator — only after mount to avoid hydration mismatch */}
+      {offlineBannerMounted && offlineStatus.isOffline && (
         <div className="bg-amber-500 text-white text-center py-1.5 px-2 text-sm font-medium">
           You&apos;re offline — changes will sync when you&apos;re back online
         </div>
       )}
-      {!offlineStatus.isOffline && offlineStatus.queuedRequestsSize > 0 && (
+      {offlineBannerMounted && !offlineStatus.isOffline && offlineStatus.queuedRequestsSize > 0 && (
         <div className="bg-blue-600 text-white text-center py-1.5 px-2 text-sm font-medium">
           Syncing your changes...
         </div>

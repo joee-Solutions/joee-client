@@ -67,26 +67,25 @@ export default function SettingsPage() {
   const displayEmail = profile?.email ?? "—";
   const displayPhone = profile?.phone_number ?? "—";
 
-  const pathname = usePathname() ?? "";
-  const segments = pathname.split("/").filter(Boolean);
-  const isSubdomainMode = segments[0] === "dashboard";
-  // Backup route is /[tenant]/dashboard/settings/backup — always need tenant. When path is /dashboard/... (subdomain), params.tenant is "dashboard"; fix href using tenant from host.
-  const [backupHref, setBackupHref] = useState(
-    tenant ? `/${tenant}/dashboard/settings/backup` : "/dashboard/settings/backup"
-  );
+  // When using subdomain (e.g. doe.localhost:3000), use /dashboard/settings/backup. When using path-based tenant (e.g. localhost:3000/doe/...), use /{tenant}/dashboard/settings/backup.
+  const [backupHref, setBackupHref] = useState("/dashboard/settings/backup");
   useEffect(() => {
-    if (typeof window === "undefined" || !isSubdomainMode) return;
+    if (typeof window === "undefined") return;
     const h = window.location.hostname;
-    let t: string | undefined;
+    let tenantFromHost: string | undefined;
     if (h.includes("localhost")) {
       const p = h.split(".");
-      t = p.length >= 2 && p[0] !== "localhost" ? p[0] : undefined;
+      tenantFromHost = p.length >= 2 && p[0] !== "localhost" ? p[0] : undefined;
     } else {
       const p = h.split(".");
-      t = p.length >= 3 && p[0] !== "www" ? p[0] : undefined;
+      tenantFromHost = p.length >= 3 && p[0] !== "www" ? p[0] : undefined;
     }
-    if (t) setBackupHref(`/${t}/dashboard/settings/backup`);
-  }, [isSubdomainMode, pathname]);
+    if (tenantFromHost) {
+      setBackupHref("/dashboard/settings/backup");
+    } else {
+      setBackupHref(tenant ? `/${tenant}/dashboard/settings/backup` : "/dashboard/settings/backup");
+    }
+  }, [tenant]);
 
   return (
     <>

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PatientDemoSchema } from "./PersonalInformation/PatientDemographicsForm";
+import { PatientDemoSchema, dropdownOptions as demographicDropdownOptions } from "./PersonalInformation/PatientDemographicsForm";
 import { addionalDemoSchema } from "./PersonalInformation/Additionaldemographics";
 import { childrenSchema } from "./PersonalInformation/ChildrenInformation";
 import { emergencySchema } from "./PersonalInformation/EmergencyContact";
@@ -209,6 +209,15 @@ interface PatientStepperProps {
   onSaveComplete?: () => void;
 }
 
+// Normalize API value to match one of the dropdown options (Radix Select needs exact match)
+function normalizeToOption(options: string[], value: string | undefined | null): string {
+  if (value == null || value === '') return '';
+  const v = String(value).trim();
+  if (!v) return '';
+  const found = options.find((o) => o.toLowerCase() === v.toLowerCase());
+  return found ?? v;
+}
+
 // Helper function to map API patient data to form structure
 const mapPatientDataToForm = (patientData: any): Partial<FormDataStepper> => {
   if (!patientData) return {};
@@ -221,10 +230,11 @@ const mapPatientDataToForm = (patientData: any): Partial<FormDataStepper> => {
   // Extract emergencyInfo if it exists
   const emergencyInfo = data.emergencyInfo || {};
   
-  console.log("=== MAPPING PATIENT DATA ===");
-  console.log("data:", data);
-  console.log("contactInfo:", contactInfo);
-  console.log("emergencyInfo:", emergencyInfo);
+  const opts = demographicDropdownOptions;
+  const rawSex = data.sex || data.gender || '';
+  const rawInterpreter = data.interpreter_required;
+  const interpreterStr =
+    rawInterpreter === true || rawInterpreter === 'Yes' || String(rawInterpreter).toLowerCase() === 'yes' ? 'Yes' : rawInterpreter === false || rawInterpreter === 'No' || String(rawInterpreter).toLowerCase() === 'no' ? 'No' : '';
   
   return {
     demographic: {
@@ -233,16 +243,16 @@ const mapPatientDataToForm = (patientData: any): Partial<FormDataStepper> => {
       middleName: data.middlename || data.middle_name || '',
       preferredName: data.preferred_name || '',
       dateOfBirth: data.date_of_birth ? formatDateLocal(new Date(data.date_of_birth)) : '',
-      sex: data.sex || data.gender || '',
-      suffix: data.suffix || '',
-      maritalStatus: data.marital_status || '',
-      race: data.race || '',
-      ethnicity: data.ethnicity || '',
-      preferredLanguage: data.preferred_language || '',
-      interpreterRequired: data.interpreter_required ? (data.interpreter_required === true || data.interpreter_required === 'Yes' ? 'Yes' : 'No') : '',
-      religion: data.religion || '',
-      genderIdentity: data.gender_identity || '',
-      sexualOrientation: data.sexual_orientation || '',
+      sex: normalizeToOption(opts.sex, rawSex) || rawSex || '',
+      suffix: normalizeToOption(opts.suffix, data.suffix) || data.suffix || '',
+      maritalStatus: normalizeToOption(opts.maritalStatus, data.marital_status) || data.marital_status || '',
+      race: normalizeToOption(opts.race, data.race) || data.race || '',
+      ethnicity: normalizeToOption(opts.ethnicity, data.ethnicity) || data.ethnicity || '',
+      preferredLanguage: normalizeToOption(opts.preferredLanguage, data.preferred_language) || data.preferred_language || '',
+      interpreterRequired: normalizeToOption(opts.interpreterRequired, interpreterStr) || interpreterStr || '',
+      religion: normalizeToOption(opts.religion, data.religion) || data.religion || '',
+      genderIdentity: normalizeToOption(opts.genderIdentity, data.gender_identity) || data.gender_identity || '',
+      sexualOrientation: normalizeToOption(opts.sexualOrientation, data.sexual_orientation) || data.sexual_orientation || '',
       patientImage: data.image || data.patient_image || '',
     },
     addDemographic: {
