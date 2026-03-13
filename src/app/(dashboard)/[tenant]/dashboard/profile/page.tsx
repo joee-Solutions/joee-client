@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import ChangePasswordComponent from "@/components/admin/ChangePasswordComponent";
 import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
+import { parseTenantProfileResponse } from "@/utils/profile-api";
 import Cookies from "js-cookie";
 import { toast } from "react-toastify";
 
@@ -61,17 +62,16 @@ const ProfilePage = () => {
         }
       }
 
-      // Then fetch fresh data from API
+      // Then fetch fresh data from API (GET /tenant/profile returns data.data.tenant + data.data.role)
       try {
         const response = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_PROFILE);
-        if (response?.data || response) {
-          const user = response.data || response;
-          setProfileData(user);
-          // Update cookie with fresh data
-          Cookies.set("user", JSON.stringify(user), { 
-            expires: 7, // 7 days
-            sameSite: 'lax',
-            path: '/'
+        const { profile } = parseTenantProfileResponse(response);
+        if (profile) {
+          setProfileData(profile as UserProfile);
+          Cookies.set("user", JSON.stringify(profile), {
+            expires: 7,
+            sameSite: "lax",
+            path: "/",
           });
         }
       } catch (error: any) {

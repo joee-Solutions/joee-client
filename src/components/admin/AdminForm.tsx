@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import FieldSelect from "@/components/shared/form/FieldSelect";
 import FormComposer from "@/components/shared/form/FormComposer";
+import FieldTextBox from "@/components/shared/form/FieldTextBox";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,11 +11,11 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/Checkbox";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, Check, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import FieldBox from "../shared/form/FieldBox";
@@ -25,22 +26,26 @@ import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { toast } from "react-toastify";
 
 const AdminFormSchema = z.object({
-  firstName: z.string().min(1, "This field is required"),
-  lastName: z.string().min(1, "This field is required"),
-  email: z
-    .string()
-    .email("Invalid email address")
-    .min(1, "This field is required"),
-
-  role: z.string().min(1, "This field is required"),
-  phoneNumber: z.string().min(1, "This field is required"),
-  company: z.string().min(1, "This field is required"),
-  profileImage: z.string().optional(),
+  firstname: z.string().min(1, "First name is required"),
+  lastname: z.string().min(1, "Last name is required"),
+  email: z.string().min(1, "Email is required").email("Invalid email address"),
+  phone_number: z.string().min(1, "Phone number is required"),
+  address: z.string().optional(),
+  specialty: z.string().optional(),
+  designation: z.string().min(1, "Designation is required"),
+  gender: z.string().optional(),
+  date_of_birth: z.string().optional(),
+  hire_date: z.string().optional(),
+  image_url: z.string().optional(),
+  about: z.string().optional(),
+  is_active: z.boolean().default(true),
+  create_auth_credentials: z.boolean().default(true),
 });
 
 type AdminFormSchemaType = z.infer<typeof AdminFormSchema>;
 
-const orgStatus = ["Admin", "Super Admin", "User"];
+const designationOptions = ["Admin", "Super Admin", "User"];
+const genderOptions = ["Male", "Female", "Other"];
 
 function useAdminBasePath() {
   const pathname = usePathname() ?? "";
@@ -59,25 +64,47 @@ export default function AdminForm() {
     resolver: zodResolver(AdminFormSchema),
     mode: "onChange",
     defaultValues: {
-      firstName: "",
-      lastName: "",
+      firstname: "",
+      lastname: "",
       email: "",
-      phoneNumber: "",
-      role: "",
-      company: "",
+      phone_number: "",
+      address: "",
+      specialty: "",
+      designation: "",
+      gender: "",
+      date_of_birth: "",
+      hire_date: "",
+      image_url: "",
+      about: "",
+      is_active: true,
+      create_auth_credentials: true,
     },
   });
+
+  const toISOOrUndefined = (dateStr: string | undefined): string | undefined => {
+    if (!dateStr || !dateStr.trim()) return undefined;
+    const d = new Date(dateStr);
+    return !isNaN(d.getTime()) ? d.toISOString() : undefined;
+  };
 
   const onSubmit = async (payload: AdminFormSchemaType) => {
     try {
       setIsSubmitting(true);
       const data = {
-        first_name: payload.firstName,
-        last_name: payload.lastName,
-        email: payload.email,
-        phone_number: payload.phoneNumber,
-        role: payload.role,
-        company: payload.company,
+        firstname: payload.firstname.trim(),
+        lastname: payload.lastname.trim(),
+        email: payload.email.trim(),
+        phone_number: payload.phone_number.trim(),
+        address: (payload.address ?? "").trim() || undefined,
+        specialty: (payload.specialty ?? "").trim() || undefined,
+        designation: payload.designation.trim(),
+        gender: (payload.gender ?? "").trim() || undefined,
+        date_of_birth: toISOOrUndefined(payload.date_of_birth),
+        hire_date: toISOOrUndefined(payload.hire_date),
+        image_url: (payload.image_url ?? "").trim() || undefined,
+        about: (payload.about ?? "").trim() || undefined,
+        is_active: payload.is_active ?? true,
+        create_auth_credentials: payload.create_auth_credentials ?? true,
       };
       await processRequestOfflineAuth("post", API_ENDPOINTS.CREATE_ADMIN, data);
       toast.success("Admin created successfully", { toastId: "admin-create-success" });
@@ -112,55 +139,120 @@ export default function AdminForm() {
           <div className="grid grid-cols-2 gap-5 items-start justify-center">
             <FieldBox
               bgInputClass="bg-[#D9EDFF] border-[#D9EDFF]"
-              name="firstName"
+              name="firstname"
               control={form.control}
               labelText="First Name"
               type="text"
-              placeholder="Enter First name "
+              placeholder="Enter first name"
             />
             <FieldBox
               bgInputClass="bg-[#D9EDFF] border-[#D9EDFF]"
               type="text"
-              name="lastName"
+              name="lastname"
               control={form.control}
               labelText="Last Name"
-              placeholder="Enter Last name"
+              placeholder="Enter last name"
             />
           </div>
           <FieldBox
             bgInputClass="bg-[#D9EDFF] border-[#D9EDFF]"
-            type="text"
+            type="email"
             name="email"
             control={form.control}
             labelText="Email"
             placeholder="Enter email"
           />
-
           <FieldBox
             bgInputClass="bg-[#D9EDFF] border-[#D9EDFF]"
             type="text"
-            name="phoneNumber"
+            name="phone_number"
             control={form.control}
             labelText="Phone number"
-            placeholder="Enter Phone number"
-          />
-
-          <FieldSelect
-            bgSelectClass="bg-[#D9EDFF] border-[#D9EDFF]"
-            name="role"
-            control={form.control}
-            options={orgStatus}
-            labelText="Role"
-            placeholder="Select"
+            placeholder="Enter phone number"
           />
           <FieldBox
             bgInputClass="bg-[#D9EDFF] border-[#D9EDFF]"
-            name="company"
-            control={form.control}
-            labelText="Company"
             type="text"
-            placeholder="Enter here"
+            name="address"
+            control={form.control}
+            labelText="Address"
+            placeholder="Enter address"
           />
+          <div className="grid grid-cols-2 gap-5 items-start justify-center">
+            <FieldSelect
+              bgSelectClass="bg-[#D9EDFF] border-[#D9EDFF]"
+              name="designation"
+              control={form.control}
+              options={designationOptions}
+              labelText="Designation"
+              placeholder="Select"
+            />
+            <FieldSelect
+              bgSelectClass="bg-[#D9EDFF] border-[#D9EDFF]"
+              name="gender"
+              control={form.control}
+              options={genderOptions}
+              labelText="Gender"
+              placeholder="Select"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-5 items-start justify-center">
+            <FieldBox
+              bgInputClass="bg-[#D9EDFF] border-[#D9EDFF]"
+              type="text"
+              name="specialty"
+              control={form.control}
+              labelText="Specialty"
+              placeholder="Enter specialty"
+            />
+            <FieldBox
+              bgInputClass="bg-[#D9EDFF] border-[#D9EDFF]"
+              type="date"
+              name="date_of_birth"
+              control={form.control}
+              labelText="Date of birth"
+              placeholder=""
+            />
+          </div>
+          <FieldBox
+            bgInputClass="bg-[#D9EDFF] border-[#D9EDFF]"
+            type="date"
+            name="hire_date"
+            control={form.control}
+            labelText="Hire date"
+            placeholder=""
+          />
+          <FieldTextBox
+            bgInputClass="bg-[#D9EDFF] border-[#D9EDFF]"
+            name="about"
+            control={form.control}
+            labelText="About"
+            placeholder="Enter about"
+          />
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="is_active"
+                checked={form.watch("is_active")}
+                onCheckedChange={(v) => form.setValue("is_active", v === true)}
+                className="rounded"
+              />
+              <label htmlFor="is_active" className="text-sm font-medium text-gray-700">
+                Active
+              </label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="create_auth_credentials"
+                checked={form.watch("create_auth_credentials")}
+                onCheckedChange={(v) => form.setValue("create_auth_credentials", v === true)}
+                className="rounded"
+              />
+              <label htmlFor="create_auth_credentials" className="text-sm font-medium text-gray-700">
+                Create auth credentials (allow this admin to sign in)
+              </label>
+            </div>
+          </div>
 
           <div className="flex items-center gap-7">
             <AlertDialog open={showSuccess} onOpenChange={setShowSuccess}>

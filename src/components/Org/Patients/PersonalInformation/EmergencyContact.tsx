@@ -149,7 +149,7 @@ export default function EmergencyContactForm() {
               control={useFormContext().control}
               render={({ field }) => (
                 <Select
-                  value={field.value}
+                  value={field.value ?? ""}
                   onValueChange={field.onChange}
                 >
                   <SelectTrigger className="w-full p-3 border border-[#737373] h-14 rounded flex justify-between items-center">

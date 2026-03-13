@@ -1,17 +1,17 @@
 "use client";
 import { NextPage } from "next";
 import { Building2, Users, UserCircle, CalendarClock } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import StatCard from "@/components/dashboard/StatCard";
 import AppointmentsChart from "@/components/dashboard/AppointmentsChart";
 import EmployeeSection from "@/components/dashboard/EmployeeSection";
 import PatientsDonut from "@/components/dashboard/PatientsDonut";
-import ScheduleList from "@/components/dashboard/ScheduleList";
 import DepartmentsStatus from "@/components/dashboard/DepartmentsStatus";
 import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import Cookies from "js-cookie";
 import { colors } from "@/utils/dashboard";
+import { isTenantAdmin, getRolesFromUser } from "@/utils/permissions";
 
 interface DashboardStats {
   departments: { count: number; growth: number | null; icon: React.ReactElement };
@@ -49,7 +49,6 @@ const DashboardPage: NextPage = () => {
   const [employeesData, setEmployeesData] = useState<any[]>([]);
   const [appointmentsData, setAppointmentsData] = useState<any[]>([]);
   const [departmentsData, setDepartmentsData] = useState<any[]>([]);
-  const [schedulesData, setSchedulesData] = useState<any[]>([]);
 
   useEffect(() => {
     loadDashboardStats();
@@ -58,7 +57,6 @@ const DashboardPage: NextPage = () => {
   }, []);
 
   const loadUserData = () => {
-    // Load user data from cookies (set during login)
     const userCookie = Cookies.get("user");
     if (userCookie) {
       try {
@@ -69,6 +67,9 @@ const DashboardPage: NextPage = () => {
       }
     }
   };
+
+  const roles = useMemo(() => getRolesFromUser(userData), [userData]);
+  const showEmployeeSection = isTenantAdmin(roles);
 
   // Extract user name - matching MainHeader logic
   const getUserName = () => {
@@ -267,29 +268,6 @@ const DashboardPage: NextPage = () => {
       setDepartmentsData([]);
     }
 
-    // Load schedules (handle errors gracefully - endpoint may not be available)
-    try {
-      const schedulesRes = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_SCHEDULES);
-      // Handle different response structures
-      const schedules = Array.isArray(schedulesRes?.data?.data)
-        ? schedulesRes.data.data
-        : Array.isArray(schedulesRes?.data)
-        ? schedulesRes.data
-        : Array.isArray(schedulesRes)
-        ? schedulesRes
-        : [];
-      setSchedulesData(schedules);
-    } catch (error: any) {
-      // Silently handle 500 errors - endpoint may not be implemented yet
-      if (error?.response?.status === 500) {
-        // Endpoint not available or server error - silently fail
-        setSchedulesData([]);
-      } else {
-        // Log other errors (401, 403, 404, etc.)
-        console.error("Failed to load schedules:", error);
-        setSchedulesData([]);
-      }
-    }
   };
 
   // Transform patients data for PatientsDonut component
@@ -566,8 +544,8 @@ const DashboardPage: NextPage = () => {
           </span>
         </div>
 
-        {/* Top Row: 4 Stat Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        {/* Top Row: Stat Cards (hide Employees card for Tenant_User) */}
+        <div className={`grid grid-cols-1 gap-6 mb-6 ${showEmployeeSection ? "md:grid-cols-2 lg:grid-cols-4" : "md:grid-cols-3"}`}>
           <StatCard
             title="Departments"
             value={stats.departments.count}
@@ -576,14 +554,16 @@ const DashboardPage: NextPage = () => {
             icon={stats.departments.icon}
             href="/dashboard/departments"
           />
-          <StatCard
-            title="Employees"
-            value={stats.employees.count}
-            growth={stats.employees.growth}
-            color="green"
-            icon={stats.employees.icon}
-            href="/dashboard/employees"
-          />
+          {showEmployeeSection && (
+            <StatCard
+              title="Employees"
+              value={stats.employees.count}
+              growth={stats.employees.growth}
+              color="green"
+              icon={stats.employees.icon}
+              href="/dashboard/employees"
+            />
+          )}
           <StatCard
             title="Patients"
             value={stats.patients.count}
@@ -602,19 +582,22 @@ const DashboardPage: NextPage = () => {
           />
         </div>
 
-        {/* Middle Row: Charts and Employees */}
+        {/* Patients + Appointments charts side by side */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <div className="flex flex-col space-y-4">
-            <PatientsDonut data={getPatientsDonutData()} />
-            <AppointmentsChart data={getAppointmentsChartData()} />
-          </div>
-          <EmployeeSection employees={getEmployeesForSection()} />
+          <PatientsDonut data={getPatientsDonutData()} />
+          <AppointmentsChart data={getAppointmentsChartData()} />
         </div>
 
-        {/* Bottom Row: Departments Status and Schedules List */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Admin: employee section full width */}
+        {showEmployeeSection && (
+          <div className="mb-6">
+            <EmployeeSection employees={getEmployeesForSection()} />
+          </div>
+        )}
+
+        {/* Departments status */}
+        <div className="grid grid-cols-1 gap-6">
           <DepartmentsStatus data={getDepartmentsStatusData()} colors={colors} />
-          <ScheduleList schedules={schedulesData} />
         </div>
       </main>
     </div>

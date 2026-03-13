@@ -16,7 +16,6 @@ import { MEDICAL_CONDITIONS } from "./medicalConstants";
 import { Edit2, Trash2, Plus, X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { usePathname } from "next/navigation";
 import useSWR from "swr";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { authFectcher } from "@/hooks/swr";
@@ -103,8 +102,6 @@ export type MedicalHistoryFormData = z.infer<typeof medHistorySchema>;
 export default function MedicalHistoryForm() {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
-  const pathname = usePathname();
-  const orgSlug = pathname?.split('/organization/')[1]?.split('/')[0] || '';
 
   const { control, register, formState: { errors }, watch } = useFormContext<Pick<FormDataStepper, 'medHistory'>>()
   const { fields, append, remove } = useFieldArray({
@@ -112,15 +109,17 @@ export default function MedicalHistoryForm() {
     name: 'medHistory',
   });
 
-  // Fetch employees for prescriber dropdown
-  const orgId = orgSlug && !isNaN(parseInt(orgSlug)) ? parseInt(orgSlug) : null;
-  
   const { data: employeesData, isLoading: employeesLoading, error: employeesError } = useSWR(
-    orgId ? API_ENDPOINTS.GET_TENANTS_EMPLOYEES(orgId) : null,
+    API_ENDPOINTS.GET_EMPLOYEE,
     authFectcher
   );
 
-  const employees = employeesData?.data || [];
+  const rawEmployees = Array.isArray(employeesData?.data) ? employeesData.data : (Array.isArray(employeesData) ? employeesData : []);
+  const employees = rawEmployees.map((emp: any) => ({
+    ...emp,
+    id: emp.id ?? emp._id,
+    displayName: `${emp.first_name ?? emp.firstname ?? ""} ${emp.last_name ?? emp.lastname ?? ""}`.trim() || emp.email || "—",
+  }));
   const useEmployeeDropdown = !employeesError && employees.length > 0;
 
   const medHistories = watch("medHistory") || [];
@@ -314,11 +313,11 @@ export default function MedicalHistoryForm() {
                           </SelectTrigger>
                           <SelectContent className="bg-white z-[1000]">
                             {employees.map((employee: any) => (
-                              <SelectItem 
-                                key={employee.id} 
-                                value={`${employee.firstname} ${employee.lastname}`}
+                              <SelectItem
+                                key={employee.id}
+                                value={employee.displayName}
                               >
-                                {employee.firstname} {employee.lastname}
+                                {employee.displayName}
                               </SelectItem>
                             ))}
                           </SelectContent>

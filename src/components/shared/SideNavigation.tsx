@@ -1,24 +1,45 @@
 "use client";
+import { useMemo, type ComponentType } from "react";
 import { sideNavigation } from "@/utils/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import React from "react";
 import Cookies from "js-cookie";
 import { usePathname, useRouter } from "next/navigation";
 import { clearLastSession } from "@/lib/auth-store";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
+import { isTenantAdmin, getRolesFromUser } from "@/utils/permissions";
+import type { NavItem } from "@/utils/navigation";
 
 interface SideNavigationProps {
   onClose?: () => void;
 }
 
+function filterNavByRole(items: NavItem[], roles: string[]): NavItem[] {
+  if (isTenantAdmin(roles)) return items;
+  return items.filter((item) => item.tenantUserAllowed === true);
+}
+
 const SideNavigation = ({ onClose }: SideNavigationProps) => {
   const router = useRouter();
+  const pathName = usePathname();
+
+  const userJson = typeof window !== "undefined" ? Cookies.get("user") : null;
+  const user = useMemo(() => {
+    try {
+      return userJson ? JSON.parse(userJson) : null;
+    } catch {
+      return null;
+    }
+  }, [userJson]);
+  const roles = getRolesFromUser(user);
+  const visibleNav = useMemo(() => filterNavByRole(sideNavigation, roles), [roles]);
+
   const handleLogout = async () => {
     try {
       Cookies.remove("auth_token");
       Cookies.remove("user");
+      Cookies.remove("auth_user_id");
       Cookies.remove("refresh_token");
       Cookies.remove("otp_verified");
       await clearLastSession();
@@ -27,9 +48,8 @@ const SideNavigation = ({ onClose }: SideNavigationProps) => {
       console.log("Logout error:", error);
     }
   };
-  const pathName = usePathname();
   const isPathNameMatch = (path: string) => {
-    return pathName === path;
+    return pathName === path || pathName.endsWith(path);
   };
 
   const handleLinkClick = () => {
@@ -61,7 +81,12 @@ const SideNavigation = ({ onClose }: SideNavigationProps) => {
         />
         <p>LociCare by Joee</p>
       </div>
-      {sideNavigation.map((item, index) => (
+      {visibleNav.map((item) => {
+        const NavIcon = item.icon as ComponentType<{
+          size?: number;
+          className?: string;
+        }> | null;
+        return (
         <div key={item.name} className="w-full">
           <div className={cn("flex flex-col items-start gap-4 w-full")}>
             {item.href && (
@@ -81,8 +106,8 @@ const SideNavigation = ({ onClose }: SideNavigationProps) => {
                   href={item.href}
                   onClick={handleLinkClick}
                 >
-                  {item.icon && (
-                    <item.icon
+                  {NavIcon ? (
+                    <NavIcon
                       size={20}
                       className={cn(
                         "text-inherit",
@@ -91,7 +116,7 @@ const SideNavigation = ({ onClose }: SideNavigationProps) => {
                           : ""
                       )}
                     />
-                  )}
+                  ) : null}
                   {item.name}
                   {isPathNameMatch(item.href) && (
                     <span className="bg-black h-1.5 w-1.5 rounded-full"></span>
@@ -101,7 +126,8 @@ const SideNavigation = ({ onClose }: SideNavigationProps) => {
             )}
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 };

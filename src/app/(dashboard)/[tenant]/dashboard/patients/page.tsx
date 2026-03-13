@@ -530,12 +530,12 @@ export default function PatientPage() {
           </div>
         ) : (
           <>
-            {/* Patient Cards */}
-            <div className="grid grid-cols-[repeat(auto-fit,_minmax(260px,_1fr))] gap-[19px] mb-10">
+            {/* Patient Cards - horizontal scroll */}
+            <div className="flex gap-[19px] mb-10 overflow-x-auto pb-2">
               {patientCards.map((patientCard) => (
                 <div
                   key={patientCard.id}
-              className="rounded-[10px] shadow-[0px_4px_4px_0px_#00000040] bg-white flex flex-col overflow-hidden"
+              className="rounded-[10px] shadow-[0px_4px_4px_0px_#00000040] bg-white flex flex-col overflow-hidden flex-shrink-0 w-[260px] min-w-[260px]"
             >
               <div
                 style={{

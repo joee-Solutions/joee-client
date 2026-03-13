@@ -196,6 +196,7 @@ class OfflineDatabase {
     auth_token: string;
     refresh_token?: string;
     user: any;
+    auth_user_id?: string;
   }): Promise<void> {
     await this.put('authSession', {
       id: this.AUTH_SESSION_KEY,
@@ -203,6 +204,7 @@ class OfflineDatabase {
       auth_token: session.auth_token,
       refresh_token: session.refresh_token,
       user: session.user,
+      auth_user_id: session.auth_user_id,
       savedAt: Date.now(),
     });
   }
@@ -212,6 +214,7 @@ class OfflineDatabase {
     auth_token: string;
     refresh_token?: string;
     user: any;
+    auth_user_id?: string;
     savedAt: number;
   } | null> {
     await this.init();

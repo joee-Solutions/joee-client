@@ -11,7 +11,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/Textarea";
 import { DatePicker } from "@/components/ui/date-picker";
 import { FormDataStepper } from "../PatientStepper";
-import { usePathname } from "next/navigation";
 import useSWR from "swr";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { authFectcher } from "@/hooks/swr";
@@ -35,6 +34,7 @@ export const visitEntrySchema = z.array(
     quality: z.string().optional(),
     aggravatingFactors: z.string().optional(),
     diagnosis: z.string().optional(),
+    otherDiagnosis: z.string().optional(),
     diagnosisOnsetDate: z.string().optional().transform((val) => val ? new Date(val) : undefined),
     treatmentPlan: z.string().optional(),
     providerName: z.string().optional(),
@@ -63,14 +63,13 @@ const qualityOptions = ["Sharp", "Dull", "Burning", "Throbbing", "Aching"];
 const aggravatingFactors = ["Movement", "Rest", "Cold", "Heat", "Stress", "Food"];
 
 export default function MedicalVisitForm() {
-  const pathname = usePathname();
-  const orgSlug = pathname?.split('/organization/')[1]?.split('/')[0] || '';
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  
+
   const {
     control,
     watch,
     setValue,
+    register,
   } = useFormContext<Pick<FormDataStepper, 'visits'>>();
 
   const { fields, append, remove } = useFieldArray<Pick<FormDataStepper, 'visits'>>({
@@ -78,17 +77,19 @@ export default function MedicalVisitForm() {
     name: "visits",
   });
 
-  // Fetch employees for provider dropdown
-  const orgId = orgSlug && !isNaN(parseInt(orgSlug)) ? parseInt(orgSlug) : null;
-  
   const { data: employeesData, isLoading: employeesLoading, error: employeesError } = useSWR(
-    orgId ? API_ENDPOINTS.GET_TENANTS_EMPLOYEES(orgId) : null,
+    API_ENDPOINTS.GET_EMPLOYEE,
     authFectcher
   );
 
-  const employees = employeesData?.data || [];
+  const rawEmployees = Array.isArray(employeesData?.data) ? employeesData.data : (Array.isArray(employeesData) ? employeesData : []);
+  const employees = rawEmployees.map((emp: any) => ({
+    ...emp,
+    id: emp.id ?? emp._id,
+    displayName: `${emp.first_name ?? emp.firstname ?? ""} ${emp.last_name ?? emp.lastname ?? ""}`.trim() || emp.email || "—",
+  }));
   const useEmployeeDropdown = !employeesError && employees.length > 0;
-  
+
   const visits = watch("visits") || [];
 
   // Sort visits by date (most recent first)
@@ -112,6 +113,7 @@ export default function MedicalVisitForm() {
         quality: "",
         aggravatingFactors: "",
         diagnosis: "",
+        otherDiagnosis: "",
       diagnosisOnsetDate: undefined,
         treatmentPlan: "",
         providerName: "",
@@ -379,6 +381,16 @@ export default function MedicalVisitForm() {
                   triggerClassName="w-full p-3 border border-[#737373] h-14 rounded"
                   contentClassName="z-10 bg-white"
                 />
+                {field.value === "Other" && (
+                  <div className="mt-2">
+                    <label className="block text-sm text-black font-normal mb-1">Specify other condition</label>
+                    <Input
+                      {...register(`visits.${index}.otherDiagnosis`)}
+                      className="w-full h-12 p-3 border border-[#737373] rounded"
+                      placeholder="Enter condition"
+                    />
+                  </div>
+                )}
                 </div>
             )}
           />
@@ -437,11 +449,11 @@ export default function MedicalVisitForm() {
           </SelectTrigger>
           <SelectContent className="bg-white z-[1000]">
             {employees.map((employee: any) => (
-              <SelectItem 
-                key={employee.id} 
-                value={`${employee.firstname} ${employee.lastname}`}
+              <SelectItem
+                key={employee.id}
+                value={employee.displayName}
               >
-                {employee.firstname} {employee.lastname}
+                {employee.displayName}
               </SelectItem>
             ))}
           </SelectContent>

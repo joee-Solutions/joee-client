@@ -8,6 +8,8 @@ export type AuthSession = {
   auth_token: string;
   refresh_token?: string;
   user: any;
+  /** Logged-in user id (not tenant id) for /tenant/user/:id */
+  auth_user_id?: string;
   savedAt: number;
 };
 
@@ -36,6 +38,7 @@ export async function saveLastSession(tenant?: string): Promise<void> {
     auth_token,
     refresh_token: refresh_token ?? undefined,
     user: user ?? {},
+    auth_user_id: Cookies.get("auth_user_id") ?? undefined,
   });
 }
 
@@ -63,6 +66,9 @@ export async function restoreLastSessionToCookies(): Promise<boolean> {
   }
   if (session.user && typeof session.user === "object") {
     Cookies.set("user", JSON.stringify(session.user), { ...COOKIE_OPTS, expires: 7 });
+  }
+  if (session.auth_user_id) {
+    Cookies.set("auth_user_id", session.auth_user_id, { ...COOKIE_OPTS, expires: 7 });
   }
   return true;
 }

@@ -10,6 +10,7 @@ import { Spinner } from "@/components/icons/Spinner";
 import { processRequestNoAuth } from "@/framework/https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
 
 type ForgetPasswordProps = z.infer<typeof schema>;
 
@@ -34,11 +35,26 @@ const ForgetPassword = () => {
         API_ENDPOINTS.FORGOT_PASSWORD,
         data
       );
-      if (res) {
-        router.push(`/auth/forgot-password/${res.data.token}`);
+      const token =
+        res?.data?.data?.token ??
+        res?.data?.token ??
+        res?.data?.resetToken ??
+        res?.data?.reset_token ??
+        res?.token ??
+        res?.resetToken ??
+        res?.reset_token;
+      // Use path without tenant so middleware can rewrite correctly (subdomain adds tenant)
+      const base = "/forgot-password";
+      if (token && typeof token === "string" && token.length >= 10) {
+        router.push(`${base}/${encodeURIComponent(token)}`);
+      } else {
+        router.push(
+          `${base}/verify?email=${encodeURIComponent(data.email)}`
+        );
       }
     } catch (error) {
       console.log(error);
+      toast.error("Failed to send code. Please try again.");
     }
   };
   return (

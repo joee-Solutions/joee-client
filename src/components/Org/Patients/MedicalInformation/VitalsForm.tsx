@@ -52,7 +52,7 @@ export default function VitalSignsForm() {
 
   const handleAddNew = () => {
     append({
-      date: formatDateLocal(new Date()),
+      date: "",
       temperature: "",
       systolic: "",
       diastolic: "",

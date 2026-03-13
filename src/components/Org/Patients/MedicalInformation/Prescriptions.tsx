@@ -6,7 +6,6 @@ import { Checkbox } from "@/components/ui/Checkbox";
 import { DatePicker } from "@/components/ui/date-picker";
 import { FormDataStepper } from "../PatientStepper";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { usePathname } from "next/navigation";
 import useSWR from "swr";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { authFectcher } from "@/hooks/swr";
@@ -30,9 +29,6 @@ export const prescriptionSchema = z.array(z.object({
 export type PrescriptionFormData = z.infer<typeof prescriptionSchema>;
 
 export default function MedicationForm() {
-  const pathname = usePathname();
-  const orgSlug = pathname?.split('/organization/')[1]?.split('/')[0] || '';
-  
   const {
     register,
     control,
@@ -48,15 +44,17 @@ export default function MedicationForm() {
 
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
-  // Fetch employees for prescriber dropdown
-  const orgId = orgSlug && !isNaN(parseInt(orgSlug)) ? parseInt(orgSlug) : null;
-  
   const { data: employeesData, isLoading: employeesLoading, error: employeesError } = useSWR(
-    orgId ? API_ENDPOINTS.GET_TENANTS_EMPLOYEES(orgId) : null,
+    API_ENDPOINTS.GET_EMPLOYEE,
     authFectcher
   );
 
-  const employees = employeesData?.data || [];
+  const rawEmployees = Array.isArray(employeesData?.data) ? employeesData.data : (Array.isArray(employeesData) ? employeesData : []);
+  const employees = rawEmployees.map((emp: any) => ({
+    ...emp,
+    id: emp.id ?? emp._id,
+    displayName: `${emp.first_name ?? emp.firstname ?? ""} ${emp.last_name ?? emp.lastname ?? ""}`.trim() || emp.email || "—",
+  }));
   const useEmployeeDropdown = !employeesError && employees.length > 0;
 
   const prescriptions = watch('prescriptions') || [];
@@ -160,11 +158,11 @@ export default function MedicationForm() {
                             </SelectTrigger>
                             <SelectContent className="bg-white z-[1000]">
                               {employees.map((employee: any) => (
-                                <SelectItem 
-                                  key={employee.id} 
-                                  value={`${employee.firstname} ${employee.lastname}`}
+                                <SelectItem
+                                  key={employee.id}
+                                  value={employee.displayName}
                                 >
-                                  {employee.firstname} {employee.lastname}
+                                  {employee.displayName}
                                 </SelectItem>
                               ))}
                             </SelectContent>

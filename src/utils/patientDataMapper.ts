@@ -1,6 +1,143 @@
 import { FormDataStepper } from "@/components/Org/Patients/PatientStepper";
 import { formatPhoneNumber } from "@/utils/phoneFormatter";
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const E164_REGEX = /^\+\d{10,15}$/;
+
+function isValidEmail(val: unknown): boolean {
+  if (val == null) return false;
+  const s = typeof val === "string" ? val.trim() : String(val).trim();
+  return s.length > 0 && EMAIL_REGEX.test(s);
+}
+
+function isValidE164Phone(val: unknown): boolean {
+  if (val == null) return false;
+  const s = typeof val === "string" ? val.trim() : String(val).trim();
+  if (s.length === 0) return false;
+  const formatted = formatPhoneNumber(s);
+  return !!(formatted && E164_REGEX.test(formatted));
+}
+
+/**
+ * Returns a payload safe for POST/PATCH: contact_info is rebuilt so email/phone are only
+ * included when valid (backend rejects empty or invalid values).
+ */
+export function sanitizePatientPayloadForApi<T extends { contact_info?: any; emergencyInfo?: any }>(payload: T): T {
+  const out = JSON.parse(JSON.stringify(payload)) as T;
+  if (out.contact_info && typeof out.contact_info === "object") {
+    const src = out.contact_info as Record<string, unknown>;
+    // Rebuild contact_info: copy all keys except email/phone, then add those only when valid
+    const ci: Record<string, unknown> = {};
+    for (const key of Object.keys(src)) {
+      if (key === "email" || key === "email_work" || key === "phone_number_mobile" || key === "phone_number_home") continue;
+      ci[key] = src[key];
+    }
+    const email = (src.email != null && typeof src.email === "string") ? src.email.trim() : "";
+    if (email && EMAIL_REGEX.test(email)) ci.email = email;
+    const emailWork = (src.email_work != null && typeof src.email_work === "string") ? src.email_work.trim() : "";
+    if (emailWork && EMAIL_REGEX.test(emailWork)) ci.email_work = emailWork;
+    const mobileStr = (src.phone_number_mobile != null && String(src.phone_number_mobile).trim() !== "") ? String(src.phone_number_mobile).trim() : "";
+    if (mobileStr) {
+      const formatted = formatPhoneNumber(mobileStr);
+      if (formatted && E164_REGEX.test(formatted)) ci.phone_number_mobile = formatted;
+    }
+    const homeStr = (src.phone_number_home != null && String(src.phone_number_home).trim() !== "") ? String(src.phone_number_home).trim() : "";
+    if (homeStr) {
+      const formatted = formatPhoneNumber(homeStr);
+      if (formatted && E164_REGEX.test(formatted)) ci.phone_number_home = formatted;
+    }
+    // Final guard: never leave invalid values (backend validates if key is present)
+    if (ci.email !== undefined && !isValidEmail(ci.email)) delete ci.email;
+    if (ci.email_work !== undefined && !isValidEmail(ci.email_work)) delete ci.email_work;
+    if (ci.phone_number_mobile !== undefined && !isValidE164Phone(ci.phone_number_mobile)) delete ci.phone_number_mobile;
+    if (ci.phone_number_home !== undefined && !isValidE164Phone(ci.phone_number_home)) delete ci.phone_number_home;
+    if (ci.household_size !== undefined) {
+      const n = Number(ci.household_size);
+      ci.household_size = typeof n === "number" && !isNaN(n) ? n : 0;
+    }
+    out.contact_info = ci;
+  }
+  if (out.emergencyInfo && typeof out.emergencyInfo === "object") {
+    const ec = out.emergencyInfo as Record<string, unknown>;
+    const ecEmail = (ec.emergency_contact_email != null && typeof ec.emergency_contact_email === "string") ? ec.emergency_contact_email.trim() : "";
+    if (!ecEmail || !EMAIL_REGEX.test(ecEmail)) delete ec.emergency_contact_email;
+    else ec.emergency_contact_email = ecEmail;
+    ec.contact_emergency_contact = ec.contact_emergency_contact === true || ec.contact_emergency_contact === "Yes";
+  }
+  return out;
+}
+
+/**
+ * For CREATE (POST) only: omit sections that are empty so backend does not validate them.
+ * Ensures arrays are arrays and vitals numbers are numbers when sections are kept.
+ */
+export function prepareCreatePayload<T extends Record<string, any>>(
+  payload: T,
+  formData: FormDataStepper
+): T {
+  const out = JSON.parse(JSON.stringify(payload)) as T;
+
+  const hasContactData =
+    formData.addDemographic &&
+    (formData.addDemographic.email?.trim() ||
+      formData.addDemographic.workEmail?.trim() ||
+      formData.addDemographic.mobilePhone?.trim() ||
+      formData.addDemographic.homePhone?.trim() ||
+      formData.addDemographic.address?.trim() ||
+      formData.addDemographic.city?.trim() ||
+      formData.addDemographic.state?.trim() ||
+      formData.addDemographic.postal?.trim() ||
+      formData.addDemographic.country?.trim());
+  if (!hasContactData && out.contact_info) {
+    delete out.contact_info;
+  }
+
+  const hasEmergencyData =
+    formData.emergency &&
+    (formData.emergency.name?.trim() ||
+      formData.emergency.relationship?.trim() ||
+      formData.emergency.email?.trim() ||
+      formData.emergency.phone?.trim());
+  if (!hasEmergencyData && out.emergencyInfo) {
+    delete out.emergencyInfo;
+  }
+
+  const hasVitalsData =
+    formData.vitalSigns &&
+    Array.isArray(formData.vitalSigns) &&
+    formData.vitalSigns.length > 0;
+  if (!hasVitalsData && out.vitals) {
+    delete out.vitals;
+  }
+
+  // Backend requires these to be arrays and interpreter_required to be boolean — always set them
+  const o = out as Record<string, unknown>;
+  o.allergies = Array.isArray(o.allergies) ? o.allergies : [];
+  o.diagnosisHistory = Array.isArray(o.diagnosisHistory) ? o.diagnosisHistory : [];
+  o.prescriptions = Array.isArray(o.prescriptions) ? o.prescriptions : [];
+  o.visits = Array.isArray(o.visits) ? o.visits : [];
+  o.immunizations = Array.isArray(o.immunizations) ? o.immunizations : [];
+  o.medicalHistory = Array.isArray(o.medicalHistory) ? o.medicalHistory : [];
+  o.familyHistory = Array.isArray(o.familyHistory) ? o.familyHistory : [];
+  o.surgeries = Array.isArray(o.surgeries) ? o.surgeries : [];
+
+  if (out.vitals && typeof out.vitals === "object") {
+    const v = out.vitals as Record<string, unknown>;
+    if (v.height !== undefined) v.height = Number(v.height) || 0;
+    if (v.weight !== undefined) v.weight = Number(v.weight) || 0;
+    if (v.bmi !== undefined) v.bmi = Number(v.bmi) || 0;
+    if (v.pain_score !== undefined) v.pain_score = Number(v.pain_score) || 0;
+  }
+
+  o.interpreter_required =
+    typeof o.interpreter_required === "boolean"
+      ? o.interpreter_required
+      : formData.demographic?.interpreterRequired === "Yes" ||
+        formData.demographic?.interpreterRequired === "true" ||
+        false;
+  return out;
+}
+
 /**
  * Map form data to API DTO format
  */
@@ -52,21 +189,30 @@ export function mapFormDataToPatientDto(formData: FormDataStepper) {
     marital_status: demographic?.maritalStatus || '',
     race: demographic?.race || '',
     ethnicity: demographic?.ethnicity || '',
-    interpreter_required: demographic?.interpreterRequired === "Yes",
+    // Backend requires boolean; coerce so we never send undefined
+    interpreter_required: typeof demographic?.interpreterRequired === "boolean"
+      ? demographic.interpreterRequired
+      : (demographic?.interpreterRequired === "Yes" || demographic?.interpreterRequired === "true"),
     religion: demographic?.religion || '',
     gender_identity: demographic?.genderIdentity || '',
     sexual_orientation: demographic?.sexualOrientation || '',
-    // image field removed - not in backend schema
+    image: demographic?.patientImage && String(demographic.patientImage).trim() !== '' ? String(demographic.patientImage) : null,
 
     // Contact info - build object without phone numbers first, then conditionally add them
     contact_info: (() => {
+      const rawHs = addDemographic?.householdSize;
+      const householdSizeNum =
+        typeof rawHs === "number" && !isNaN(rawHs) ? rawHs : Number(rawHs);
+      const household_size =
+        typeof householdSizeNum === "number" && !isNaN(householdSizeNum)
+          ? householdSizeNum
+          : 0;
+
       const contactInfo: any = {
         country: addDemographic?.country || "",
         state: addDemographic?.state || "",
         city: addDemographic?.city || "",
         zip_code: addDemographic?.postal || "",
-        email: addDemographic?.email || "",
-        email_work: addDemographic?.workEmail || "",
         address: addDemographic?.address || "",
         current_address: addDemographic?.currentAddress || "",
         method_of_contact: addDemographic?.contactMethod || "",
@@ -75,12 +221,11 @@ export function mapFormDataToPatientDto(formData: FormDataStepper) {
           try {
             const dateStr = addDemographic.addressFrom;
             if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-              // Return as date string in YYYY-MM-DD format
               return dateStr;
             }
             const date = new Date(addDemographic.addressFrom);
             if (!isNaN(date.getTime())) {
-              return date.toISOString().split('T')[0]; // Return YYYY-MM-DD format
+              return date.toISOString().split('T')[0];
             }
             return null;
           } catch {
@@ -91,12 +236,11 @@ export function mapFormDataToPatientDto(formData: FormDataStepper) {
           try {
             const dateStr = addDemographic.addressTo;
             if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-              // Return as date string in YYYY-MM-DD format
               return dateStr;
             }
             const date = new Date(addDemographic.addressTo);
             if (!isNaN(date.getTime())) {
-              return date.toISOString().split('T')[0]; // Return YYYY-MM-DD format
+              return date.toISOString().split('T')[0];
             }
             return null;
           } catch {
@@ -107,10 +251,18 @@ export function mapFormDataToPatientDto(formData: FormDataStepper) {
         referral_source: addDemographic?.referralSource || "",
         occupational_status: addDemographic?.occupationStatus || "",
         industry: addDemographic?.industry || "",
-        household_size: addDemographic?.householdSize || 0,
+        household_size,
         notes: addDemographic?.notes || "",
       };
-      
+      // Only add emails if they are non-empty and valid (backend rejects empty string)
+      const emailVal = (addDemographic?.email || "").trim();
+      if (emailVal && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+        contactInfo.email = emailVal;
+      }
+      const workEmailVal = (addDemographic?.workEmail || "").trim();
+      if (workEmailVal && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(workEmailVal)) {
+        contactInfo.email_work = workEmailVal;
+      }
       // Only add phone numbers if they have valid, non-empty values
       // Format phone numbers before adding - must be valid E.164 format
       const mobilePhone = formatPhoneNumber(addDemographic?.mobilePhone);
@@ -137,8 +289,10 @@ export function mapFormDataToPatientDto(formData: FormDataStepper) {
       const emergencyInfo: any = {
         emergency_contact_name: emergency?.name || "",
         emergency_contact_relationship: emergency?.relationship || "",
-        // Only include email if it's valid, otherwise omit it (backend validates it must be email if present)
-        contact_emergency_contact: emergency?.permission === "Yes",
+        // Backend requires boolean
+        contact_emergency_contact:
+          emergency?.permission === "Yes" ||
+          String(emergency?.permission).toLowerCase() === "true",
       };
       
       // Only add email if it's a valid email address
@@ -165,13 +319,22 @@ export function mapFormDataToPatientDto(formData: FormDataStepper) {
       Guardian_sex: children?.sex,
     },
 
-    // Medical data arrays
-    allergies: allergies || [],
+    // Medical data arrays (when "Other" is selected, use the typed text as the value)
+    allergies: (allergies || []).map((item: any) => ({
+      ...item,
+      allergy: item?.allergy === "Other" && item?.otherAllergy ? item.otherAllergy : item?.allergy,
+    })),
     medicalHistory: medHistory || [],
-    diagnosisHistory: diagnosisHistory || [],
+    diagnosisHistory: (diagnosisHistory || []).map((item: any) => ({
+      ...item,
+      condition: item?.condition === "Other" && item?.otherCondition ? item.otherCondition : item?.condition,
+    })),
     surgeries: surgeryHistory || [],
     immunizations: immunizationHistory || [],
-    familyHistory: famhistory || [],
+    familyHistory: (famhistory || []).map((item: any) => ({
+      ...item,
+      conditions: item?.conditions === "Other" && item?.otherConditions ? item.otherConditions : item?.conditions,
+    })),
     status: patientStatus || {},
     socailHistory: lifeStyle ? {
       tobacco_use: lifeStyle.tobaccoUse || "",
@@ -188,7 +351,10 @@ export function mapFormDataToPatientDto(formData: FormDataStepper) {
       comment: lifeStyle.comment || "",
       notes: lifeStyle.comment || "",
     } : {},
-    visits: visits || [],
+    visits: (visits || []).map((item: any) => ({
+      ...item,
+      diagnosis: item?.diagnosis === "Other" && item?.otherDiagnosis ? item.otherDiagnosis : item?.diagnosis,
+    })),
     prescriptions: prescriptions || [],
     // Transform vitalSigns array to vitals object (take first/latest entry)
     vitals: (() => {
@@ -348,8 +514,19 @@ export function normalizePatientData(mappedData: ReturnType<typeof mapFormDataTo
     mappedData.contact_info.state = mappedData.contact_info.state || '';
     mappedData.contact_info.city = mappedData.contact_info.city || '';
     mappedData.contact_info.zip_code = mappedData.contact_info.zip_code || '';
-    mappedData.contact_info.email = mappedData.contact_info.email || '';
-    mappedData.contact_info.email_work = mappedData.contact_info.email_work || '';
+    // Backend requires email fields to be valid emails if present; omit when empty/invalid
+    const ciEmail = (mappedData.contact_info.email || '').trim();
+    if (!ciEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ciEmail)) {
+      delete mappedData.contact_info.email;
+    } else {
+      mappedData.contact_info.email = ciEmail;
+    }
+    const ciWorkEmail = (mappedData.contact_info.email_work || '').trim();
+    if (!ciWorkEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ciWorkEmail)) {
+      delete mappedData.contact_info.email_work;
+    } else {
+      mappedData.contact_info.email_work = ciWorkEmail;
+    }
     mappedData.contact_info.address = mappedData.contact_info.address || '';
     mappedData.contact_info.current_address = mappedData.contact_info.current_address || '';
     mappedData.contact_info.method_of_contact = mappedData.contact_info.method_of_contact || '';
@@ -359,15 +536,16 @@ export function normalizePatientData(mappedData: ReturnType<typeof mapFormDataTo
     mappedData.contact_info.industry = mappedData.contact_info.industry || '';
     mappedData.contact_info.notes = mappedData.contact_info.notes || '';
     
-    // Validate and format phone numbers - only include if valid, otherwise remove
-    if (mappedData.contact_info.phone_number_mobile !== undefined) {
+    // Validate and format phone numbers - only include if valid E.164, otherwise remove (backend rejects invalid/empty)
+    if (mappedData.contact_info.phone_number_mobile !== undefined && mappedData.contact_info.phone_number_mobile !== null && String(mappedData.contact_info.phone_number_mobile).trim() !== '') {
       const formattedMobile = formatPhoneNumber(mappedData.contact_info.phone_number_mobile);
       if (formattedMobile && /^\+\d{10,15}$/.test(formattedMobile)) {
         mappedData.contact_info.phone_number_mobile = formattedMobile;
       } else {
-        // Remove invalid phone number - don't send it to backend
         delete mappedData.contact_info.phone_number_mobile;
       }
+    } else {
+      delete mappedData.contact_info.phone_number_mobile;
     }
     
     if (mappedData.contact_info.phone_number_home !== undefined) {
@@ -432,13 +610,12 @@ export function normalizePatientData(mappedData: ReturnType<typeof mapFormDataTo
   if (mappedData.emergencyInfo) {
     mappedData.emergencyInfo.emergency_contact_name = mappedData.emergencyInfo.emergency_contact_name || '';
     mappedData.emergencyInfo.emergency_contact_relationship = mappedData.emergencyInfo.emergency_contact_relationship || '';
-    // Only include email if it's valid, otherwise set to empty string
-    if (mappedData.emergencyInfo.emergency_contact_email) {
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mappedData.emergencyInfo.emergency_contact_email)) {
-        mappedData.emergencyInfo.emergency_contact_email = '';
-      }
+    // Backend requires emergency_contact_email to be valid if present; omit when empty/invalid
+    const ecEmail = (mappedData.emergencyInfo.emergency_contact_email || '').trim();
+    if (!ecEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ecEmail)) {
+      delete mappedData.emergencyInfo.emergency_contact_email;
     } else {
-      mappedData.emergencyInfo.emergency_contact_email = '';
+      mappedData.emergencyInfo.emergency_contact_email = ecEmail;
     }
   }
   

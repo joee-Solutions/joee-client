@@ -142,7 +142,7 @@ export default function AllergyInformationForm() {
                 render={({ field }) => (
                   <>
                   <Select 
-                    value={field.value || undefined} 
+                    value={field.value ?? ""} 
                     onValueChange={(value) => {
                       console.log("Allergy selected:", value);
                       field.onChange(value);
@@ -239,7 +239,7 @@ export default function AllergyInformationForm() {
                 control={control}
                 name={`allergies.${index}.severity`}
                 render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
+                  <Select value={field.value ?? ""} onValueChange={field.onChange}>
                     <SelectTrigger className="w-full h-14 p-3 border border-gray-400 rounded">
                       <SelectValue placeholder="Select severity" />
                     </SelectTrigger>

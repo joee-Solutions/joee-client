@@ -1,8 +1,5 @@
 'use client';
 
-import Link from 'next/link';
-import Image from 'next/image';
-
 interface Department {
     id: string;
     code: string;
@@ -73,27 +70,9 @@ export default function DepartmentCard({
           )}
         </div>
         
-        <div className="bg-white p-6 pb-8">
-          {/* Profile Image Circle */}
-          <div className={`relative -mt-16 w-24 h-24 mx-auto rounded-full overflow-hidden border-4 ${department.borderColor} bg-white`}>
-            <div className="w-full h-full relative">
-              <Image
-                src={department.image}
-                alt={department.name}
-                fill
-                sizes="96px"
-                className="object-cover"
-                onError={(e) => {
-                  // Fallback to default image on error
-                  const target = e.target as HTMLImageElement;
-                  target.src = '/assets/department/department-bg.jpg';
-                }}
-              />
-            </div>
-          </div>
-          
+        <div className="bg-white p-6 pt-6 pb-8">
           {/* Department Name */}
-          <h3 className={`text-center text-xl font-bold mt-4 ${department.textColor}`}>
+          <h3 className={`text-center text-xl font-bold ${department.textColor}`}>
             {department.name}
           </h3>
           

@@ -31,16 +31,20 @@ export default function DepartmentCarousel({
   recentlyViewedId,
 }: DepartmentCarouselProps) {
   return (
-    <div className="relative">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div className="relative w-full">
+      <div className="flex gap-6 overflow-x-auto pb-2 scroll-smooth snap-x snap-mandatory [scrollbar-width:thin]">
         {departments.map((department, index) => (
-          <DepartmentCard
+          <div
             key={department.id}
-            department={department}
-            onClick={() => onDepartmentClick(department.id)}
-            onViewClick={onViewClick ? () => onViewClick(department) : undefined}
-            isRecentlyViewed={department.id === recentlyViewedId && index === 0}
-          />
+            className="flex-shrink-0 w-[280px] sm:w-[300px] snap-start"
+          >
+            <DepartmentCard
+              department={department}
+              onClick={() => onDepartmentClick(department.id)}
+              onViewClick={onViewClick ? () => onViewClick(department) : undefined}
+              isRecentlyViewed={department.id === recentlyViewedId && index === 0}
+            />
+          </div>
         ))}
       </div>
     </div>

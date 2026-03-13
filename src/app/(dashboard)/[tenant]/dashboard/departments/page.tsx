@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import DepartmentCarousel from '@/components/Org/Departments/DepartmentCarousel';
 import DepartmentList from '@/components/Org/Departments/DepartmentList';
 import AddDepartmentForm from '@/components/Org/Departments/AddDepartmentForm';
@@ -115,7 +114,8 @@ const mapApiToDepartment = (dept: any, index: number): Department => {
   const colors = getDepartmentColors(name, index);
   const code = dept.code || dept.code || generateDepartmentCode(name);
   const employeeCount = dept.userCount ?? dept.employee_count ?? dept.employeeCount ?? dept.users?.length ?? dept.employees?.length ?? 0;
-  const status = dept.status || (dept.is_active !== false ? 'Active' : 'Inactive');
+  const rawStatus = dept.status || (dept.is_active !== false ? 'Active' : 'Inactive');
+  const status = String(rawStatus).toLowerCase() === 'inactive' ? 'Inactive' : 'Active';
   const dateCreated = formatDate(dept.created_at || dept.dateCreated || dept.createdAt || new Date());
   const image = formatImageUrl(dept.image || dept.image_url || dept.imageUrl);
   const description = dept.description || dept.departmentDescription || "";
@@ -225,7 +225,6 @@ export default function DepartmentPage() {
     employeeCount?: number;
     description?: string;
     departmentDescription?: string;
-    departmentImage?: string;
   }>({});
 
   useEffect(() => {
@@ -346,13 +345,14 @@ export default function DepartmentPage() {
   const handleEditFromView = () => {
     setIsViewModalOpen(false);
     if (selectedDepartment) {
+      const normalizedStatus = String(selectedDepartment.status).toLowerCase() === 'inactive' ? 'Inactive' : 'Active';
       setEditFormData({
         name: selectedDepartment.name,
         code: selectedDepartment.code,
-        status: selectedDepartment.status,
+        status: normalizedStatus,
         employeeCount: selectedDepartment.employeeCount,
         description: selectedDepartment.description,
-        departmentImage: selectedDepartment.image,
+        departmentDescription: selectedDepartment.description || "",
       });
       setIsEditModalOpen(true);
     }
@@ -366,12 +366,10 @@ export default function DepartmentPage() {
     try {
       // Prepare the data for API
       const departmentData = {
-      name: String(newDepartment.name),
+        name: String(newDepartment.name),
         code: newDepartment.code || generateDepartmentCode(newDepartment.name),
         description: newDepartment.departmentDescription || newDepartment.description || "",
         status: newDepartment.status === 'Inactive' ? 'inactive' : 'active',
-        image: newDepartment.image || newDepartment.departmentImage || null,
-        // Include any other fields your API expects
       };
 
       // Make API call to create department using POST to /tenant/department
@@ -424,13 +422,13 @@ export default function DepartmentPage() {
   // Handle edit
   const handleEdit = (department: Department) => {
     setSelectedDepartment(department);
+    const normalizedStatus = String(department.status).toLowerCase() === 'inactive' ? 'Inactive' : 'Active';
     setEditFormData({
       name: department.name,
       code: department.code,
-      status: department.status,
+      status: normalizedStatus,
       employeeCount: department.employeeCount,
       departmentDescription: department.description || "",
-      departmentImage: department.image,
     });
     setIsEditModalOpen(true);
   };
@@ -490,8 +488,6 @@ export default function DepartmentPage() {
         code: updatedData.code || selectedDepartment.code,
         description: updatedData.departmentDescription || "",
         status: updatedData.status?.toLowerCase() === 'inactive' ? 'inactive' : 'active',
-        image: updatedData.departmentImage || updatedData.image || null,
-        // Include any other fields your API expects
       };
 
       // Make API call to update department using PATCH
@@ -682,44 +678,6 @@ export default function DepartmentPage() {
                     className="w-full h-14 p-3 border border-[#737373] rounded focus:outline-none focus:ring-2 focus:ring-[#003465]"
                   />
                 </div>
-                
-                <div className="flex-1">
-                  <label className="block text-base text-black font-normal mb-2">
-                    Upload Department Image
-                  </label>
-                  <div className="flex">
-                    <div className="flex-1 border h-14 border-[#737373] rounded flex items-center px-4">
-                      <span className="mr-2">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M9.29241 11.1974C9.26108 11.1664 9.21878 11.149 9.1747 11.149C9.13062 11.149 9.08832 11.1664 9.057 11.1974L6.63624 13.6184C5.51545 14.7393 3.62384 14.858 2.38638 13.6184C1.14684 12.3787 1.26558 10.4891 2.38638 9.36817L4.80714 6.94721C4.87172 6.88263 4.87172 6.77637 4.80714 6.71179L3.978 5.88258C3.94667 5.85156 3.90437 5.83416 3.86029 5.83416C3.81621 5.83416 3.77391 5.85156 3.74259 5.88258L1.32183 8.30353C-0.440611 10.0661 -0.440611 12.9183 1.32183 14.6788C3.08427 16.4393 5.93627 16.4414 7.69663 14.6788L10.1174 12.2579C10.182 12.1933 10.182 12.087 10.1174 12.0225L9.29241 11.1974ZM14.6797 1.32194C12.9173 -0.440647 10.0653 -0.440647 8.30494 1.32194L5.8821 3.74289C5.85108 3.77422 5.83369 3.81652 5.83369 3.86061C5.83369 3.90469 5.85108 3.94699 5.8821 3.97832L6.70916 4.80544C6.77374 4.87003 6.87998 4.87003 6.94457 4.80544L9.36532 2.38449C10.4861 1.2636 12.3777 1.14485 13.6152 2.38449C14.8547 3.62414 14.736 5.51381 13.6152 6.6347L11.1944 9.05565C11.1634 9.08698 11.146 9.12928 11.146 9.17336C11.146 9.21745 11.1634 9.25975 11.1944 9.29108L12.0236 10.1203C12.0881 10.1849 12.1944 10.1849 12.259 10.1203L14.6797 7.69933C16.4401 5.93675 16.4401 3.08453 14.6797 1.32194ZM10.0445 5.09087C10.0131 5.05985 9.97084 5.04245 9.92676 5.04245C9.88268 5.04245 9.84038 5.05985 9.80906 5.09087L5.09046 9.80777C5.05944 9.8391 5.04204 9.8814 5.04204 9.92548C5.04204 9.96957 5.05944 10.0119 5.09046 10.0432L5.91543 10.8682C5.98001 10.9328 6.08626 10.9328 6.15084 10.8682L10.8674 6.15134C10.9319 6.08676 10.9319 5.9805 10.8674 5.91591L10.0445 5.09087Z" fill="#737373"/>
-                        </svg>
-                      </span>
-                      <span className="text-gray-500">
-                        {editFormData.departmentImage && typeof editFormData.departmentImage === 'string'
-                          ? editFormData.departmentImage.split('/').pop() 
-                          : "Choose File"}
-                      </span>
-                    </div>
-                    <Button 
-                      type="button"
-                      className="bg-[#003465] hover:bg-[#102437] text-white px-6 py-2 h-14 rounded"
-                      onClick={() => document.getElementById('editFileInput')?.click()}
-                    >
-                      Browse
-                    </Button>
-                    <input 
-                      id="editFileInput"
-                      type="file" 
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          setEditFormData({ ...editFormData, departmentImage: file.name });
-                        }
-                      }}
-                    />
-                  </div>
-                </div>
               </div>
               
               <div>
@@ -739,9 +697,10 @@ export default function DepartmentPage() {
                 <div className="flex items-center space-x-4">
                   <div className="flex items-center space-x-2">
                     <input
-                      type="checkbox"
+                      type="radio"
+                      name="edit-status"
                       id="edit-active"
-                      checked={editFormData.status !== 'Inactive'}
+                      checked={String(editFormData.status).toLowerCase() !== 'inactive'}
                       onChange={() => setEditFormData({ ...editFormData, status: 'Active' })}
                       className="accent-green-600 w-6 h-6 rounded"
                     />
@@ -749,9 +708,10 @@ export default function DepartmentPage() {
                   </div>
                   <div className="flex items-center space-x-2">
                     <input
-                      type="checkbox"
+                      type="radio"
+                      name="edit-status"
                       id="edit-inactive"
-                      checked={editFormData.status === 'Inactive'}
+                      checked={String(editFormData.status).toLowerCase() === 'inactive'}
                       onChange={() => setEditFormData({ ...editFormData, status: 'Inactive' })}
                       className="accent-green-600 w-6 h-6 rounded"
                     />
@@ -791,21 +751,8 @@ export default function DepartmentPage() {
             </AlertDialogHeader>
             {selectedDepartment && (
               <div className="space-y-6 py-2">
-                {/* Department Image and Name Section */}
+                {/* Department Name Section */}
                 <div className="flex flex-col items-center space-y-4 pb-6 border-b border-gray-200">
-                  <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-[#003465] shadow-lg">
-                    <Image
-                      src={selectedDepartment.image}
-                      alt={selectedDepartment.name}
-                      fill
-                      sizes="128px"
-                      className="object-cover"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = '/assets/department/department-bg.jpg';
-                      }}
-                    />
-                  </div>
                   <div className="text-center">
                     <h3 className="text-2xl font-bold text-[#003465] mb-2">
                       {selectedDepartment.name}

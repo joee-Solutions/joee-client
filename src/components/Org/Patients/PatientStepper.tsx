@@ -210,12 +210,13 @@ interface PatientStepperProps {
 }
 
 // Normalize API value to match one of the dropdown options (Radix Select needs exact match)
+// Returns only a value that exists in options, or "" so the select can display correctly
 function normalizeToOption(options: string[], value: string | undefined | null): string {
   if (value == null || value === '') return '';
   const v = String(value).trim();
   if (!v) return '';
   const found = options.find((o) => o.toLowerCase() === v.toLowerCase());
-  return found ?? v;
+  return found ?? '';
 }
 
 // Helper function to map API patient data to form structure
@@ -243,16 +244,16 @@ const mapPatientDataToForm = (patientData: any): Partial<FormDataStepper> => {
       middleName: data.middlename || data.middle_name || '',
       preferredName: data.preferred_name || '',
       dateOfBirth: data.date_of_birth ? formatDateLocal(new Date(data.date_of_birth)) : '',
-      sex: normalizeToOption(opts.sex, rawSex) || rawSex || '',
-      suffix: normalizeToOption(opts.suffix, data.suffix) || data.suffix || '',
-      maritalStatus: normalizeToOption(opts.maritalStatus, data.marital_status) || data.marital_status || '',
-      race: normalizeToOption(opts.race, data.race) || data.race || '',
-      ethnicity: normalizeToOption(opts.ethnicity, data.ethnicity) || data.ethnicity || '',
-      preferredLanguage: normalizeToOption(opts.preferredLanguage, data.preferred_language) || data.preferred_language || '',
-      interpreterRequired: normalizeToOption(opts.interpreterRequired, interpreterStr) || interpreterStr || '',
-      religion: normalizeToOption(opts.religion, data.religion) || data.religion || '',
-      genderIdentity: normalizeToOption(opts.genderIdentity, data.gender_identity) || data.gender_identity || '',
-      sexualOrientation: normalizeToOption(opts.sexualOrientation, data.sexual_orientation) || data.sexual_orientation || '',
+      sex: normalizeToOption(opts.sex, rawSex),
+      suffix: normalizeToOption(opts.suffix, data.suffix),
+      maritalStatus: normalizeToOption(opts.maritalStatus, data.marital_status),
+      race: normalizeToOption(opts.race, data.race),
+      ethnicity: normalizeToOption(opts.ethnicity, data.ethnicity),
+      preferredLanguage: normalizeToOption(opts.preferredLanguage, data.preferred_language),
+      interpreterRequired: normalizeToOption(opts.interpreterRequired, interpreterStr),
+      religion: normalizeToOption(opts.religion, data.religion),
+      genderIdentity: normalizeToOption(opts.genderIdentity, data.gender_identity),
+      sexualOrientation: normalizeToOption(opts.sexualOrientation, data.sexual_orientation),
       patientImage: data.image || data.patient_image || '',
     },
     addDemographic: {
@@ -502,6 +503,17 @@ export default function PatientStepper({ slug, patientId: propPatientId, onSaveC
     resolver: zodResolver(formSchema),
     mode: 'onChange',
     defaultValues: {
+      demographic: {
+        firstName: '',
+        lastName: '',
+        middleName: '',
+        preferredName: '',
+        dateOfBirth: '',
+        patientImage: '',
+        ...Object.fromEntries(
+          Object.keys(demographicDropdownOptions).map((k) => [k, ''])
+        ),
+      },
       patientStatus: {
         dischargeEntries: []
       },
@@ -1069,11 +1081,8 @@ export default function PatientStepper({ slug, patientId: propPatientId, onSaveC
                   <div className="bg-yellow-50 border border-yellow-200 rounded p-3 mt-3">
                     <p className="text-sm font-semibold text-yellow-800 mb-1">⚠️ Required fields before saving:</p>
                     <ul className="text-sm text-yellow-700 list-disc list-inside space-y-1">
-                      <li>First Name</li>
-                      <li>Last Name</li>
-                      <li>Gender</li>
-                      <li>Email</li>
-                      <li>Address</li>
+                      <li>First Name (Patient Demographics)</li>
+                      <li>Last Name (Patient Demographics)</li>
                     </ul>
                   </div>
                 </AlertDialogDescription>

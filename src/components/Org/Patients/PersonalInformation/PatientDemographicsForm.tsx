@@ -23,8 +23,8 @@ export const PatientDemoSchema = z.object({
   middleName: z.string().optional(),
   lastName: z.string().min(1, "Last name is required"),
   preferredName: z.string().optional(),
-  sex: z.string().min(1, "Gender is required"),
-  dateOfBirth: z.string().min(1, "Date of birth is required"),
+  sex: z.string().optional(),
+  dateOfBirth: z.string().optional(),
   maritalStatus: z.string().optional(),
   race: z.string().optional(),
   ethnicity: z.string().optional(),
@@ -134,12 +134,15 @@ export default function PatientInfoForm() {
   }, [currentImage]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setFileName(file.name);
-      // Store file name in form state so it persists
-      setValue("demographic.patientImage", file.name);
-    }
+    const file = e.target.files?.[0];
+    if (!file || !file.type.startsWith("image/")) return;
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      setValue("demographic.patientImage", dataUrl);
+    };
+    reader.readAsDataURL(file);
   };
 
 
@@ -268,7 +271,8 @@ export default function PatientInfoForm() {
                       {key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
                     </label>
                     <Select 
-                      value={field.value || undefined} 
+                      key={`demographic-${key}-${field.value ?? ""}`}
+                      value={field.value ?? ""} 
                       onValueChange={(value) => {
                         field.onChange(value);
                       }}

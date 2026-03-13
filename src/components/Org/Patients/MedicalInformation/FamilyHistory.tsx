@@ -22,9 +22,10 @@ type FamilyHistoryEntry = {
 
 export const famHistorySchema = z.array(
   z.object({
-    date: z.string().optional(), // Add date field for list view
+    date: z.string().optional(),
     relative: z.string().optional(),
     conditions: z.string().optional(),
+    otherConditions: z.string().optional(),
     ageOfDiagnosis: z.string().optional(),
     currentAge: z.string().optional(),
   })
@@ -59,6 +60,7 @@ export default function FamilyHistoryForm() {
       date: formatDateLocal(new Date()),
       relative: "", 
       conditions: "", 
+      otherConditions: "", 
       ageOfDiagnosis: "", 
       currentAge: "" 
     });
@@ -150,15 +152,27 @@ export default function FamilyHistoryForm() {
                         name={`famhistory.${index}.conditions`}
                         control={control}
                         render={({ field }) => (
-                          <SearchableSelect
-                            value={field.value || ""}
-                            onValueChange={field.onChange}
-                            options={MEDICAL_CONDITIONS}
-                            placeholder="Select condition"
-                            searchPlaceholder="Search conditions..."
-                            triggerClassName="w-full h-14 p-3 border border-[#737373] rounded"
-                            contentClassName="z-10 bg-white"
-                          />
+                          <>
+                            <SearchableSelect
+                              value={field.value || ""}
+                              onValueChange={field.onChange}
+                              options={MEDICAL_CONDITIONS}
+                              placeholder="Select condition"
+                              searchPlaceholder="Search conditions..."
+                              triggerClassName="w-full h-14 p-3 border border-[#737373] rounded"
+                              contentClassName="z-10 bg-white"
+                            />
+                            {field.value === "Other" && (
+                              <div className="mt-2">
+                                <label className="block text-sm text-black font-normal mb-1">Specify other condition</label>
+                                <Input
+                                  {...register(`famhistory.${index}.otherConditions`)}
+                                  className="w-full h-12 p-3 border border-[#737373] rounded"
+                                  placeholder="Enter condition"
+                                />
+                              </div>
+                            )}
+                          </>
                         )}
                       />
                       {errors.famhistory?.[index]?.conditions && (

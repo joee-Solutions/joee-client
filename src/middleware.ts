@@ -61,7 +61,7 @@ export async function middleware(request: NextRequest) {
     // This prevents 404 errors when accessing /login without a tenant
     if (pathName.startsWith("/login") || 
         pathName.startsWith("/dashboard") || 
-        pathName.startsWith("/verify-otp") ||
+        pathName.startsWith("/verify-login-otp") ||
         pathName.startsWith("/forgot-password") ||
         pathName.startsWith("/reset-password")) {
       // Redirect tenant-specific routes to root page with a message

@@ -25,7 +25,22 @@ type VerifyOtpLogin = z.infer<typeof schema>;
 const schema = z.object({
   otp: z.string().length(6),
 });
-const VerifyOtpLoginClient = ({ token }: { token: string }) => {
+function getDashboardPath(tenant?: string) {
+  const isSubdomain =
+    typeof window !== "undefined" &&
+    window.location.hostname.split(".").length > 1 &&
+    window.location.hostname.split(".")[0] !== "www";
+  return isSubdomain ? "/dashboard" : tenant ? `/${tenant}/dashboard` : "/dashboard";
+}
+export function getLoginPath(tenant?: string) {
+  const isSubdomain =
+    typeof window !== "undefined" &&
+    window.location.hostname.split(".").length > 1 &&
+    window.location.hostname.split(".")[0] !== "www";
+  return isSubdomain ? "/login" : tenant ? `/${tenant}/login` : "/login";
+}
+
+const VerifyOtpLoginClient = ({ token, tenant }: { token: string; tenant?: string }) => {
   useEffect(() => {}, []);
   const router = useRouter();
   const {
@@ -43,12 +58,12 @@ const VerifyOtpLoginClient = ({ token }: { token: string }) => {
     try {
       // Get MFA token from cookie or prop
       const mfaToken = Cookies.get("mfa_token") || token;
-      
+
       if (!mfaToken) {
         toast.error("Session expired. Please login again.", {
           toastId: "session-expired",
         });
-        router.push("/login");
+        router.push(getLoginPath(tenant));
         return;
       }
 
@@ -61,24 +76,30 @@ const VerifyOtpLoginClient = ({ token }: { token: string }) => {
           token: mfaToken,
         }
       );
-      
-      // Extract auth token from response
-      const authToken = 
-        rt.data?.data?.token ||
-        rt.data?.token ||
-        rt.token;
-      
-      const refreshToken = 
-        rt.data?.data?.refresh_token ||
-        rt.data?.refresh_token ||
-        rt.refresh_token;
-      
-      const user = 
-        rt.data?.data?.user ||
-        rt.data?.user ||
-        rt.user;
 
-      if (authToken && (rt.status === true || rt?.data?.status === true || authToken)) {
+      const resData = rt.data?.data ?? rt.data;
+      // After OTP backend returns data.accessToken (and optionally data.refreshToken)
+      const authToken =
+        resData?.accessToken ??
+        resData?.tokens?.accessToken ??
+        rt.data?.accessToken ??
+        rt.data?.data?.token ??
+        rt.data?.token ??
+        rt.token;
+      const refreshToken =
+        resData?.refreshToken ??
+        resData?.tokens?.refreshToken ??
+        rt.data?.data?.refresh_token ??
+        rt.data?.refresh_token ??
+        rt.refresh_token;
+      const user =
+        resData?.user ??
+        rt.data?.data?.user ??
+        rt.data?.user ??
+        rt.user;
+      const isSuccess = rt.status === true || rt?.data?.status === true || !!authToken;
+
+      if (authToken && isSuccess) {
         // Remove MFA token
         Cookies.remove("mfa_token");
         
@@ -100,12 +121,23 @@ const VerifyOtpLoginClient = ({ token }: { token: string }) => {
         
         // Save user data
         if (user) {
-          const userData = typeof user === 'object' ? user : { email: user };
+          const roles = resData?.roles ?? rt.data?.roles ?? [];
+          const userData = {
+            ...(typeof user === "object" ? user : { email: user }),
+            roles: Array.isArray(roles) ? roles : [roles],
+          };
           Cookies.set("user", JSON.stringify(userData), {
-            expires: 7, // 7 days
-            sameSite: 'lax',
-            path: '/'
+            expires: 7,
+            sameSite: "lax",
+            path: "/",
           });
+          if ((userData as { id?: number }).id != null) {
+            Cookies.set("auth_user_id", String((userData as { id: number }).id), {
+              expires: 7,
+              sameSite: "lax",
+              path: "/",
+            });
+          }
         }
         
         // Set OTP verified cookie - this ensures user won't be asked for OTP again
@@ -116,14 +148,14 @@ const VerifyOtpLoginClient = ({ token }: { token: string }) => {
         });
         
         // Persist session for offline restore
-        saveLastSession().catch(() => {});
+        saveLastSession(tenant).catch(() => {});
         
         toast.success("Login successful!", {
           toastId: "success",
           delay: 1000,
         });
-        
-        router.push(`/dashboard`);
+
+        router.push(getDashboardPath(tenant));
       } else {
         toast.error("Invalid OTP. Please try again.", {
           toastId: "invalid-otp",
@@ -138,7 +170,7 @@ const VerifyOtpLoginClient = ({ token }: { token: string }) => {
         error?.response?.data?.error === "Invalid Session"
       ) {
         Cookies.remove("mfa_token");
-        router.push("/login");
+        router.push(getLoginPath(tenant));
       }
       
       const errorMessage = 

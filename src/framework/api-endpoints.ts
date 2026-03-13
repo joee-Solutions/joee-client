@@ -1,16 +1,20 @@
 export const API_ENDPOINTS = {
   LOGIN: "/auth/tenant/login",
-  FORGOT_PASSWORD: "/tenant/auth/forgot-password",
+  FORGOT_PASSWORD: "/auth/tenant/forgot-password",
   RESET_PASSWORD: "/auth/tenant/reset-password",
-  VERIFY_LOGIN: "/tenant/auth/verify-otp",
-  VERIFY_OTP: "/tenant/auth/verify-otp", // For password reset OTP verification
+  VERIFY_LOGIN: "/auth/tenant/verify-otp",
+  VERIFY_OTP: "/auth/tenant/verify-otp", // For password reset OTP verification
   RESEND_OTP: "/tenant/auth/resend-otp",
   REFRESH_TOKEN: "/auth/tenant/refresh",
 
-  // Profile endpoints (GET, PATCH)
+  // Profile endpoints (GET, PATCH) — tenant org profile
   GET_PROFILE: "/tenant/profile",
   UPDATE_PROFILE: "/tenant/profile",
   CHANGE_PASSWORD: "/tenant/change-password",
+
+  /** Logged-in user (Settings > Personal Information): GET + PATCH */
+  GET_TENANT_USER: (userId: number | string) => `/tenant/user/${userId}`,
+  PATCH_TENANT_USER: (userId: number | string) => `/tenant/user/${userId}`,
 
   // Dashboard endpoints
   GET_DEPARTMENTS: "/tenant/department",

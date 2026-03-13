@@ -13,7 +13,7 @@ import { useState, useEffect, useRef } from "react";
 import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { toast } from "react-toastify";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import FieldBox from "@/components/shared/form/FieldBox";
@@ -21,6 +21,7 @@ import FieldFileInput from "@/components/shared/form/FieldFileInput";
 import FieldSelect from "@/components/shared/form/FieldSelect";
 import FieldTextBox from "@/components/shared/form/FieldTextBox";
 import FormComposer from "@/components/shared/form/FormComposer";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -395,13 +396,23 @@ export default function EmployeePage() {
       // Fetch employee details from API
       const employeeDetails = await fetchEmployeeDetails(employee.id);
       
-      // Map API response to form data format with comprehensive field mapping
+      // Prefer row's status (what we show in table) so View → Edit shows correct Active/Inactive
+      const viewIsActive =
+        employee?.status !== undefined
+          ? String(employee.status).toLowerCase() === "active"
+          : employeeDetails?.is_active !== undefined
+            ? !!employeeDetails.is_active
+            : employeeDetails?.isActive !== undefined
+              ? !!employeeDetails.isActive
+              : String(employeeDetails?.status ?? "active").toLowerCase() === "active";
+      const viewStatus = viewIsActive ? "Active" : "Inactive";
       const mappedData = {
         firstName: employeeDetails?.firstname || employeeDetails?.first_name || employeeDetails?.firstName || employee?.firstName || '',
         lastName: employeeDetails?.lastname || employeeDetails?.last_name || employeeDetails?.lastName || employee?.lastName || '',
         designation: employeeDetails?.designation || employeeDetails?.title || employee?.designation || '',
         departmentName: employeeDetails?.department?.name || employeeDetails?.department?.departmentName || employeeDetails?.department_name || employeeDetails?.departmentName || employee?.departmentName || '',
-        status: employeeDetails?.status || (employeeDetails?.is_active !== undefined ? (employeeDetails.is_active ? 'Active' : 'Inactive') : (employeeDetails?.isActive !== undefined ? (employeeDetails.isActive ? 'Active' : 'Inactive') : (employee?.status || 'Active'))),
+        status: viewStatus,
+        is_active: viewIsActive,
         email: employeeDetails?.email || employeeDetails?.email_address || '',
         phoneNumber: employeeDetails?.phone_number || employeeDetails?.phone || employeeDetails?.phoneNumber || '',
         address: employeeDetails?.address || employeeDetails?.street_address || '',
@@ -419,12 +430,14 @@ export default function EmployeePage() {
       console.error("Failed to load employee details:", error);
       // Fallback to existing data if API fails
       const fullData = getFullEmployeeData(employee);
+      const fallbackIsActive = String(employee?.status ?? "Active").toLowerCase() === "active";
       setEditFormData({
         firstName: employee.firstName || '',
         lastName: employee.lastName || '',
         designation: employee.designation || '',
         departmentName: employee.departmentName || '',
-        status: employee.status || 'Active',
+        status: employee.status || "Active",
+        is_active: fallbackIsActive,
         email: fullData?.email || fullData?.email_address || '',
         phoneNumber: fullData?.phone_number || fullData?.phone || fullData?.phoneNumber || '',
         address: fullData?.address || fullData?.street_address || '',
@@ -447,6 +460,18 @@ export default function EmployeePage() {
     const employeeData = getFullEmployeeData(employee);
     console.log("Employee data from list:", employeeData);
     
+    // Use the row's status as source of truth (what we show in the table) so the correct radio is selected
+    const isActive =
+      employee?.status !== undefined
+        ? String(employee.status).toLowerCase() === "active"
+        : employeeData?.is_active !== undefined
+          ? !!employeeData.is_active
+          : employeeData?.isActive !== undefined
+            ? !!employeeData.isActive
+            : employeeData?.status !== undefined
+              ? String(employeeData.status).toLowerCase() === "active"
+              : true;
+
     // Map employee data to form data format with comprehensive field mapping
     const mappedData = {
       firstName: employeeData?.firstname || employeeData?.first_name || employeeData?.firstName || employee?.firstName || '',
@@ -454,15 +479,7 @@ export default function EmployeePage() {
       designation: employeeData?.designation || employeeData?.title || employeeData?.role || employee?.designation || '',
       departmentName: employeeData?.department?.name || employeeData?.department?.departmentName || employeeData?.department_name || employeeData?.departmentName || employeeData?.department || employee?.departmentName || '',
       department: employeeData?.department?.id || employeeData?.department_id || employeeData?.departmentId || '',
-      is_active: employeeData?.is_active !== undefined 
-        ? employeeData.is_active 
-        : (employeeData?.isActive !== undefined 
-          ? employeeData.isActive 
-          : (employeeData?.status !== undefined
-            ? (typeof employeeData.status === 'string' 
-              ? employeeData.status.toLowerCase() === 'active' 
-              : employeeData.status)
-            : true)),
+      is_active: isActive,
       email: employeeData?.email || employeeData?.email_address || '',
       phoneNumber: employeeData?.phone_number || employeeData?.phone || employeeData?.phoneNumber || '',
       address: employeeData?.address || employeeData?.street_address || '',
@@ -611,28 +628,29 @@ export default function EmployeePage() {
     }
   };
 
-  // Employee form schema
+  // Employee form schema - no required fields
   const EmployeeSchema = z.object({
-    firstName: z.string({ required_error: "This field is required" }),
-    lastName: z.string({ required_error: "This field is required" }),
+    firstName: z.string().optional(),
+    lastName: z.string().optional(),
     email: z
-      .string({ required_error: "This field is required" })
-      .email("Invalid email address"),
-    phoneNumber: z.string({ required_error: "This field is required" }),
-    address: z.string({ required_error: "This field is required" }),
-    state: z.string({ required_error: "This field is required" }),
-    dob: z.string({ required_error: "This field is required" }),
+      .string()
+      .optional()
+      .refine((v) => !v || v === "" || z.string().email().safeParse(v).success, "Invalid email address"),
+    phoneNumber: z.string().optional(),
+    address: z.string().optional(),
+    state: z.string().optional(),
+    dob: z.string().optional(),
     specialty: z.string().optional(),
-    designation: z.string({ required_error: "This field is required" }),
-    department: z.string({ required_error: "This field is required" }),
-    gender: z.string({ required_error: "This field is required" }),
+    designation: z.string().optional(),
+    department: z.string().optional(),
+    gender: z.string().optional(),
     employeeImage: z
       .instanceof(File)
       .optional()
       .refine((f) => !f || ["image/png", "image/jpeg", "image/jpg"].includes(f.type), {
         message: "Unsupported image file",
       }),
-    hireDate: z.string({ required_error: "This field is required" }),
+    hireDate: z.string().optional(),
     bio: z.string().optional(),
   });
 
@@ -673,31 +691,29 @@ export default function EmployeePage() {
       // Prepare data object (excluding the file)
       const { employeeImage, ...employeeData } = data;
       
-      // Transform data to match API expected format (lowercase field names)
+      // Transform data to match API expected format (lowercase field names); all fields optional
       const transformedData = {
-        firstname: employeeData.firstName,
-        lastname: employeeData.lastName,
-        email: employeeData.email,
-        phone_number: employeeData.phoneNumber,
-        address: employeeData.address,
-        state: employeeData.state,
-        date_of_birth: employeeData.dob,
-        specialty: employeeData.specialty || "",
-        designation: employeeData.designation,
-        gender: employeeData.gender,
-        hire_date: employeeData.hireDate,
-        bio: employeeData.bio || "",
+        firstname: employeeData.firstName ?? "",
+        lastname: employeeData.lastName ?? "",
+        email: employeeData.email ?? "",
+        phone_number: employeeData.phoneNumber ?? "",
+        address: employeeData.address ?? "",
+        state: employeeData.state ?? "",
+        date_of_birth: employeeData.dob ?? "",
+        specialty: employeeData.specialty ?? "",
+        designation: employeeData.designation ?? "",
+        gender: employeeData.gender ?? "",
+        hire_date: employeeData.hireDate ?? "",
+        bio: employeeData.bio ?? "",
       };
-      
-      // Use the API endpoint /tenant/employee/{departmentId}
-      // Pass the file separately if it exists
+
       const fileToUpload = employeeImage instanceof File ? employeeImage : undefined;
-      
+      const deptId = (departmentId ?? "").toString().trim() || "0";
       await processRequestOfflineAuth(
-        "post", 
-        `${API_ENDPOINTS.GET_EMPLOYEE}/${departmentId}`, 
-        transformedData, 
-        undefined, 
+        "post",
+        `${API_ENDPOINTS.GET_EMPLOYEE}/${deptId}`,
+        transformedData,
+        undefined,
         fileToUpload
       );
       
@@ -767,13 +783,13 @@ export default function EmployeePage() {
         description="Employees are the foundation for ensuring good health"
       />
       <div className="flex flex-col py-[50px] px-[30px]">
-        {/* Employee Cards */}
+        {/* Employee Cards - horizontal scroll */}
         {!showForm && (
-          <div className="grid grid-cols-[repeat(auto-fit,_minmax(260px,_1fr))] gap-[19px] mb-10">
+          <div className="flex gap-[19px] overflow-x-auto pb-2 mb-10 scroll-smooth snap-x snap-mandatory [scrollbar-width:thin]">
           {employeeCards.map((empCard) => (
             <div
               key={empCard.id}
-              className="rounded-[10px] shadow-[0px_4px_4px_0px_#00000040] bg-white flex flex-col overflow-hidden"
+              className="flex-shrink-0 w-[260px] snap-start rounded-[10px] shadow-[0px_4px_4px_0px_#00000040] bg-white flex flex-col overflow-hidden"
             >
               <div
                 style={{
@@ -898,13 +914,26 @@ export default function EmployeePage() {
                     />
                   </div>
                   <div className="grid sm:grid-cols-2 gap-[18px]">
-                    <FieldBox
-                      control={employeeForm.control}
-                      labelText="Date of Birth"
-                      name="dob"
-                      type="date"
-                      placeholder="Enter here"
-                    />
+                    <div className="flex flex-col gap-1">
+                      <label className="font-medium text-base text-black">Date of Birth</label>
+                      <Controller
+                        control={employeeForm.control}
+                        name="dob"
+                        render={({ field }) => (
+                          <DatePicker
+                            placeholder="Pick date of birth"
+                            date={field.value ? (() => {
+                              const d = new Date(field.value);
+                              return isNaN(d.getTime()) ? undefined : d;
+                            })() : undefined}
+                            onDateChange={(date) => field.onChange(date ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}` : "")}
+                          />
+                        )}
+                      />
+                      {employeeForm.formState.errors.dob && (
+                        <p className="text-red-500 text-sm mt-1">{String(employeeForm.formState.errors.dob.message)}</p>
+                      )}
+                    </div>
                     <FieldBox
                       control={employeeForm.control}
                       labelText="Specialty"
@@ -971,13 +1000,26 @@ export default function EmployeePage() {
                     </div>
                   </div>
                   <div className="grid sm:grid-cols-2 gap-[18px]">
-                    <FieldBox
-                      control={employeeForm.control}
-                      labelText="Hire date"
-                      name="hireDate"
-                      type="date"
-                      placeholder="Enter here"
-                    />
+                    <div className="flex flex-col gap-1">
+                      <label className="font-medium text-base text-black">Hire date</label>
+                      <Controller
+                        control={employeeForm.control}
+                        name="hireDate"
+                        render={({ field }) => (
+                          <DatePicker
+                            placeholder="Pick hire date"
+                            date={field.value ? (() => {
+                              const d = new Date(field.value);
+                              return isNaN(d.getTime()) ? undefined : d;
+                            })() : undefined}
+                            onDateChange={(date) => field.onChange(date ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}` : "")}
+                          />
+                        )}
+                      />
+                      {employeeForm.formState.errors.hireDate && (
+                        <p className="text-red-500 text-sm mt-1">{String(employeeForm.formState.errors.hireDate.message)}</p>
+                      )}
+                    </div>
                   </div>
                   <FieldTextBox
                     control={employeeForm.control}
@@ -1464,22 +1506,38 @@ export default function EmployeePage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-black mb-1">Status</label>
-                <select
-                  value={editFormData.is_active === undefined ? "true" : editFormData.is_active.toString()}
-                  onChange={(e) => {
-                    const newIsActive = e.target.value === "true";
-                    console.log("Status changed to:", newIsActive, "from value:", e.target.value);
-                    setEditFormData({ ...editFormData, is_active: newIsActive });
-                  }}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#003465] ${
-                    editFormData.is_active === false 
-                      ? "border-red-300 bg-red-50 text-red-900" 
-                      : "border-green-300 bg-green-50 text-green-900"
-                  }`}
-                >
-                  <option value="true">Active</option>
-                  <option value="false">Inactive</option>
-                </select>
+                <div className="flex items-center gap-6 pt-1">
+                  {(() => {
+                    const isActive =
+                      editFormData.is_active !== undefined
+                        ? !!editFormData.is_active
+                        : String(editFormData.status ?? "").toLowerCase() !== "inactive";
+                    return (
+                      <>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="edit-employee-status"
+                            checked={isActive}
+                            onChange={() => setEditFormData({ ...editFormData, is_active: true })}
+                            className="accent-green-600 w-4 h-4"
+                          />
+                          <span>Active</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="edit-employee-status"
+                            checked={!isActive}
+                            onChange={() => setEditFormData({ ...editFormData, is_active: false })}
+                            className="accent-green-600 w-4 h-4"
+                          />
+                          <span>Inactive</span>
+                        </label>
+                      </>
+                    );
+                  })()}
+                </div>
               </div>
             </div>
             <div>

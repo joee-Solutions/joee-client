@@ -23,7 +23,13 @@ type ResetPasswordOtpProps = z.infer<typeof schema>;
 const schema = z.object({
   otp: z.string().length(6),
 });
-const ResetPasswordOtpClient = ({ token }: { token: string }) => {
+const ResetPasswordOtpClient = ({
+  token,
+  email,
+}: {
+  token?: string;
+  email?: string;
+}) => {
   useEffect(() => {}, []);
   const router = useRouter();
   const {
@@ -39,17 +45,26 @@ const ResetPasswordOtpClient = ({ token }: { token: string }) => {
       return;
     }
     try {
-      const res = await processRequestNoAuth("post", API_ENDPOINTS.VERIFY_OTP, {
+      const body: { otp: string; token?: string; email?: string } = {
         otp: data.otp,
-        token,
-      });
-      if (res.status === "success" && res.token) {
-        router.push(`/auth/reset-password?token=${res.token}`);
+      };
+      if (token) body.token = token;
+      if (email) body.email = email;
+      const res = await processRequestNoAuth("post", API_ENDPOINTS.VERIFY_OTP, body);
+      const nextToken =
+        res?.token ?? res?.data?.token ?? res?.data?.data?.token;
+      if (res?.status === "success" && nextToken) {
+        toast.success("OTP verified successfully. Enter your new password.");
+        router.push(`/reset-password?token=${encodeURIComponent(nextToken)}`);
+      } else if (res && !res.status) {
+        const t = res?.token ?? res?.data?.token ?? res?.data?.data?.token;
+        if (t) {
+          toast.success("OTP verified successfully. Enter your new password.");
+          router.push(`/reset-password?token=${encodeURIComponent(t)}`);
+        }
       }
-      console.log("res-->", res);
-    } catch (error:any) {
-      console.log(error, "ekekek");
-      toast.error(error?.response?.data.error);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.error ?? "Verification failed");
     }
   };
   return (
@@ -98,13 +113,21 @@ const ResetPasswordOtpClient = ({ token }: { token: string }) => {
         </form>
       </div>
 
-      <div className="extra-details flex justify-center gap-2 text-xs md:text-sm mb-7">
-        Didn&apos;t receive the email?
+      <div className="extra-details flex flex-col items-center gap-2 text-xs md:text-sm mb-7">
+        <span className="flex gap-1">
+          Didn&apos;t receive the email?{" "}
+          <Link
+            href="/forgot-password"
+            className="text-brand-400 hover:underline"
+          >
+            Click to resend?
+          </Link>
+        </span>
         <Link
-          href={"/forgot-password"}
-          className="text-brand-400 hover:underline"
+          href="/login"
+          className="text-[#FAD900] hover:underline flex items-center gap-1"
         >
-          Click to resend?
+          ← Back to Login
         </Link>
       </div>
     </div>

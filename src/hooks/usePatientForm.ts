@@ -4,7 +4,35 @@ import { toast } from "react-toastify";
 import { FormDataStepper } from "@/components/Org/Patients/PatientStepper";
 import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
-import { mapFormDataToPatientDto, normalizePatientData } from "../utils/patientDataMapper";
+import { mapFormDataToPatientDto, normalizePatientData, sanitizePatientPayloadForApi, prepareCreatePayload } from "../utils/patientDataMapper";
+import { formatPhoneNumber } from "@/utils/phoneFormatter";
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const E164_REGEX = /^\+\d{10,15}$/;
+
+function isValidEmail(val: unknown): boolean {
+  if (val == null) return false;
+  const s = typeof val === "string" ? val.trim() : String(val).trim();
+  return s.length > 0 && EMAIL_REGEX.test(s);
+}
+
+function isValidE164Phone(val: unknown): boolean {
+  if (val == null) return false;
+  const s = typeof val === "string" ? String(val).trim() : String(val).trim();
+  if (s.length === 0) return false;
+  const formatted = formatPhoneNumber(s);
+  return !!(formatted && E164_REGEX.test(formatted));
+}
+
+/** Strip contact_info email/phone so backend never receives invalid values (POST/PATCH). */
+function stripInvalidContactFields(payload: any): void {
+  const ci = payload?.contact_info;
+  if (!ci || typeof ci !== "object") return;
+  if (!isValidEmail(ci.email)) delete ci.email;
+  if (!isValidEmail(ci.email_work)) delete ci.email_work;
+  if (!isValidE164Phone(ci.phone_number_mobile)) delete ci.phone_number_mobile;
+  if (!isValidE164Phone(ci.phone_number_home)) delete ci.phone_number_home;
+}
 import { validateRequiredFields, getFirstStepWithMissingData } from "@/utils/patientValidation";
 
 interface UsePatientFormOptions {
@@ -58,7 +86,7 @@ export function usePatientForm({
           toast.error(`Please fill in required fields: ${validation.errors.join(', ')}`, { 
             toastId: "validation-error",
             autoClose: 5000,
-            position: "bottom-right"
+            position: "top-right"
           });
           setError(validation.errors.join(', '));
           // Navigate to the first step with missing data
@@ -75,13 +103,18 @@ export function usePatientForm({
           const mappedData = mapFormDataToPatientDto(formData);
           normalizePatientData(mappedData, formData);
           
+          let payload = sanitizePatientPayloadForApi(mappedData);
+          stripInvalidContactFields(payload);
+          if (!patientId) {
+            payload = prepareCreatePayload(payload, formData);
+          }
           let response;
           if (patientId) {
             // Update existing patient
             response = await processRequestOfflineAuth(
               "patch",
               API_ENDPOINTS.UPDATE_PATIENT(patientId),
-              mappedData
+              payload
             );
           } else {
             // Check if patient with this email already exists before creating
@@ -106,7 +139,7 @@ export function usePatientForm({
                   toast.error(`A patient with email ${patientEmail} already exists. Please use a different email or edit the existing patient.`, {
                     toastId: "duplicate-email-error",
                     autoClose: 5000,
-                    position: "bottom-right"
+                    position: "top-right"
                   });
                   setError(`Patient with email ${patientEmail} already exists`);
                   setLoading(false);
@@ -122,7 +155,7 @@ export function usePatientForm({
             response = await processRequestOfflineAuth(
               "post",
               API_ENDPOINTS.CREATE_PATIENT,
-              mappedData
+              payload
             );
             
             // Store the created patient ID
@@ -142,7 +175,7 @@ export function usePatientForm({
           toast.success("Patient saved successfully", {
             toastId: "save-success",
             autoClose: 2000,
-            position: "bottom-right",
+            position: "top-right",
           });
           setHasUnsavedChanges(false);
           setIsSavedToAPI(true); // Mark as saved to API
@@ -171,7 +204,7 @@ export function usePatientForm({
         toast.success("Data auto-saved", { 
           toastId: "auto-save",
           autoClose: 2000,
-          position: "bottom-right"
+          position: "top-right"
         });
       }
       // Don't reset hasUnsavedChanges on localStorage save - only on API save
@@ -195,7 +228,7 @@ export function usePatientForm({
       toast.info("Save already in progress, please wait...", { 
         toastId: "save-in-progress",
         autoClose: 2000,
-        position: "bottom-right"
+        position: "top-right"
       });
       return;
     }
@@ -204,12 +237,11 @@ export function usePatientForm({
     const validation = validateRequiredFields(formData);
     
     if (!validation.isValid) {
-      // Show detailed error message
-      const errorMessage = `Cannot save: Please fill in all required fields:\n\n${validation.errors.map((err, idx) => `${idx + 1}. ${err}`).join('\n')}\n\nRequired fields: First Name, Last Name, Gender, Email, and Address.`;
+      const errorMessage = `Cannot save: Please fill in required fields:\n\n${validation.errors.map((err, idx) => `${idx + 1}. ${err}`).join('\n')}\n\nRequired: First Name and Last Name (Patient Demographics).`;
       toast.error(errorMessage, { 
         toastId: "save-validation-error",
         autoClose: 7000,
-        position: "bottom-right"
+        position: "top-right"
       });
       setError(validation.errors.join(', '));
       // Navigate to the first step with missing data

@@ -12,6 +12,7 @@ const HomePage = () => {
     Cookies.remove("auth_token");
     Cookies.remove("refresh_token");
     Cookies.remove("user");
+    Cookies.remove("auth_user_id");
     Cookies.remove("otp_verified");
     await clearLastSession();
     router.push("/login");
@@ -47,7 +48,7 @@ const HomePage = () => {
         if (restored) hasAuth = true;
       }
       
-      if (!hasAuth && !currentPath.includes("/login") && !currentPath.includes("/verify-otp")) {
+      if (!hasAuth && !currentPath.includes("/login") && !currentPath.includes("/verify-login-otp")) {
         router.push("/login");
       }
     };

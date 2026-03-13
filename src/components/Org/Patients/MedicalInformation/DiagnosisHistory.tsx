@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Controller, useFieldArray, useFormContext } from "react-hook-form";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -15,6 +16,7 @@ export const diagnosisHistorySchema = z.array(
     id: z.number().optional(),
     date: z.string().optional(),
     condition: z.string().optional(),
+    otherCondition: z.string().optional(),
     onsetDate: z.string().optional(),
     endDate: z.string().optional(),
     comments: z.string().optional(),
@@ -51,6 +53,7 @@ export default function DiagnosisHistoryForm() {
       id: Date.now(),
       date: formatDateLocal(new Date()),
       condition: "",
+      otherCondition: "",
       onsetDate: "",
       endDate: "",
       comments: "",
@@ -121,15 +124,27 @@ export default function DiagnosisHistoryForm() {
                         name={`diagnosisHistory.${index}.condition`}
                         control={control}
                         render={({ field }) => (
-                          <SearchableSelect
-                            value={field.value || ""}
-                            onValueChange={field.onChange}
-                            options={MEDICAL_CONDITIONS}
-                            placeholder="Select condition"
-                            searchPlaceholder="Search conditions..."
-                            triggerClassName="w-full h-14 p-3 border border-[#737373] rounded"
-                            contentClassName="z-10 bg-white"
-                          />
+                          <>
+                            <SearchableSelect
+                              value={field.value || ""}
+                              onValueChange={field.onChange}
+                              options={MEDICAL_CONDITIONS}
+                              placeholder="Select condition"
+                              searchPlaceholder="Search conditions..."
+                              triggerClassName="w-full h-14 p-3 border border-[#737373] rounded"
+                              contentClassName="z-10 bg-white"
+                            />
+                            {field.value === "Other" && (
+                              <div className="mt-2">
+                                <label className="block text-sm text-black font-normal mb-1">Specify other condition</label>
+                                <Input
+                                  {...register(`diagnosisHistory.${index}.otherCondition`)}
+                                  className="w-full h-12 p-3 border border-[#737373] rounded"
+                                  placeholder="Enter condition"
+                                />
+                              </div>
+                            )}
+                          </>
                         )}
                       />
                       {errors.diagnosisHistory?.[index]?.condition && (

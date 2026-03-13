@@ -57,7 +57,8 @@ const ResetPasswordClient = () => {
       return;
     }
     if (!token) {
-      toast.error("Please request for a new Otp");
+      toast.error("Please request for a new OTP");
+      return;
     }
     try {
       const res = await processRequestNoAuth(
@@ -68,11 +69,13 @@ const ResetPasswordClient = () => {
           password: data.password,
         }
       );
-      if (res.status) {
+      if (res?.status || res?.data?.status) {
+        toast.success("Password reset successfully. You can now log in.");
         router.push("/login");
       }
     } catch (error) {
       console.log(error);
+      toast.error("Failed to reset password. Please try again.");
     }
   };
   const handleShowPassword = () => {

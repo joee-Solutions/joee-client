@@ -125,130 +125,99 @@ const TenantLoginPage = () => {
 
       // Check if response is successful
       if (response) {
-        // Extract tokens from response
-        // Response structure: { success: true, data: { tokens: { accessToken: "...", refreshToken: "..." }, user: {...} } }
-        const authToken = 
-          response.data?.data?.tokens?.accessToken ||  // New structure: data.data.tokens.accessToken
-          response.data?.tokens?.accessToken ||        // Alternative: data.tokens.accessToken
-          response.data?.data?.token ||                // Old structure: data.data.token
-          response.data?.token ||
-          response.token || 
-          response.auth_token || 
-          response.data?.auth_token;
-        
-        const mfaToken = 
-          response.data?.data?.mfa_token ||
-          response.data?.mfa_token ||
-          response.mfa_token;
-        
-        // Check if OTP verification is required (first-time login)
-        // Backend indicates OTP is required by:
-        // 1. Returning requires_otp: true flag, OR
-        // 2. Returning mfa_token instead of direct token, OR
-        // 3. Not returning a direct auth token
-        const requiresOtp = 
-          response.data?.data?.requires_otp === true ||
-          response.data?.requires_otp === true ||
-          response.requires_otp === true ||
-          (!!mfaToken && !authToken); // If mfa_token exists but no auth token, OTP is required
-        
-        // Check if user has already verified OTP (stored in cookie)
-        const otpVerified = Cookies.get("otp_verified") === "true";
-        
-        // If OTP is required (first-time login) and user hasn't verified yet, redirect to OTP page
-        if (requiresOtp && !otpVerified && mfaToken) {
-          // Save MFA token for OTP verification
-          Cookies.set("mfa_token", mfaToken, {
+        const data = response.data?.data ?? response.data;
+        const hasMfaRequired = data?.mfa_required === true;
+        const mfaTokenFromData = data?.token; // When mfa_required: true, data.token is the OTP verification token
+        const accessToken = 
+          data?.tokens?.accessToken ||
+          response.data?.tokens?.accessToken;
+        const hasFullLogin = Boolean(accessToken);
+
+        // OTP only when first-time login: backend sends data.token (not data.tokens.accessToken) + mfa_required: true
+        // Show OTP page so user can verify; after verify, backend returns data.tokens.accessToken and we go to dashboard
+        if (hasMfaRequired && mfaTokenFromData) {
+          Cookies.set("mfa_token", mfaTokenFromData, {
             expires: 1 / 24, // 1 hour
-            sameSite: 'lax',
-            path: '/'
+            sameSite: "lax",
+            path: "/",
           });
-          
+
           toast.info("Please verify your email with the OTP code sent to you.", {
             toastId: "otp-required",
             autoClose: 3000,
           });
-          
+
           router.push(
             typeof window !== "undefined" &&
               window.location.hostname.split(".").length > 1 &&
               window.location.hostname.split(".")[0] !== "www"
-              ? "/verify-otp"
+              ? "/verify-login-otp"
               : tenant
-                ? `/${tenant}/verify-otp`
-                : "/verify-otp"
+                ? `/${tenant}/verify-login-otp`
+                : "/verify-login-otp"
           );
           return;
         }
-        
-        // If we have a direct auth token, OTP is not required (user has logged in before)
-        // Proceed with normal login flow
-        
-        const refreshToken = 
-          response.data?.data?.tokens?.refreshToken ||  // New structure: data.data.tokens.refreshToken
-          response.data?.tokens?.refreshToken ||        // Alternative: data.tokens.refreshToken
-          response.data?.data?.refresh_token ||
-          response.data?.refresh_token ||
-          response.refresh_token;
-        
-        // Extract user data - could be in different locations in response
-        const user = 
-          response.data?.data?.user ||        // New structure: data.data.user
-          response.data?.data?.data?.user ||
-          response.data?.user || 
-          response.user ||
-          response.data?.data;
 
-        if (authToken) {
-          // Save authentication tokens with longer expiration (7 days)
-          // Using sameSite: 'lax' for better compatibility and path: '/' to ensure cookies are accessible site-wide
-          Cookies.set("auth_token", authToken, { 
-            expires: 7, // 7 days
-            sameSite: 'lax',
-            path: '/'
+        // Full login: backend returns { data: { tokens: { accessToken, refreshToken }, user, ... } }
+        // Proceed to dashboard
+        if (hasFullLogin) {
+          const refreshToken =
+            data?.tokens?.refreshToken ||
+            response.data?.tokens?.refreshToken;
+          const user =
+            data?.user ||
+            response.data?.data?.user ||
+            response.data?.user ||
+            response.user;
+          Cookies.set("auth_token", accessToken, {
+            expires: 7,
+            sameSite: "lax",
+            path: "/",
           });
-          
+
           if (refreshToken) {
-            Cookies.set("refresh_token", refreshToken, { 
-              expires: 30, // 30 days for refresh token
-              sameSite: 'lax',
-              path: '/'
+            Cookies.set("refresh_token", refreshToken, {
+              expires: 30,
+              sameSite: "lax",
+              path: "/",
             });
           }
-          
-          // Save user data from login response
+
           if (user) {
-            // Ensure we have a proper user object
-            const userData = typeof user === 'object' ? user : { email: user };
-            Cookies.set("user", JSON.stringify(userData), { 
-              expires: 7, // 7 days
-              sameSite: 'lax',
-              path: '/'
+            const roles = data?.roles ?? response.data?.roles ?? [];
+            const userData = {
+              ...(typeof user === "object" ? user : { email: user }),
+              roles: Array.isArray(roles) ? roles : [roles],
+            };
+            Cookies.set("user", JSON.stringify(userData), {
+              expires: 7,
+              sameSite: "lax",
+              path: "/",
             });
-            console.log("Saved user data from login:", userData);
-          } else {
-            console.warn("No user data found in login response:", response);
+            if (userData.id != null) {
+              Cookies.set("auth_user_id", String(userData.id), {
+                expires: 7,
+                sameSite: "lax",
+                path: "/",
+              });
+            }
           }
 
-          // If we received a direct auth token (not MFA token), user has already verified OTP before
-          // Set otp_verified cookie so they won't be asked for OTP again
-          if (authToken && !mfaToken) {
-            Cookies.set("otp_verified", "true", {
-              expires: 365, // 1 year
-              sameSite: 'lax',
-              path: '/'
-            });
-          }
+          Cookies.set("otp_verified", "true", {
+            expires: 365,
+            sameSite: "lax",
+            path: "/",
+          });
 
-          // Persist session for offline restore
           saveLastSession(tenant).catch(() => {});
 
-      toast.success("Login successful!", {
+          toast.success("Login successful!", {
             toastId: "login-success",
             autoClose: 3000,
-      });
-          
-      router.push(
+          });
+
+          router.push(
             typeof window !== "undefined" &&
               window.location.hostname.split(".").length > 1 &&
               window.location.hostname.split(".")[0] !== "www"
@@ -257,13 +226,14 @@ const TenantLoginPage = () => {
                 ? `/${tenant}/dashboard`
                 : "/dashboard"
           );
-        } else {
-          // Unexpected response format - no token found
-          console.error("Login response:", response);
-          toast.error("Unexpected response from server. No authentication token received.", {
-            toastId: "login-error",
-          });
+          return;
         }
+
+        // Unexpected: neither MFA token nor accessToken
+        console.error("Login response:", response);
+        toast.error("Unexpected response from server. No authentication token received.", {
+          toastId: "login-error",
+        });
       }
     } catch (error: any) {
       console.error("Login error:", error);

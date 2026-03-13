@@ -3,7 +3,8 @@
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import userProfileImage from "./../../../../../../public/assets/orgProfileImage.png";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import Cookies from "js-cookie";
 import {
   CloudBackupIcon,
   PasswordLockIcon,
@@ -17,8 +18,10 @@ import Settings from "./Settings";
 import { useRouter, useParams, usePathname } from "next/navigation";
 import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
+import { isTenantAdmin, getRolesFromUser } from "@/utils/permissions";
+import { parseTenantProfileResponse } from "@/utils/profile-api";
 
-const tabBtns = [
+const allTabBtns = [
   { icon: UserIcon, label: "Personal Information", currTab: 1 },
   { icon: PasswordLockIcon, label: "Change Password", currTab: 2 },
   { icon: CloudBackupIcon, label: "Backup Restore", currTab: 3 },
@@ -47,13 +50,36 @@ export default function SettingsPage() {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
 
+  const userJson = typeof window !== "undefined" ? Cookies.get("user") : null;
+  const user = useMemo(() => {
+    try {
+      return userJson ? JSON.parse(userJson) : null;
+    } catch {
+      return null;
+    }
+  }, [userJson]);
+  const roles = getRolesFromUser(user);
+  const isAdmin = isTenantAdmin(roles);
+  const tabBtns = useMemo(
+    () =>
+      isAdmin
+        ? allTabBtns
+        : allTabBtns.filter((t) => t.currTab === 1 || t.currTab === 2),
+    [isAdmin]
+  );
+
+  useEffect(() => {
+    if (!isAdmin && (currTab === 3 || currTab === 4)) setCurrTab(1);
+  }, [isAdmin, currTab]);
+
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         setProfileLoading(true);
         const response = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_PROFILE);
-        const data = response?.data ?? (response as any)?.data?.data ?? response;
-        if (data) setProfile(data);
+        const { profile: tenantProfile } = parseTenantProfileResponse(response);
+        if (tenantProfile) setProfile(tenantProfile as ProfileData);
+        else setProfile(null);
       } catch {
         setProfile(null);
       } finally {
