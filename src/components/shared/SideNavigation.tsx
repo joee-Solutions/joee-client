@@ -1,8 +1,8 @@
 "use client";
-import { useMemo, type ComponentType } from "react";
 import { sideNavigation } from "@/utils/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import React, { useMemo } from "react";
 import Cookies from "js-cookie";
 import { usePathname, useRouter } from "next/navigation";
 import { clearLastSession } from "@/lib/auth-store";
@@ -82,7 +82,7 @@ const SideNavigation = ({ onClose }: SideNavigationProps) => {
         <p>LociCare by Joee</p>
       </div>
       {visibleNav.map((item) => {
-        const NavIcon = item.icon as ComponentType<{
+        const NavIcon = item.icon as React.ComponentType<{
           size?: number;
           className?: string;
         }> | null;

@@ -290,9 +290,7 @@ export function mapFormDataToPatientDto(formData: FormDataStepper) {
         emergency_contact_name: emergency?.name || "",
         emergency_contact_relationship: emergency?.relationship || "",
         // Backend requires boolean
-        contact_emergency_contact:
-          emergency?.permission === "Yes" ||
-          String(emergency?.permission).toLowerCase() === "true",
+        contact_emergency_contact: emergency?.permission === "Yes",
       };
       
       // Only add email if it's a valid email address

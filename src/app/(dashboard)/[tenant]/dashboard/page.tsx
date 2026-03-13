@@ -6,6 +6,7 @@ import StatCard from "@/components/dashboard/StatCard";
 import AppointmentsChart from "@/components/dashboard/AppointmentsChart";
 import EmployeeSection from "@/components/dashboard/EmployeeSection";
 import PatientsDonut from "@/components/dashboard/PatientsDonut";
+import ScheduleList from "@/components/dashboard/ScheduleList";
 import DepartmentsStatus from "@/components/dashboard/DepartmentsStatus";
 import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
@@ -49,6 +50,7 @@ const DashboardPage: NextPage = () => {
   const [employeesData, setEmployeesData] = useState<any[]>([]);
   const [appointmentsData, setAppointmentsData] = useState<any[]>([]);
   const [departmentsData, setDepartmentsData] = useState<any[]>([]);
+  const [schedulesData, setSchedulesData] = useState<any[]>([]);
 
   useEffect(() => {
     loadDashboardStats();
@@ -70,6 +72,7 @@ const DashboardPage: NextPage = () => {
 
   const roles = useMemo(() => getRolesFromUser(userData), [userData]);
   const showEmployeeSection = isTenantAdmin(roles);
+  const isTenantUser = !showEmployeeSection;
 
   // Extract user name - matching MainHeader logic
   const getUserName = () => {
@@ -268,6 +271,29 @@ const DashboardPage: NextPage = () => {
       setDepartmentsData([]);
     }
 
+    // Load schedules (handle errors gracefully - endpoint may not be available)
+    try {
+      const schedulesRes = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_SCHEDULES);
+      // Handle different response structures
+      const schedules = Array.isArray(schedulesRes?.data?.data)
+        ? schedulesRes.data.data
+        : Array.isArray(schedulesRes?.data)
+        ? schedulesRes.data
+        : Array.isArray(schedulesRes)
+        ? schedulesRes
+        : [];
+      setSchedulesData(schedules);
+    } catch (error: any) {
+      // Silently handle 500 errors - endpoint may not be implemented yet
+      if (error?.response?.status === 500) {
+        // Endpoint not available or server error - silently fail
+        setSchedulesData([]);
+      } else {
+        // Log other errors (401, 403, 404, etc.)
+        console.error("Failed to load schedules:", error);
+        setSchedulesData([]);
+      }
+    }
   };
 
   // Transform patients data for PatientsDonut component
@@ -544,17 +570,46 @@ const DashboardPage: NextPage = () => {
           </span>
         </div>
 
-        {/* Top Row: Stat Cards (hide Employees card for Tenant_User) */}
-        <div className={`grid grid-cols-1 gap-6 mb-6 ${showEmployeeSection ? "md:grid-cols-2 lg:grid-cols-4" : "md:grid-cols-3"}`}>
-          <StatCard
-            title="Departments"
-            value={stats.departments.count}
-            growth={stats.departments.growth}
-            color="blue"
-            icon={stats.departments.icon}
-            href="/dashboard/departments"
-          />
-          {showEmployeeSection && (
+        {/* Top Row: Stat Cards */}
+        {isTenantUser ? (
+          <div className="flex flex-col gap-6 mb-6">
+            <StatCard
+              title="Departments"
+              value={stats.departments.count}
+              growth={stats.departments.growth}
+              color="blue"
+              icon={stats.departments.icon}
+              href="/dashboard/departments"
+            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <StatCard
+                title="Patients"
+                value={stats.patients.count}
+                growth={stats.patients.growth}
+                color="yellow"
+                icon={stats.patients.icon}
+                href="/dashboard/patients"
+              />
+              <StatCard
+                title="Appointments"
+                value={stats.appointments.count}
+                growth={stats.appointments.growth}
+                color="red"
+                icon={stats.appointments.icon}
+                href="/dashboard/appointments"
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 mb-6 md:grid-cols-2 lg:grid-cols-4">
+            <StatCard
+              title="Departments"
+              value={stats.departments.count}
+              growth={stats.departments.growth}
+              color="blue"
+              icon={stats.departments.icon}
+              href="/dashboard/departments"
+            />
             <StatCard
               title="Employees"
               value={stats.employees.count}
@@ -563,42 +618,52 @@ const DashboardPage: NextPage = () => {
               icon={stats.employees.icon}
               href="/dashboard/employees"
             />
-          )}
-          <StatCard
-            title="Patients"
-            value={stats.patients.count}
-            growth={stats.patients.growth}
-            color="yellow"
-            icon={stats.patients.icon}
-            href="/dashboard/patients"
-          />
-          <StatCard
-            title="Appointments"
-            value={stats.appointments.count}
-            growth={stats.appointments.growth}
-            color="red"
-            icon={stats.appointments.icon}
-            href="/dashboard/appointments"
-          />
-        </div>
+            <StatCard
+              title="Patients"
+              value={stats.patients.count}
+              growth={stats.patients.growth}
+              color="yellow"
+              icon={stats.patients.icon}
+              href="/dashboard/patients"
+            />
+            <StatCard
+              title="Appointments"
+              value={stats.appointments.count}
+              growth={stats.appointments.growth}
+              color="red"
+              icon={stats.appointments.icon}
+              href="/dashboard/appointments"
+            />
+          </div>
+        )}
 
-        {/* Patients + Appointments charts side by side */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <PatientsDonut data={getPatientsDonutData()} />
-          <AppointmentsChart data={getAppointmentsChartData()} />
-        </div>
-
-        {/* Admin: employee section full width */}
-        {showEmployeeSection && (
-          <div className="mb-6">
+        {/* Middle: Tenant_User — Patients + Appointments charts side by side; Admin — stacked charts + Employees */}
+        {isTenantUser ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <PatientsDonut data={getPatientsDonutData()} />
+            <AppointmentsChart data={getAppointmentsChartData()} />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <div className="flex flex-col space-y-4">
+              <PatientsDonut data={getPatientsDonutData()} />
+              <AppointmentsChart data={getAppointmentsChartData()} />
+            </div>
             <EmployeeSection employees={getEmployeesForSection()} />
           </div>
         )}
 
-        {/* Departments status */}
-        <div className="grid grid-cols-1 gap-6">
-          <DepartmentsStatus data={getDepartmentsStatusData()} colors={colors} />
-        </div>
+        {/* Bottom: Tenant_User — Departments only (no Schedule List); Admin — Departments + Schedule List */}
+        {isTenantUser ? (
+          <div className="grid grid-cols-1 gap-6">
+            <DepartmentsStatus data={getDepartmentsStatusData()} colors={colors} />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <DepartmentsStatus data={getDepartmentsStatusData()} colors={colors} />
+            <ScheduleList schedules={schedulesData} />
+          </div>
+        )}
       </main>
     </div>
   );
