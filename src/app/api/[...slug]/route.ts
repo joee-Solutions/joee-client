@@ -5,6 +5,32 @@ import axios from "axios";
 import { NextResponse, type NextRequest } from "next/server";
 const apiUrl = siteConfig.host;
 
+/** When the server cannot reach the backend (offline, DNS, firewall). Avoids leaking ENOTFOUND into JSON. */
+function proxyNetworkErrorResponse(error: unknown): NextResponse {
+  const err = error as { code?: string; message?: string };
+  const unreachable =
+    err?.code === "ENOTFOUND" ||
+    err?.code === "ECONNREFUSED" ||
+    err?.code === "ETIMEDOUT" ||
+    err?.code === "EAI_AGAIN" ||
+    (typeof err?.message === "string" &&
+      (err.message.includes("getaddrinfo") || err.message.includes("ENOTFOUND")));
+  if (unreachable) {
+    return NextResponse.json(
+      {
+        error: "backend_unreachable",
+        message:
+          "API server unreachable (network or DNS). Use the app offline with cached data when possible.",
+      },
+      { status: 503 }
+    );
+  }
+  return NextResponse.json(
+    { error: err?.message || "Proxy request failed" },
+    { status: 500 }
+  );
+}
+
 // Helper function to extract tenant subdomain from request
 const getTenantId = (req: NextRequest): string | undefined => {
   const host = req.headers.get("host") || "";
@@ -111,11 +137,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(error.response.data, {
         status: error.response.status,
       });
-    } else if (error) {
-      return NextResponse.json(error, { status: 500 });
-    } else {
-      return NextResponse.json("An error occurred", { status: 500 });
     }
+    return proxyNetworkErrorResponse(error);
   }
 }
 
@@ -202,11 +225,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(error.response.data, {
         status: error.response.status,
       });
-    } else if (error) {
-      return NextResponse.json(error, { status: 500 });
-    } else {
-      return NextResponse.json("An error occurred", { status: 500 });
     }
+    return proxyNetworkErrorResponse(error);
   }
 }
 
@@ -270,11 +290,8 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json(error.response.data, {
         status: error.response.status,
       });
-    } else if (error) {
-      return NextResponse.json(error, { status: 500 });
-    } else {
-      return NextResponse.json("An error occurred", { status: 500 });
     }
+    return proxyNetworkErrorResponse(error);
   }
 }
 
@@ -321,11 +338,8 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json(error.response.data, {
         status: error.response.status,
       });
-    } else if (error) {
-      return NextResponse.json(error, { status: 500 });
-    } else {
-      return NextResponse.json("An error occurred", { status: 500 });
     }
+    return proxyNetworkErrorResponse(error);
   }
 }
 
@@ -389,10 +403,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json(error.response.data, {
         status: error.response.status,
       });
-    } else if (error) {
-      return NextResponse.json(error, { status: 500 });
-    } else {
-      return NextResponse.json("An error occurred", { status: 500 });
     }
+    return proxyNetworkErrorResponse(error);
   }
 }

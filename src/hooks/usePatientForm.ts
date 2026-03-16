@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 import { FormDataStepper } from "@/components/Org/Patients/PatientStepper";
 import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
+import { getApiErrorMessagesString } from "@/utils/api-error";
 import { mapFormDataToPatientDto, normalizePatientData, sanitizePatientPayloadForApi, prepareCreatePayload } from "../utils/patientDataMapper";
 import { formatPhoneNumber } from "@/utils/phoneFormatter";
 
@@ -189,12 +190,13 @@ export function usePatientForm({
           }
         } catch (error: any) {
           console.error("Failed to save to API:", error);
-          const errorMessage = error?.response?.data?.message || error?.message || "Failed to save to server";
-          toast.error(`${errorMessage}. Data saved locally.`, { 
+          const errorText = getApiErrorMessagesString(error, "Failed to save to server.");
+          toast.error(`${errorText} Data saved locally.`, { 
             toastId: "save-api-error",
-            autoClose: 4000 
+            autoClose: 7000,
+            position: "top-right",
           });
-          setError(errorMessage);
+          setError(errorText);
         } finally {
           setLoading(false);
         }

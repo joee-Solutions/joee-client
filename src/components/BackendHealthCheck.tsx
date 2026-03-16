@@ -4,14 +4,17 @@ import { toast } from "react-toastify";
 import { checkBackendConnection } from "@/utils/health-check";
 
 /**
- * Component that checks backend connection on mount and displays a message
+ * Checks backend only when online. When offline, skips the check so the Next.js
+ * API proxy never calls DigitalOcean (avoids ENOTFOUND / getaddrinfo in server logs).
  */
 export default function BackendHealthCheck() {
   useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
     const checkConnection = async () => {
+      if (typeof navigator !== "undefined" && !navigator.onLine) return;
       try {
         const isConnected = await checkBackendConnection();
-        
         if (isConnected) {
           toast.success("Successfully connected to backend API", {
             toastId: "backend-connection-success",
@@ -25,6 +28,7 @@ export default function BackendHealthCheck() {
         }
       } catch (error) {
         console.error("Error checking backend connection:", error);
+        if (typeof navigator !== "undefined" && !navigator.onLine) return;
         toast.error("Error checking backend connection", {
           toastId: "backend-connection-check-error",
           autoClose: 5000,
@@ -32,16 +36,24 @@ export default function BackendHealthCheck() {
       }
     };
 
-    // Check connection after a short delay to ensure app is fully loaded
-    const timeoutId = setTimeout(() => {
-      checkConnection();
-    }, 1000);
+    const schedule = () => {
+      if (typeof navigator !== "undefined" && !navigator.onLine) return;
+      timeoutId = setTimeout(checkConnection, 1000);
+    };
+
+    schedule();
+
+    const onOnline = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(checkConnection, 500);
+    };
+    window.addEventListener("online", onOnline);
 
     return () => {
-      clearTimeout(timeoutId);
+      if (timeoutId) clearTimeout(timeoutId);
+      window.removeEventListener("online", onOnline);
     };
   }, []);
 
-  return null; // This component doesn't render anything
+  return null;
 }
-

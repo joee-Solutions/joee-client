@@ -12,6 +12,7 @@ import { Search, MoreVertical, Edit, Trash2 } from 'lucide-react';
 import { ListView } from '@/components/shared/table/DataTableFilter';
 import { processRequestOfflineAuth } from '@/framework/offline-https';
 import { API_ENDPOINTS } from '@/framework/api-endpoints';
+import { getApiErrorMessagesString } from '@/utils/api-error';
 import { toast } from 'react-toastify';
 import {
   DropdownMenu,
@@ -387,31 +388,11 @@ export default function DepartmentPage() {
       }
     } catch (error: any) {
       console.error("Failed to create department:", error);
-      
-      // Handle specific error cases
-      if (error?.response?.status === 403) {
-        toast.error("Access denied. You don't have permission to create departments.", {
-          toastId: "department-create-403-error",
-          autoClose: 5000,
-        });
-      } else if (error?.response?.status === 401) {
-        toast.error("Authentication failed. Please log in again.", {
-          toastId: "department-create-401-error",
-          autoClose: 5000,
-        });
-      } else if (error?.response?.status === 400) {
-        const errorMessage = error?.response?.data?.message || error?.response?.data?.error || "Invalid department data";
-        toast.error(errorMessage, {
-          toastId: "department-create-400-error",
-          autoClose: 5000,
-        });
-      } else {
-        const errorMessage = error?.response?.data?.message || error?.message || "Failed to create department";
-        toast.error(errorMessage, {
-          toastId: "department-create-error",
-          autoClose: 5000,
-        });
-      }
+      const errorText = getApiErrorMessagesString(error, "Failed to create department.");
+      toast.error(errorText, {
+        toastId: "department-create-error",
+        autoClose: 7000,
+      });
     }
   };
 
@@ -455,25 +436,11 @@ export default function DepartmentPage() {
       await loadDepartments();
     } catch (error: any) {
       console.error("Failed to delete department:", error);
-      
-      // Handle specific error cases
-      if (error?.response?.status === 403) {
-        toast.error("Access denied. You don't have permission to delete departments.", {
-          toastId: "department-delete-403-error",
-          autoClose: 5000,
-        });
-      } else if (error?.response?.status === 401) {
-        toast.error("Authentication failed. Please log in again.", {
-          toastId: "department-delete-401-error",
-          autoClose: 5000,
-        });
-      } else {
-        const errorMessage = error?.response?.data?.message || error?.message || "Failed to delete department";
-        toast.error(errorMessage, {
-          toastId: "department-delete-error",
-          autoClose: 5000,
-        });
-      }
+      const errorText = getApiErrorMessagesString(error, "Failed to delete department.");
+      toast.error(errorText, {
+        toastId: "department-delete-error",
+        autoClose: 7000,
+      });
     }
   };
 
@@ -506,31 +473,11 @@ export default function DepartmentPage() {
       }
     } catch (error: any) {
       console.error("Failed to update department:", error);
-      
-      // Handle specific error cases
-      if (error?.response?.status === 403) {
-        toast.error("Access denied. You don't have permission to update departments.", {
-          toastId: "department-update-403-error",
-          autoClose: 5000,
-        });
-      } else if (error?.response?.status === 401) {
-        toast.error("Authentication failed. Please log in again.", {
-          toastId: "department-update-401-error",
-          autoClose: 5000,
-        });
-      } else if (error?.response?.status === 400) {
-        const errorMessage = error?.response?.data?.message || error?.response?.data?.error || "Invalid department data";
-        toast.error(errorMessage, {
-          toastId: "department-update-400-error",
-          autoClose: 5000,
-        });
-      } else {
-        const errorMessage = error?.response?.data?.message || error?.message || "Failed to update department";
-        toast.error(errorMessage, {
-          toastId: "department-update-error",
-          autoClose: 5000,
-        });
-      }
+      const errorText = getApiErrorMessagesString(error, "Failed to update department.");
+      toast.error(errorText, {
+        toastId: "department-update-error",
+        autoClose: 7000,
+      });
     }
   };
 

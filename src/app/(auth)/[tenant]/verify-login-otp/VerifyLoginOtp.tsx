@@ -184,6 +184,7 @@ const VerifyOtpLoginClient = ({ token, tenant }: { token: string; tenant?: strin
         delay: 2000,
       });
     }
+    router.push(getLoginPath(tenant));
   };
   const timer = 60 * 5;
 
@@ -253,14 +254,16 @@ const VerifyOtpLoginClient = ({ token, tenant }: { token: string; tenant?: strin
         </form>
       </div>
 
-      <div className="extra-details flex justify-center gap-2 text-xs md:text-sm mb-7">
-        Didn&apos;t receive the email?
+      <div className="extra-details flex flex-col items-center gap-2 text-xs md:text-sm mb-7">
+        <span>Didn&apos;t receive the email?</span>
         <button
-          onClick={handleResendOtp}
+          type="button"
+          onClick={() => router.push(getLoginPath(tenant))}
           className="text-brand-400 hover:underline"
         >
           Click to resend?
         </button>
+        <Link href={getLoginPath(tenant)} className="text-brand-400 hover:underline">Go back to login</Link>
       </div>
     </div>
   );

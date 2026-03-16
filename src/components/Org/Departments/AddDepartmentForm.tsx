@@ -82,14 +82,30 @@ export default function AddDepartment({ onSubmit: onSubmitProp, onCancel: onCanc
       </div>
       
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {Object.keys(form.formState.errors).length > 0 && (
+          <div className="rounded-md bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+            <p className="font-medium mb-1">Please fix the following:</p>
+            <ul className="list-disc list-inside">
+              {form.formState.errors.departmentName?.message && (
+                <li>{form.formState.errors.departmentName.message}</li>
+              )}
+              {form.formState.errors.departmentDescription?.message && (
+                <li>{form.formState.errors.departmentDescription.message}</li>
+              )}
+            </ul>
+          </div>
+        )}
         <div className="mb-4">
           <div className="flex-1">
             <label className="block text-base text-black font-normal mb-2">Department name</label>
             <Input 
               placeholder="Enter here"
               {...form.register("departmentName")}
-              className="w-full h-14 p-3 border border-[#737373] rounded"
+              className={`w-full h-14 p-3 border rounded ${form.formState.errors.departmentName ? "border-red-500" : "border-[#737373]"}`}
             />
+            {form.formState.errors.departmentName?.message && (
+              <span className="text-xs text-red-600 mt-1 block">{form.formState.errors.departmentName.message}</span>
+            )}
           </div>
         </div>
         
@@ -98,8 +114,11 @@ export default function AddDepartment({ onSubmit: onSubmitProp, onCancel: onCanc
           <Textarea 
             placeholder="Your Message"
             {...form.register("departmentDescription")}
-            className="w-full p-3 min-h-52 border border-[#737373] rounded"
+            className={`w-full p-3 min-h-52 border rounded ${form.formState.errors.departmentDescription ? "border-red-500" : "border-[#737373]"}`}
           />
+          {form.formState.errors.departmentDescription?.message && (
+            <span className="text-xs text-red-600 mt-1 block">{form.formState.errors.departmentDescription.message}</span>
+          )}
         </div>
         
         <div className="">

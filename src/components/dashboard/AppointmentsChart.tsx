@@ -10,6 +10,7 @@ import {
   Legend,
 } from "recharts";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 interface AppointmentsByDay {
   day: string;
@@ -23,11 +24,17 @@ interface AppointmentsChartProps {
     weeklyGrowth: number;
     appointmentsByDay: AppointmentsByDay[];
   };
+  className?: string;
 }
 
-const AppointmentsChart: FC<AppointmentsChartProps> = ({ data }) => {
+const AppointmentsChart: FC<AppointmentsChartProps> = ({ data, className }) => {
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md h-fit">
+    <div
+      className={cn(
+        "bg-white p-6 rounded-lg shadow-md h-fit flex flex-col min-h-[360px]",
+        className
+      )}
+    >
       <div className="flex justify-between items-center mb-4">
         <h3 className="font-medium text-lg md:text-xl text-black">
           Appointments
@@ -39,7 +46,7 @@ const AppointmentsChart: FC<AppointmentsChartProps> = ({ data }) => {
           </svg>
         </Link>
       </div>
-      <div className="h-64">
+      <div className="h-64 flex-1 min-h-[240px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={data.appointmentsByDay}

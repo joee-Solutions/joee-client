@@ -572,7 +572,7 @@ const DashboardPage: NextPage = () => {
 
         {/* Top Row: Stat Cards */}
         {isTenantUser ? (
-          <div className="flex flex-col gap-6 mb-6">
+          <div className="grid grid-cols-3 gap-2 sm:gap-4 md:gap-6 mb-6">
             <StatCard
               title="Departments"
               value={stats.departments.count}
@@ -581,24 +581,22 @@ const DashboardPage: NextPage = () => {
               icon={stats.departments.icon}
               href="/dashboard/departments"
             />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <StatCard
-                title="Patients"
-                value={stats.patients.count}
-                growth={stats.patients.growth}
-                color="yellow"
-                icon={stats.patients.icon}
-                href="/dashboard/patients"
-              />
-              <StatCard
-                title="Appointments"
-                value={stats.appointments.count}
-                growth={stats.appointments.growth}
-                color="red"
-                icon={stats.appointments.icon}
-                href="/dashboard/appointments"
-              />
-            </div>
+            <StatCard
+              title="Patients"
+              value={stats.patients.count}
+              growth={stats.patients.growth}
+              color="yellow"
+              icon={stats.patients.icon}
+              href="/dashboard/patients"
+            />
+            <StatCard
+              title="Appointments"
+              value={stats.appointments.count}
+              growth={stats.appointments.growth}
+              color="red"
+              icon={stats.appointments.icon}
+              href="/dashboard/appointments"
+            />
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-6 mb-6 md:grid-cols-2 lg:grid-cols-4">
@@ -637,11 +635,26 @@ const DashboardPage: NextPage = () => {
           </div>
         )}
 
-        {/* Middle: Tenant_User — Patients + Appointments charts side by side; Admin — stacked charts + Employees */}
+        {/* Tenant_User: 2 panels top (equal), Departments Status below same width as one panel; Admin: charts + Employees */}
         {isTenantUser ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <PatientsDonut data={getPatientsDonutData()} />
-            <AppointmentsChart data={getAppointmentsChartData()} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <PatientsDonut
+              data={getPatientsDonutData()}
+              className="min-h-[380px] h-full w-full"
+            />
+            <AppointmentsChart
+              data={getAppointmentsChartData()}
+              className="min-h-[380px] h-full w-full"
+            />
+            <div className="md:col-span-2 flex justify-center w-full">
+              <div className="w-full md:w-[calc(50%-12px)] min-w-0 max-w-full">
+                <DepartmentsStatus
+                  data={getDepartmentsStatusData()}
+                  colors={colors}
+                  className="min-h-[380px] h-full w-full"
+                />
+              </div>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -653,12 +666,8 @@ const DashboardPage: NextPage = () => {
           </div>
         )}
 
-        {/* Bottom: Tenant_User — Departments only (no Schedule List); Admin — Departments + Schedule List */}
-        {isTenantUser ? (
-          <div className="grid grid-cols-1 gap-6">
-            <DepartmentsStatus data={getDepartmentsStatusData()} colors={colors} />
-          </div>
-        ) : (
+        {/* Bottom: Admin — Departments + Schedule List (Tenant_User Departments is in grid above) */}
+        {isTenantUser ? null : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <DepartmentsStatus data={getDepartmentsStatusData()} colors={colors} />
             <ScheduleList schedules={schedulesData} />

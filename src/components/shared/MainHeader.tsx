@@ -195,7 +195,11 @@ const MainHeaderContent = ({ onToggleMobileMenu }: MainHeaderProps) => {
       >
         <input
           type="text"
-          placeholder="Search organizations, employees, patients..."
+          placeholder={
+            isAdmin
+              ? "Search Departments, Employees, Patients, Schedule and Appointment.."
+              : "Search Departments, Patients, Schedule and Appointment.."
+          }
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="px-3 md:px-5 h-[40px] md:h-[50px] rounded-[30px] pl-3 md:pl-5 pr-10 md:pr-12 bg-[#E4E8F2] outline-none focus:outline-2 focus:outline-[#003465] w-full text-sm md:text-base [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"

@@ -6,6 +6,9 @@ import { processRequestNoAuth } from "@/framework/https";
  * @returns Promise<boolean> - true if connection is successful, false otherwise
  */
 export const checkBackendConnection = async (): Promise<boolean> => {
+  if (typeof navigator !== "undefined" && !navigator.onLine) {
+    return false;
+  }
   try {
     // Try to make a simple GET request through the API proxy to test the connection
     // We'll use a lightweight endpoint - even a 404 response means the server is reachable
@@ -23,8 +26,10 @@ export const checkBackendConnection = async (): Promise<boolean> => {
     
     // Check if it's a network error (connection failed)
     if (
-      error?.code === "ERR_NETWORK" || 
+      error?.code === "ERR_NETWORK" ||
+      error?.code === "ENOTFOUND" ||
       error?.message?.includes("Network Error") ||
+      error?.message?.includes("getaddrinfo") ||
       error?.code === "ECONNABORTED" ||
       error?.message?.includes("timeout")
     ) {

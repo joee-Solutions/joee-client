@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
+import { getApiErrorMessagesString } from "@/utils/api-error";
 import { toast } from "react-toastify";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -610,21 +611,11 @@ export default function EmployeePage() {
       await loadEmployees();
     } catch (error: any) {
       console.error("Failed to update employee:", error);
-      if (error?.response?.status === 403) {
-        toast.error("Access denied. Please check your permissions.", {
-          toastId: "employee-update-403-error",
-        });
-      } else if (error?.response?.status === 401) {
-        toast.error("Authentication failed. Please log in again.", {
-          toastId: "employee-update-401-error",
-        });
-      } else if (error?.response?.status === 400) {
-        const errorMessage = error?.response?.data?.message || error?.response?.data?.error || "Invalid employee data";
-        toast.error(errorMessage, { toastId: "employee-update-400-error" });
-      } else {
-        const errorMessage = error?.response?.data?.message || error?.message || "Failed to update employee";
-        toast.error(errorMessage, { toastId: "employee-update-error" });
-      }
+      const errorText = getApiErrorMessagesString(error, "Failed to update employee.");
+      toast.error(errorText, {
+        toastId: "employee-update-error",
+        autoClose: 7000,
+      });
     }
   };
 
@@ -723,18 +714,11 @@ export default function EmployeePage() {
       await loadEmployees(); // Reload employees list
     } catch (error: any) {
       console.error("Failed to create employee:", error);
-      if (error?.response?.status === 403) {
-        toast.error("Access denied. Please check your permissions.", {
-          toastId: "employee-create-403-error",
-        });
-      } else if (error?.response?.status === 401) {
-        toast.error("Authentication failed. Please log in again.", {
-          toastId: "employee-create-401-error",
-        });
-      } else {
-        const errorMessage = error?.response?.data?.message || error?.message || "Failed to create employee";
-        toast.error(errorMessage, { toastId: "employee-create-error" });
-      }
+      const errorText = getApiErrorMessagesString(error, "Failed to create employee.");
+      toast.error(errorText, {
+        toastId: "employee-create-error",
+        autoClose: 7000,
+      });
     } finally {
       setIsSubmitting(false);
     }

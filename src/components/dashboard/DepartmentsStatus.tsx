@@ -3,6 +3,7 @@
 import { FC } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 interface DepartmentsStatusProps {
   data: {
@@ -15,14 +16,20 @@ interface DepartmentsStatusProps {
     active: string;
     inactive: string;
   };
+  className?: string;
 }
 
-const DepartmentsStatus: FC<DepartmentsStatusProps> = ({ data, colors }) => {
+const DepartmentsStatus: FC<DepartmentsStatusProps> = ({ data, colors, className }) => {
   const activeData = [{ name: "Active", value: data.activeCount }];
   const inactiveData = [{ name: "Inactive", value: data.inactiveCount }];
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
+    <div
+      className={cn(
+        "bg-white p-6 rounded-lg shadow-md flex flex-col min-h-[360px] h-full",
+        className
+      )}
+    >
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-xl font-medium">Departments Status</h3>
         <Link href="/dashboard/departments" className="text-blue-600 text-sm flex items-center font-medium">

@@ -3,6 +3,7 @@
 import { FC } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 interface AgeGroup {
   range: string;
@@ -15,10 +16,16 @@ interface PatientsDonutProps {
     totalPatients: number;
     ageDistribution: AgeGroup[];
   };
+  className?: string;
 }
-const PatientsDonut: FC<PatientsDonutProps> = ({ data }) => {
+const PatientsDonut: FC<PatientsDonutProps> = ({ data, className }) => {
   return (
-    <div className=" bg-white p-6 rounded-lg shadow-md h-fit">
+    <div
+      className={cn(
+        "bg-white p-6 rounded-lg shadow-md h-fit flex flex-col min-h-[360px]",
+        className
+      )}
+    >
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-lg md:text-xl font-medium text-black">Patients</h2>
         <Link href="/dashboard/patients" className="text-blue-800 text-sm flex items-center">
