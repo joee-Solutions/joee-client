@@ -26,6 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import SuccessModal from "@/components/shared/SuccessModal";
 
 interface Schedule {
   id: string;
@@ -205,6 +206,11 @@ const SchedulesPage: React.FC = () => {
   const [schedulesData, setSchedulesData] = useState<TableDataItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [employees, setEmployees] = useState<{ id: string; firstname: string; lastname: string; name: string }[]>([]);
+  const [successModal, setSuccessModal] = useState<{ open: boolean; title: string; message: string }>({
+    open: false,
+    title: "Success",
+    message: "",
+  });
 
   const handlePageClick = (event: { selected: number }) => {
     setCurrentPage(event.selected);
@@ -448,13 +454,15 @@ const SchedulesPage: React.FC = () => {
         const editEmployeeId = (scheduleToEdit as any).employeeId || scheduleToEdit.id;
         await processRequestOfflineAuth("patch", API_ENDPOINTS.UPDATE_SCHEDULE(editEmployeeId), schedulePayload);
         toast.success("Schedule updated successfully", { toastId: "schedule-update-success" });
+        setSuccessModal({ open: true, title: "Success", message: "Schedule updated successfully." });
       } else {
         // Create new schedule
         await processRequestOfflineAuth("post", API_ENDPOINTS.CREATE_SCHEDULE(employeeId), schedulePayload);
         toast.success("Schedule created successfully", { toastId: "schedule-create-success" });
+        setSuccessModal({ open: true, title: "Success", message: "Schedule created successfully." });
       }
       
-    handleCloseModal();
+      handleCloseModal();
       await loadSchedules(); // Reload schedules after save
     } catch (error: any) {
       console.error("Failed to save schedule:", error);
@@ -619,6 +627,13 @@ const SchedulesPage: React.FC = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <SuccessModal
+        open={successModal.open}
+        onOpenChange={(open) => setSuccessModal((s) => ({ ...s, open }))}
+        title={successModal.title}
+        message={successModal.message}
+      />
     </div>
   );
 };

@@ -30,6 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import SuccessModal from '@/components/shared/SuccessModal';
 
 
 interface Department {
@@ -227,6 +228,11 @@ export default function DepartmentPage() {
     description?: string;
     departmentDescription?: string;
   }>({});
+  const [successModal, setSuccessModal] = useState<{ open: boolean; title: string; message: string }>({
+    open: false,
+    title: "Success",
+    message: "",
+  });
 
   useEffect(() => {
     loadDepartments();
@@ -379,8 +385,8 @@ export default function DepartmentPage() {
       // Handle response
       if (response?.data || response) {
         toast.success("Department created successfully", { toastId: "department-create-success" });
-    setShowForm(false);
-        
+        setShowForm(false);
+        setSuccessModal({ open: true, title: "Success", message: "Department created successfully." });
         // Reload departments to update the table with fresh data
         await loadDepartments();
       } else {
@@ -463,11 +469,9 @@ export default function DepartmentPage() {
       if (response?.data || response) {
         toast.success("Department updated successfully", { toastId: "department-update-success" });
         setIsEditModalOpen(false);
-        
+        setSuccessModal({ open: true, title: "Success", message: "Department updated successfully." });
         // Reload departments to update the table
         await loadDepartments();
-        
-        // Reset state after modal closes (handled by onOpenChange)
       } else {
         throw new Error("Unexpected response from server");
       }
@@ -802,6 +806,13 @@ export default function DepartmentPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <SuccessModal
+          open={successModal.open}
+          onOpenChange={(open) => setSuccessModal((s) => ({ ...s, open }))}
+          title={successModal.title}
+          message={successModal.message}
+        />
       </div>
     </div>
   );

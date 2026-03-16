@@ -39,6 +39,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import SuccessModal from "@/components/shared/SuccessModal";
 
 type EmployeeCard = {
   id: number;
@@ -255,6 +256,11 @@ export default function EmployeePage() {
   }>>({});
   const [editImagePreviewUrl, setEditImagePreviewUrl] = useState<string | null>(null);
   const editImageInputRef = useRef<HTMLInputElement>(null);
+  const [successModal, setSuccessModal] = useState<{ open: boolean; title: string; message: string }>({
+    open: false,
+    title: "Success",
+    message: "",
+  });
 
   useEffect(() => {
     loadEmployees();
@@ -603,6 +609,7 @@ export default function EmployeePage() {
       );
       
       toast.success("Employee updated successfully", { toastId: "employee-update-success" });
+      setSuccessModal({ open: true, title: "Success", message: "Employee updated successfully." });
       setIsEditModalOpen(false);
       setSelectedEmployee(null);
       setEditFormData({});
@@ -709,6 +716,7 @@ export default function EmployeePage() {
       );
       
       toast.success("Employee created successfully", { toastId: "employee-create-success" });
+      setSuccessModal({ open: true, title: "Success", message: "Employee created successfully." });
       setShowForm(false);
       employeeForm.reset();
       await loadEmployees(); // Reload employees list
@@ -1597,6 +1605,13 @@ export default function EmployeePage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <SuccessModal
+        open={successModal.open}
+        onOpenChange={(open) => setSuccessModal((s) => ({ ...s, open }))}
+        title={successModal.title}
+        message={successModal.message}
+      />
     </section>
   );
 }

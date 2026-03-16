@@ -29,6 +29,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import SuccessModal from "@/components/shared/SuccessModal";
 
 type PatientCard = {
   id: number;
@@ -333,6 +334,10 @@ export default function PatientPage() {
   const [selectedPatient, setSelectedPatient] = useState<PatientDTO | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [patientSuccessModal, setPatientSuccessModal] = useState<{ open: boolean; message: string }>({
+    open: false,
+    message: "",
+  });
 
   useEffect(() => {
     loadPatients();
@@ -495,10 +500,17 @@ export default function PatientPage() {
   };
 
   const handleSaveComplete = () => {
-    setShowForm(false);
-    setEditingPatientId(null);
-    setSelectedPatient(null);
-    loadPatients(); // Reload patients list after successful save
+    setPatientSuccessModal({ open: true, message: "Patient saved successfully." });
+  };
+
+  const handlePatientSuccessModalClose = (open: boolean) => {
+    if (!open) {
+      setPatientSuccessModal((s) => ({ ...s, open: false }));
+      setShowForm(false);
+      setEditingPatientId(null);
+      setSelectedPatient(null);
+      loadPatients();
+    }
   };
 
   return (
@@ -737,6 +749,13 @@ export default function PatientPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <SuccessModal
+        open={patientSuccessModal.open}
+        onOpenChange={handlePatientSuccessModalClose}
+        title="Success"
+        message={patientSuccessModal.message}
+      />
     </section>
   );
 }
