@@ -689,21 +689,28 @@ export default function EmployeePage() {
       // Prepare data object (excluding the file)
       const { employeeImage, ...employeeData } = data;
       
-      // Transform data to match API expected format (lowercase field names); all fields optional
-      const transformedData = {
+      // Transform data to match API expected format (lowercase field names).
+      // Important: `dob` and `hireDate` default to "" when not selected; sending ""
+      // triggers backend validation ("must be a Date instance"), so we omit them.
+      const transformedData: any = {
         firstname: employeeData.firstName ?? "",
         lastname: employeeData.lastName ?? "",
         email: employeeData.email ?? "",
         phone_number: employeeData.phoneNumber ?? "",
         address: employeeData.address ?? "",
         state: employeeData.state ?? "",
-        date_of_birth: employeeData.dob ?? "",
         specialty: employeeData.specialty ?? "",
         designation: employeeData.designation ?? "",
         gender: employeeData.gender ?? "",
-        hire_date: employeeData.hireDate ?? "",
         bio: employeeData.bio ?? "",
       };
+
+      if (employeeData.dob && employeeData.dob.trim() !== "") {
+        transformedData.date_of_birth = employeeData.dob;
+      }
+      if (employeeData.hireDate && employeeData.hireDate.trim() !== "") {
+        transformedData.hire_date = employeeData.hireDate;
+      }
 
       const fileToUpload = employeeImage instanceof File ? employeeImage : undefined;
       const deptId = (departmentId ?? "").toString().trim() || "0";
