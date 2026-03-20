@@ -2,7 +2,7 @@ import { FormDataStepper } from "@/components/Org/Patients/PatientStepper";
 
 /**
  * Validate required fields before saving to API.
- * Only first name and last name (patient demographics) are required.
+ * Requires: first name, last name, date of birth (patient demographics).
  */
 export function validateRequiredFields(formData: FormDataStepper): { isValid: boolean; errors: string[] } {
   const errors: string[] = [];
@@ -12,6 +12,9 @@ export function validateRequiredFields(formData: FormDataStepper): { isValid: bo
   }
   if (!formData.demographic?.lastName || formData.demographic.lastName.trim() === '') {
     errors.push('Last name is required');
+  }
+  if (!formData.demographic?.dateOfBirth || formData.demographic.dateOfBirth.trim() === '') {
+    errors.push('Date of birth is required');
   }
 
   // Email is optional; if provided, validate format
@@ -29,10 +32,14 @@ export function validateRequiredFields(formData: FormDataStepper): { isValid: bo
 
 /**
  * Get the step index for the first step with missing required data.
- * Only first name and last name are required (demographics step).
+ * Missing demographic data => demographics step.
  */
 export function getFirstStepWithMissingData(formData: FormDataStepper): number {
-  if (!formData.demographic?.firstName?.trim() || !formData.demographic?.lastName?.trim()) {
+  if (
+    !formData.demographic?.firstName?.trim() ||
+    !formData.demographic?.lastName?.trim() ||
+    !formData.demographic?.dateOfBirth?.trim()
+  ) {
     return 0; // Demographics step
   }
   return 0;

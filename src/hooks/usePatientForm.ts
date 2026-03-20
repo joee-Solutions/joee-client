@@ -191,11 +191,20 @@ export function usePatientForm({
         } catch (error: any) {
           console.error("Failed to save to API:", error);
           const errorText = getApiErrorMessagesString(error, "Failed to save to server.");
-          toast.error(`${errorText} Data saved locally.`, { 
-            toastId: "save-api-error",
-            autoClose: 7000,
-            position: "top-right",
-          });
+          const lower = errorText.toLowerCase();
+          if (lower.includes("date_of_birth must be a valid iso 8601 date string")) {
+            toast.error("Date of birth is required and must be a valid date. Data saved locally.", {
+              toastId: "save-api-error-dob",
+              autoClose: 7000,
+              position: "top-right",
+            });
+          } else {
+            toast.error(`${errorText} Data saved locally.`, { 
+              toastId: "save-api-error",
+              autoClose: 7000,
+              position: "top-right",
+            });
+          }
           setError(errorText);
         } finally {
           setLoading(false);

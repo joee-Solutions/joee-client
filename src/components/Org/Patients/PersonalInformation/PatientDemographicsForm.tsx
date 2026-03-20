@@ -24,7 +24,7 @@ export const PatientDemoSchema = z.object({
   lastName: z.string().min(1, "Last name is required"),
   preferredName: z.string().optional(),
   sex: z.string().optional(),
-  dateOfBirth: z.string().optional(),
+  dateOfBirth: z.string().min(1, "Date of birth is required"),
   maritalStatus: z.string().optional(),
   race: z.string().optional(),
   ethnicity: z.string().optional(),

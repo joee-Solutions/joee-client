@@ -178,14 +178,14 @@ export function mapFormDataToPatientDto(formData: FormDataStepper) {
         if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
           const [year, month, day] = dateStr.split('-').map(Number);
           const date = new Date(year, month - 1, day);
-          return !isNaN(date.getTime()) ? date.toISOString() : '';
+          return !isNaN(date.getTime()) ? date.toISOString() : undefined;
         }
         const date = new Date(demographic.dateOfBirth);
-        return !isNaN(date.getTime()) ? date.toISOString() : '';
+        return !isNaN(date.getTime()) ? date.toISOString() : undefined;
       } catch {
-        return '';
+        return undefined;
       }
-    })() : '',
+    })() : undefined,
     marital_status: demographic?.maritalStatus || '',
     race: demographic?.race || '',
     ethnicity: demographic?.ethnicity || '',
@@ -478,7 +478,7 @@ export function normalizePatientData(mappedData: ReturnType<typeof mapFormDataTo
   mappedData.sexual_orientation = mappedData.sexual_orientation || '';
   
   // Ensure date is in ISO 8601 format (handle empty/invalid dates)
-  if (formData.demographic?.dateOfBirth) {
+  if (formData.demographic?.dateOfBirth && formData.demographic.dateOfBirth.trim() !== '') {
     try {
       const dateStr = formData.demographic.dateOfBirth;
       // Parse YYYY-MM-DD format directly to avoid timezone issues
@@ -488,21 +488,21 @@ export function normalizePatientData(mappedData: ReturnType<typeof mapFormDataTo
         if (!isNaN(date.getTime())) {
           mappedData.date_of_birth = date.toISOString();
         } else {
-          mappedData.date_of_birth = '';
+          (mappedData as any).date_of_birth = undefined;
         }
       } else {
         const date = new Date(formData.demographic.dateOfBirth);
         if (!isNaN(date.getTime())) {
           mappedData.date_of_birth = date.toISOString();
         } else {
-          mappedData.date_of_birth = '';
+          (mappedData as any).date_of_birth = undefined;
         }
       }
     } catch (e) {
-      mappedData.date_of_birth = '';
+      (mappedData as any).date_of_birth = undefined;
     }
   } else {
-    mappedData.date_of_birth = '';
+    (mappedData as any).date_of_birth = undefined;
   }
   
   // Ensure contact_info fields are properly formatted
