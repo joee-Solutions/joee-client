@@ -565,7 +565,6 @@ export default function EmployeePage() {
       if (updatedData.email) transformedData.email = updatedData.email;
       if (updatedData.phoneNumber) transformedData.phone_number = updatedData.phoneNumber;
       if (updatedData.address) transformedData.address = updatedData.address;
-      if (updatedData.state) transformedData.state = updatedData.state;
       if (updatedData.dob) transformedData.date_of_birth = updatedData.dob;
       if (updatedData.specialty !== undefined) transformedData.specialty = updatedData.specialty || "";
       if (updatedData.designation) transformedData.designation = updatedData.designation;
@@ -618,6 +617,21 @@ export default function EmployeePage() {
       await loadEmployees();
     } catch (error: any) {
       console.error("Failed to update employee:", error);
+      const msg =
+        error?.response?.data?.validationErrors ||
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message;
+      if (
+        typeof msg === "string" &&
+        msg.toLowerCase().includes("duplicate key value violates unique constraint")
+      ) {
+        toast.error("Email already exists. Please use a different email address.", {
+          toastId: "employee-update-duplicate-email",
+          autoClose: 7000,
+        });
+        return;
+      }
       const errorText = getApiErrorMessagesString(error, "Failed to update employee.");
       toast.error(errorText, {
         toastId: "employee-update-error",
@@ -636,11 +650,10 @@ export default function EmployeePage() {
       .refine((v) => !v || v === "" || z.string().email().safeParse(v).success, "Invalid email address"),
     phoneNumber: z.string().optional(),
     address: z.string().optional(),
-    state: z.string().optional(),
     dob: z.string().optional(),
     specialty: z.string().optional(),
     designation: z.string().optional(),
-    department: z.string().optional(),
+    department: z.string().min(1, "Department is required"),
     gender: z.string().optional(),
     employeeImage: z
       .instanceof(File)
@@ -668,7 +681,6 @@ export default function EmployeePage() {
       email: "",
       designation: "",
       department: "",
-      state: "",
       phoneNumber: "",
       gender: "",
       dob: "",
@@ -698,7 +710,6 @@ export default function EmployeePage() {
         email: employeeData.email ?? "",
         phone_number: employeeData.phoneNumber ?? "",
         address: employeeData.address ?? "",
-        state: employeeData.state ?? "",
         specialty: employeeData.specialty ?? "",
         designation: employeeData.designation ?? "",
         gender: employeeData.gender ?? "",
@@ -713,7 +724,14 @@ export default function EmployeePage() {
       }
 
       const fileToUpload = employeeImage instanceof File ? employeeImage : undefined;
-      const deptId = (departmentId ?? "").toString().trim() || "0";
+      const deptId = (departmentId ?? "").toString().trim();
+      if (!deptId) {
+        toast.error("Department is required. Please select a department.", {
+          toastId: "employee-create-department-required",
+          autoClose: 5000,
+        });
+        return;
+      }
       await processRequestOfflineAuth(
         "post",
         `${API_ENDPOINTS.GET_EMPLOYEE}/${deptId}`,
@@ -729,6 +747,32 @@ export default function EmployeePage() {
       await loadEmployees(); // Reload employees list
     } catch (error: any) {
       console.error("Failed to create employee:", error);
+      const msg =
+        error?.response?.data?.validationErrors ||
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message;
+      if (
+        typeof msg === "string" &&
+        msg.toLowerCase().includes("duplicate key value violates unique constraint")
+      ) {
+        toast.error("Email already exists. Please use a different email address.", {
+          toastId: "employee-create-duplicate-email",
+          autoClose: 7000,
+        });
+        return;
+      }
+      if (
+        typeof msg === "string" &&
+        msg.toLowerCase().includes("department") &&
+        (msg.toLowerCase().includes("null") || msg.toLowerCase().includes("not found"))
+      ) {
+        toast.error("Department is required. Please select a department.", {
+          toastId: "employee-create-department-required",
+          autoClose: 5000,
+        });
+        return;
+      }
       const errorText = getApiErrorMessagesString(error, "Failed to create employee.");
       toast.error(errorText, {
         toastId: "employee-create-error",
@@ -896,18 +940,11 @@ export default function EmployeePage() {
                       placeholder="Enter here"
                     />
                   </div>
-                  <div className="grid sm:grid-cols-2 gap-[18px]">
+                  <div className="grid sm:grid-cols-1 gap-[18px]">
                     <FieldBox
                       control={employeeForm.control}
                       labelText="Address"
                       name="address"
-                      type="text"
-                      placeholder="Enter here"
-                    />
-                    <FieldBox
-                      control={employeeForm.control}
-                      labelText="Region/State"
-                      name="state"
                       type="text"
                       placeholder="Enter here"
                     />
@@ -1434,15 +1471,6 @@ export default function EmployeePage() {
                   type="text"
                   value={editFormData.address || ""}
                   onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
-                  className="w-full px-3 py-2 border border-[#D9D9D9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#003465]"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-black mb-1">Region/State</label>
-                <input
-                  type="text"
-                  value={editFormData.state || ""}
-                  onChange={(e) => setEditFormData({ ...editFormData, state: e.target.value })}
                   className="w-full px-3 py-2 border border-[#D9D9D9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#003465]"
                 />
               </div>
