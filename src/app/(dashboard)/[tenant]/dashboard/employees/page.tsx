@@ -257,6 +257,7 @@ export default function EmployeePage() {
     phoneNumber?: string;
     address?: string;
     state?: string;
+    department?: string;
     dob?: string;
     specialty?: string;
     gender?: string;
@@ -395,8 +396,8 @@ export default function EmployeePage() {
   const fetchEmployeeDetails = async (employeeId: number | string) => {
     try {
       const response = await processRequestOfflineAuth("get", `/tenant/user/${employeeId}`);
-      // Handle response structure - could be direct object or wrapped in data
-      const employeeData = response?.data || response;
+      // Handle response structure - could be direct object or nested as data.data
+      const employeeData = response?.data?.data || response?.data || response;
       console.log("Fetched employee details:", employeeData);
       return employeeData;
     } catch (error: any) {
@@ -429,12 +430,23 @@ export default function EmployeePage() {
         lastName: employeeDetails?.lastname || employeeDetails?.last_name || employeeDetails?.lastName || employee?.lastName || '',
         designation: employeeDetails?.designation || employeeDetails?.title || employee?.designation || '',
         departmentName: employeeDetails?.department?.name || employeeDetails?.department?.departmentName || employeeDetails?.department_name || employeeDetails?.departmentName || employee?.departmentName || '',
+        department: String(
+          employeeDetails?.department?.id ||
+          employeeDetails?.department_id ||
+          employeeDetails?.departmentId ||
+          ""
+        ),
         status: viewStatus,
         is_active: viewIsActive,
         email: employeeDetails?.email || employeeDetails?.email_address || '',
         phoneNumber: employeeDetails?.phone_number || employeeDetails?.phone || employeeDetails?.phoneNumber || '',
         address: employeeDetails?.address || employeeDetails?.street_address || '',
-        state: employeeDetails?.state || employeeDetails?.region_state || employeeDetails?.region || '',
+        state:
+          employeeDetails?.state ||
+          employeeDetails?.region_state ||
+          employeeDetails?.region ||
+          employeeDetails?.Region ||
+          '',
         dob: employeeDetails?.date_of_birth || employeeDetails?.dob || employeeDetails?.dateOfBirth || employeeDetails?.birth_date || '',
         specialty: employeeDetails?.specialty || employeeDetails?.specialization || '',
         gender: employeeDetails?.gender || employeeDetails?.sex || '',
@@ -461,12 +473,23 @@ export default function EmployeePage() {
         lastName: employee.lastName || '',
         designation: employee.designation || '',
         departmentName: employee.departmentName || '',
+        department: String(
+          fullData?.department?.id ||
+          fullData?.department_id ||
+          fullData?.departmentId ||
+          ""
+        ),
         status: employee.status || "Active",
         is_active: fallbackIsActive,
         email: fullData?.email || fullData?.email_address || '',
         phoneNumber: fullData?.phone_number || fullData?.phone || fullData?.phoneNumber || '',
         address: fullData?.address || fullData?.street_address || '',
-        state: fullData?.state || fullData?.region_state || fullData?.region || '',
+        state:
+          fullData?.state ||
+          fullData?.region_state ||
+          fullData?.region ||
+          fullData?.Region ||
+          '',
         dob: fullData?.dob || fullData?.date_of_birth || fullData?.dateOfBirth || fullData?.birth_date || '',
         specialty: fullData?.specialty || fullData?.specialization || '',
         gender: fullData?.gender || fullData?.sex || '',
@@ -516,7 +539,12 @@ export default function EmployeePage() {
       email: employeeData?.email || employeeData?.email_address || '',
       phoneNumber: employeeData?.phone_number || employeeData?.phone || employeeData?.phoneNumber || '',
       address: employeeData?.address || employeeData?.street_address || '',
-      state: employeeData?.state || employeeData?.region_state || employeeData?.region || '',
+      state:
+        employeeData?.state ||
+        employeeData?.region_state ||
+        employeeData?.region ||
+        employeeData?.Region ||
+        '',
       dob: formatDateForInput(employeeData?.date_of_birth || employeeData?.dob || employeeData?.dateOfBirth || employeeData?.birth_date),
       specialty: employeeData?.specialty || employeeData?.specialization || '',
       gender: employeeData?.gender || employeeData?.sex || '',
@@ -563,6 +591,11 @@ export default function EmployeePage() {
       setEmployeeCards((prev) => prev.filter((card) => card.id !== selectedEmployee.id));
       
       toast.success("Employee deleted successfully", { toastId: "employee-delete-success" });
+      setSuccessModal({
+        open: true,
+        title: "Success",
+        message: "Employee deleted successfully.",
+      });
       setIsDeleteModalOpen(false);
       setSelectedEmployee(null);
     } catch (error: any) {
@@ -577,6 +610,7 @@ export default function EmployeePage() {
     phoneNumber?: string;
     address?: string;
     state?: string;
+    department?: string;
     dob?: string;
     specialty?: string;
     gender?: string;
@@ -598,6 +632,13 @@ export default function EmployeePage() {
       if (updatedData.email) transformedData.email = updatedData.email;
       if (updatedData.phoneNumber) transformedData.phone_number = updatedData.phoneNumber;
       if (updatedData.address) transformedData.address = updatedData.address;
+      if (updatedData.state !== undefined) {
+        // Backend persists this field as `region`; keep `state` for compatibility.
+        const regionValue = updatedData.state || "";
+        transformedData.region = regionValue;
+        transformedData.state = regionValue;
+      }
+      if (updatedData.department) transformedData.department_id = updatedData.department;
       if (updatedData.dob) transformedData.date_of_birth = updatedData.dob;
       if (updatedData.specialty !== undefined) transformedData.specialty = updatedData.specialty || "";
       if (updatedData.designation) transformedData.designation = updatedData.designation;
@@ -675,6 +716,7 @@ export default function EmployeePage() {
       .refine((v) => !v || v === "" || z.string().email().safeParse(v).success, "Invalid email address"),
     phoneNumber: z.string().optional(),
     address: z.string().optional(),
+    state: z.string().optional(),
     dob: z.string().optional(),
     specialty: z.string().optional(),
     designation: z.string().optional(),
@@ -703,6 +745,7 @@ export default function EmployeePage() {
       firstName: "",
       lastName: "",
       address: "",
+      state: "",
       email: "",
       designation: "",
       department: "",
@@ -735,6 +778,8 @@ export default function EmployeePage() {
         email: employeeData.email ?? "",
         phone_number: employeeData.phoneNumber ?? "",
         address: employeeData.address ?? "",
+        region: employeeData.state ?? "",
+        state: employeeData.state ?? "",
         specialty: employeeData.specialty ?? "",
         designation: employeeData.designation ?? "",
         gender: employeeData.gender ?? "",
@@ -968,11 +1013,18 @@ export default function EmployeePage() {
                       placeholder="Enter here"
                     />
                   </div>
-                  <div className="grid sm:grid-cols-1 gap-[18px]">
+                  <div className="grid sm:grid-cols-2 gap-[18px]">
                     <FieldBox
                       control={employeeForm.control}
                       labelText="Address"
                       name="address"
+                      type="text"
+                      placeholder="Enter here"
+                    />
+                    <FieldBox
+                      control={employeeForm.control}
+                      labelText="State/Region"
+                      name="state"
                       type="text"
                       placeholder="Enter here"
                     />
@@ -1521,6 +1573,15 @@ export default function EmployeePage() {
                 />
               </div>
               <div>
+                <label className="block text-sm font-medium text-black mb-1">State/Region</label>
+                <input
+                  type="text"
+                  value={editFormData.state || ""}
+                  onChange={(e) => setEditFormData({ ...editFormData, state: e.target.value })}
+                  className="w-full px-3 py-2 border border-[#D9D9D9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#003465]"
+                />
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-black mb-1">Specialty</label>
                 <input
                   type="text"
@@ -1540,12 +1601,32 @@ export default function EmployeePage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-black mb-1">Department</label>
-                <input
-                  type="text"
-                  value={editFormData.departmentName || ""}
-                  onChange={(e) => setEditFormData({ ...editFormData, departmentName: e.target.value })}
+                <select
+                  value={editFormData.department || ""}
+                  onChange={(e) => {
+                    const selectedId = e.target.value;
+                    const selectedDept = departments.find(
+                      (dept) => String(dept.id || dept._id) === selectedId
+                    );
+                    setEditFormData({
+                      ...editFormData,
+                      department: selectedId,
+                      departmentName:
+                        selectedDept?.name ||
+                        selectedDept?.department_name ||
+                        editFormData.departmentName ||
+                        "",
+                    });
+                  }}
                   className="w-full px-3 py-2 border border-[#D9D9D9] rounded-md focus:outline-none focus:ring-2 focus:ring-[#003465]"
-                />
+                >
+                  <option value="">Select Department</option>
+                  {departments.map((dept) => (
+                    <option key={String(dept.id || dept._id)} value={String(dept.id || dept._id)}>
+                      {dept.name || dept.department_name || `Department ${dept.id || dept._id}`}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-black mb-1">Gender</label>
