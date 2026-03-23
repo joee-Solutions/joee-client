@@ -585,17 +585,11 @@ export default function EmployeePage() {
       console.log("Transformed data being sent to API:", transformedData);
       
       // Use PATCH method with /tenant/user/{id} endpoint
-      // Handle file upload if employeeImage is a File (not a string URL)
-      let fileToUpload: File | undefined = undefined;
-      if (updatedData.employeeImage && typeof updatedData.employeeImage !== 'string') {
-        // If it's not a string, it might be a File
-        try {
-          const img = updatedData.employeeImage as any;
-          if (img && img.constructor && img.constructor.name === 'File') {
-            fileToUpload = img as File;
-          }
-        } catch (e) {
-          // Not a File, ignore
+      // Backend expects `image_url` as a string (data URL or existing URL).
+      if (typeof updatedData.employeeImage === "string") {
+        const trimmed = updatedData.employeeImage.trim();
+        if (trimmed) {
+          transformedData.image_url = trimmed;
         }
       }
       
@@ -603,8 +597,6 @@ export default function EmployeePage() {
         "patch",
         `/tenant/user/${selectedEmployee.id}`,
         transformedData,
-        undefined,
-        fileToUpload
       );
       
       toast.success("Employee updated successfully", { toastId: "employee-update-success" });
@@ -723,7 +715,11 @@ export default function EmployeePage() {
         transformedData.hire_date = employeeData.hireDate;
       }
 
-      const fileToUpload = employeeImage instanceof File ? employeeImage : undefined;
+      // Backend expects `image_url` as a string.
+      // FieldFileInput provides `imagePreviewer` as a data URL (base64) via FileReader.
+      if (employeeImage instanceof File && imagePreviewer.trim() !== "") {
+        transformedData.image_url = imagePreviewer;
+      }
       const deptId = (departmentId ?? "").toString().trim();
       if (!deptId) {
         toast.error("Department is required. Please select a department.", {
@@ -736,8 +732,7 @@ export default function EmployeePage() {
         "post",
         `${API_ENDPOINTS.GET_EMPLOYEE}/${deptId}`,
         transformedData,
-        undefined,
-        fileToUpload
+        undefined
       );
       
       toast.success("Employee created successfully", { toastId: "employee-create-success" });
@@ -1412,7 +1407,16 @@ export default function EmployeePage() {
                       if (file) {
                         if (editImagePreviewUrl) URL.revokeObjectURL(editImagePreviewUrl);
                         setEditImagePreviewUrl(URL.createObjectURL(file));
-                        setEditFormData((prev) => ({ ...prev, employeeImage: file }));
+                      // Backend expects `image_url` as a string, so store a data URL.
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        const dataUrl = reader.result as string;
+                        setEditFormData((prev) => ({
+                          ...prev,
+                          employeeImage: dataUrl,
+                        }));
+                      };
+                      reader.readAsDataURL(file);
                       }
                     }}
                   />
