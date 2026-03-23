@@ -2,7 +2,7 @@
 import { sideNavigation } from "@/utils/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Cookies from "js-cookie";
 import { usePathname, useRouter } from "next/navigation";
 import { clearLastSession } from "@/lib/auth-store";
@@ -23,6 +23,11 @@ function filterNavByRole(items: NavItem[], roles: string[]): NavItem[] {
 const SideNavigation = ({ onClose }: SideNavigationProps) => {
   const router = useRouter();
   const pathName = usePathname();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const userJson = typeof window !== "undefined" ? Cookies.get("user") : null;
   const user = useMemo(() => {
@@ -33,7 +38,12 @@ const SideNavigation = ({ onClose }: SideNavigationProps) => {
     }
   }, [userJson]);
   const roles = getRolesFromUser(user);
-  const visibleNav = useMemo(() => filterNavByRole(sideNavigation, roles), [roles]);
+  const visibleNav = useMemo(() => {
+    // Avoid hydration mismatch: server can't access js-cookie values.
+    // Render nav only after mount so SSR and first client render match.
+    if (!isMounted) return [];
+    return filterNavByRole(sideNavigation, roles);
+  }, [isMounted, roles]);
 
   const handleLogout = async () => {
     try {
