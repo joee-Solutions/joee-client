@@ -9,6 +9,11 @@ const nextConfig: NextConfig = {
         hostname: "joee.nyc3.digitaloceanspaces.com",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "joee.nyc3.cdn.digitaloceanspaces.com",
+        pathname: "/**",
+      },
     ],
   },
   
