@@ -77,7 +77,13 @@ const mapUserToEmployeeDTO = (user: any, index: number): EmployeeDTO => {
     status = user.active ? "Active" : "Inactive";
   }
   
-  const profilePicture = user.profile_picture || user.profilePicture || "/assets/imagePlaceholder.png";
+  // Backend expects/stores `image_url`; keep `profile_picture` as fallback.
+  const profilePicture =
+    user.image_url ||
+    user.imageUrl ||
+    user.profile_picture ||
+    user.profilePicture ||
+    "/assets/imagePlaceholder.png";
 
   return {
     id: user.id || user._id || index + 1,
@@ -106,7 +112,12 @@ const mapUserToEmployeeCard = (user: any, index: number): EmployeeCard => {
     default: "225, 195, 0",
   };
   const rgbColorCode = colorMap[roleStr.toLowerCase()] || colorMap.default;
-  const picture = user.profile_picture || user.profilePicture || "/assets/doctorFemale.png";
+  const picture =
+    user.image_url ||
+    user.imageUrl ||
+    user.profile_picture ||
+    user.profilePicture ||
+    "/assets/doctorFemale.png";
 
   return {
     id: user.id || user._id || index + 1,
@@ -429,7 +440,14 @@ export default function EmployeePage() {
         gender: employeeDetails?.gender || employeeDetails?.sex || '',
         hireDate: employeeDetails?.hire_date || employeeDetails?.hireDate || employeeDetails?.date_hired || '',
         bio: employeeDetails?.bio || employeeDetails?.biography || employeeDetails?.short_biography || employeeDetails?.description || '',
-        employeeImage: employeeDetails?.profile_picture || employeeDetails?.profilePicture || employeeDetails?.image || employeeDetails?.avatar || '',
+        employeeImage:
+          employeeDetails?.image_url ||
+          employeeDetails?.imageUrl ||
+          employeeDetails?.profile_picture ||
+          employeeDetails?.profilePicture ||
+          employeeDetails?.image ||
+          employeeDetails?.avatar ||
+          '',
       };
       
       setEditFormData(mappedData);
@@ -454,6 +472,14 @@ export default function EmployeePage() {
         gender: fullData?.gender || fullData?.sex || '',
         hireDate: fullData?.hire_date || fullData?.hireDate || fullData?.date_hired || '',
         bio: fullData?.bio || fullData?.biography || fullData?.short_biography || fullData?.description || '',
+        employeeImage:
+          fullData?.image_url ||
+          fullData?.imageUrl ||
+          fullData?.profile_picture ||
+          fullData?.profilePicture ||
+          fullData?.image ||
+          fullData?.avatar ||
+          '',
       });
     }
   };
@@ -496,7 +522,14 @@ export default function EmployeePage() {
       gender: employeeData?.gender || employeeData?.sex || '',
       hireDate: formatDateForInput(employeeData?.hire_date || employeeData?.hireDate || employeeData?.date_hired),
       bio: employeeData?.bio || employeeData?.biography || employeeData?.short_biography || employeeData?.description || '',
-      employeeImage: employeeData?.profile_picture || employeeData?.profilePicture || employeeData?.image || employeeData?.avatar || '',
+      employeeImage:
+        employeeData?.image_url ||
+        employeeData?.imageUrl ||
+        employeeData?.profile_picture ||
+        employeeData?.profilePicture ||
+        employeeData?.image ||
+        employeeData?.avatar ||
+        '',
     };
     
     console.log("Mapped employee data for edit:", mappedData);
