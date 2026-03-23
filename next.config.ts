@@ -1,7 +1,16 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    // Allow images served from DigitalOcean Spaces (employee/profile images)
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "joee.nyc3.digitaloceanspaces.com",
+        pathname: "/**",
+      },
+    ],
+  },
   
 };
 
