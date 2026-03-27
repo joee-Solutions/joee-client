@@ -583,10 +583,9 @@ export default function EmployeePage() {
     if (!selectedEmployee) return;
     
     try {
-      // TODO: Replace with actual delete API endpoint when available
-      // await processRequestOfflineAuth("delete", `${API_ENDPOINTS.GET_EMPLOYEE}/${selectedEmployee.id}`);
-      
-      // Remove from local state for now
+      await processRequestOfflineAuth("delete", `/tenant/employee/${selectedEmployee.id}`);
+
+      // Keep local UI in sync immediately
       setEmployeesTableData((prev) => prev.filter((emp) => emp.id !== selectedEmployee.id));
       setEmployeeCards((prev) => prev.filter((card) => card.id !== selectedEmployee.id));
       
@@ -598,6 +597,7 @@ export default function EmployeePage() {
       });
       setIsDeleteModalOpen(false);
       setSelectedEmployee(null);
+      await loadEmployees();
     } catch (error: any) {
       console.error("Failed to delete employee:", error);
       toast.error("Failed to delete employee", { toastId: "employee-delete-error" });

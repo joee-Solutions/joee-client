@@ -19,7 +19,6 @@ export default function NotificationList({
 }: NotificationListProps) {
   const [search, setSearch] = useState("");
   const [pageSize, setPageSize] = useState(4);
-  const [activeTab, setActiveTab] = useState<"all" | "received">("all");
   const [currentPage, setCurrentPage] = useState(0);
 
   const handlePageClick = (event: { selected: number }) => {
@@ -74,30 +73,8 @@ export default function NotificationList({
             <h3 className="text-xl font-bold text-black">NOTIFICATION HISTORY</h3>
           </div>
 
-          {/* Filter Tabs and Show Dropdown */}
-          <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-            <div className="flex gap-2">
-              <button
-                onClick={() => setActiveTab("all")}
-                className={`px-6 py-2 rounded font-medium text-sm ${
-                  activeTab === "all"
-                    ? "bg-[#003465] text-white"
-                    : "bg-[#F3F3F3] text-black"
-                }`}
-              >
-                All Notifications
-              </button>
-              <button
-                onClick={() => setActiveTab("received")}
-                className={`px-6 py-2 rounded font-medium text-sm ${
-                  activeTab === "received"
-                    ? "bg-[#003465] text-white"
-                    : "bg-[#F3F3F3] text-black"
-                }`}
-              >
-                Received
-              </button>
-            </div>
+          {/* Page size */}
+          <div className="flex items-center justify-end mb-6 flex-wrap gap-4">
             <ListView pageSize={pageSize} setPageSize={setPageSize} />
           </div>
 

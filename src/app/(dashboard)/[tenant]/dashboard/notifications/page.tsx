@@ -2,37 +2,31 @@
 
 import { useRouter } from "next/navigation";
 import NotificationList from "@/components/Org/Notifications/NotificationList";
-import { useState, useEffect } from "react";
+import useSWR from "swr";
 import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
-import { toast } from "react-toastify";
 
 export default function NotificationsPage() {
   const router = useRouter();
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: response } = useSWR(
+    API_ENDPOINTS.GET_NOTIFICATIONS,
+    async (url: string) => processRequestOfflineAuth("get", url),
+    {
+      revalidateOnFocus: true,
+      refreshInterval: 10000,
+      dedupingInterval: 3000,
+      refreshWhenHidden: false,
+      refreshWhenOffline: false,
+    }
+  );
 
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const response = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_NOTIFICATIONS);
-        const raw = Array.isArray(response?.data)
-          ? response.data
-          : Array.isArray((response as any)?.data?.data)
-            ? (response as any).data.data
-            : Array.isArray(response)
-              ? response
-              : [];
-        setNotifications(raw);
-      } catch (e: any) {
-        toast.error((e?.response?.data?.message as string) ?? "Failed to load notifications", { toastId: "notif-load" });
-        setNotifications([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchNotifications();
-  }, []);
+  const notifications = Array.isArray(response?.data)
+    ? response.data
+    : Array.isArray((response as any)?.data?.data)
+      ? (response as any).data.data
+      : Array.isArray(response)
+        ? response
+        : [];
 
   const handleViewNotification = (id: string) => {
     router.push(`/dashboard/notifications/${id}`);

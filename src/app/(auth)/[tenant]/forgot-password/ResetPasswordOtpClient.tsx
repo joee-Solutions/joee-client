@@ -17,7 +17,7 @@ import { processRequestNoAuth } from "@/framework/https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { Spinner } from "@/components/icons/Spinner";
 import { toast } from "react-toastify";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 type ResetPasswordOtpProps = z.infer<typeof schema>;
 const schema = z.object({
@@ -32,6 +32,21 @@ const ResetPasswordOtpClient = ({
 }) => {
   useEffect(() => {}, []);
   const router = useRouter();
+  const pathname = usePathname();
+  const getResetPasswordPath = () => {
+    const reserved = new Set([
+      "dashboard",
+      "login",
+      "forgot-password",
+      "reset-password",
+      "verify-login-otp",
+      "otp",
+      "not-found",
+    ]);
+    const firstSegment = pathname?.split("/").filter(Boolean)[0];
+    const hasTenantInPath = Boolean(firstSegment && !reserved.has(firstSegment));
+    return hasTenantInPath ? `/${firstSegment}/reset-password` : "/reset-password";
+  };
   const {
     handleSubmit,
     formState: { errors, isSubmitting },
@@ -50,19 +65,44 @@ const ResetPasswordOtpClient = ({
       };
       if (token) body.token = token;
       if (email) body.email = email;
-      const res = await processRequestNoAuth("post", API_ENDPOINTS.VERIFY_OTP, body);
-      const nextToken =
-        res?.token ?? res?.data?.token ?? res?.data?.data?.token;
-      if (res?.status === "success" && nextToken) {
-        toast.success("OTP verified successfully. Enter your new password.");
-        router.push(`/reset-password?token=${encodeURIComponent(nextToken)}`);
-      } else if (res && !res.status) {
-        const t = res?.token ?? res?.data?.token ?? res?.data?.data?.token;
-        if (t) {
-          toast.success("OTP verified successfully. Enter your new password.");
-          router.push(`/reset-password?token=${encodeURIComponent(t)}`);
+      let res: any;
+      try {
+        // Password reset OTP must use reset-verification endpoint.
+        res = await processRequestNoAuth("post", API_ENDPOINTS.VERIFY_OTP, body);
+      } catch (primaryError: any) {
+        // Backward compatibility if some environments still use the login-otp endpoint.
+        const status = primaryError?.response?.status;
+        if (status === 404 || status === 405) {
+          res = await processRequestNoAuth("post", API_ENDPOINTS.VERIFY_LOGIN, body);
+        } else {
+          throw primaryError;
         }
       }
+      const nextToken =
+        res?.token ?? res?.data?.token ?? res?.data?.data?.token;
+      const isOtpVerified =
+        res?.status === "success" ||
+        res?.status === true ||
+        res?.data?.status === "success" ||
+        res?.data?.status === true ||
+        (typeof res?.message === "string" &&
+          res.message.toLowerCase().includes("verified")) ||
+        (typeof res?.data?.message === "string" &&
+          res.data.message.toLowerCase().includes("verified"));
+
+      if (isOtpVerified) {
+        const routeToken = nextToken || token;
+        toast.success("OTP verified successfully. Enter your new password.");
+        if (routeToken) {
+          router.push(`${getResetPasswordPath()}?token=${encodeURIComponent(routeToken)}`);
+          return;
+        }
+        // Fallback when backend verifies OTP but doesn't return a token.
+        const qs = email ? `?email=${encodeURIComponent(email)}&otp=${encodeURIComponent(data.otp)}` : "";
+        router.push(`${getResetPasswordPath()}${qs}`);
+        return;
+      }
+      toast.error("OTP verification response was invalid. Please try again.");
     } catch (error: any) {
       toast.error(error?.response?.data?.error ?? "Verification failed");
     }

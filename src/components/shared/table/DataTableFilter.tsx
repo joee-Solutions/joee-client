@@ -1,3 +1,5 @@
+ "use client";
+
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -7,7 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ListFilter } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function DataTableFilter() {
   const [search, setSearch] = useState("");
@@ -91,6 +93,21 @@ interface ListViewProps {
 }
 
 export function ListView({ pageSize, setPageSize }: ListViewProps) {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return (
+      <div className="flex items-center gap-3">
+        <p className="text-base font-normal">Show</p>
+        <div className="h-9 w-[66px] rounded-[8px] border border-[#B2B2B2] bg-white" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center gap-3">
       <p className="text-base font-normal">Show</p>

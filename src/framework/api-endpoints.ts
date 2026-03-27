@@ -3,7 +3,7 @@ export const API_ENDPOINTS = {
   FORGOT_PASSWORD: "/auth/tenant/forgot-password",
   RESET_PASSWORD: "/auth/tenant/reset-password",
   VERIFY_LOGIN: "/auth/tenant/verify-login-otp",
-  VERIFY_OTP: "/auth/tenant/verify-login-otp", // For password reset OTP verification
+  VERIFY_OTP: "/auth/tenant/verify-otp", // For password reset OTP verification
   RESEND_OTP: "/tenant/auth/resend-otp",
   REFRESH_TOKEN: "/auth/tenant/refresh",
 

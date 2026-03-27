@@ -1038,7 +1038,7 @@ export default function PatientStepper({ slug, patientId: propPatientId, onSaveC
                         disabled={loading}
                         className="font-normal text-base text-white bg-green-600 hover:bg-green-700 h-[60px] px-6 flex items-center"
                       >
-                        {loading ? "Saving..." : "Save"}
+                        {loading ? (!isNewPatient ? "Updating..." : "Saving...") : (!isNewPatient ? "Update" : "Save")}
                       </Button>
                     <Button
                       type="button"
@@ -1057,7 +1057,7 @@ export default function PatientStepper({ slug, patientId: propPatientId, onSaveC
                         disabled={loading}
                         className="font-normal text-base text-white bg-green-600 hover:bg-green-700 h-[60px] px-6 flex items-center"
                       >
-                        {loading ? "Saving..." : "Save"}
+                        {loading ? (!isNewPatient ? "Updating..." : "Saving...") : (!isNewPatient ? "Update" : "Save")}
                       </Button>
                       <p className="text-xs text-gray-500">Data is auto-saved as you enter information</p>
                     </div>

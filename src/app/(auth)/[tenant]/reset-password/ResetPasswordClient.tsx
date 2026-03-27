@@ -12,6 +12,7 @@ import { toast } from "react-toastify";
 import { EyeOffIcon, EyeClosedIcon } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Spinner } from "@/components/icons/Spinner";
+import Link from "next/link";
 
 type ResetPasswordProps = z.infer<typeof schema>;
 
@@ -40,6 +41,8 @@ const schema = z.object({
 const ResetPasswordClient = () => {
   const params = useSearchParams();
   const token = params.get("token");
+  const email = params.get("email");
+  const otp = params.get("otp");
   const router = useRouter();
   useEffect(() => {}, []);
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -56,18 +59,23 @@ const ResetPasswordClient = () => {
       toast.error("Password does not match");
       return;
     }
-    if (!token) {
-      toast.error("Please request for a new OTP");
-      return;
-    }
     try {
+      const payload: Record<string, string> = {
+        password: data.password,
+      };
+      if (token) payload.token = token;
+      if (!token && email && otp) {
+        payload.email = email;
+        payload.otp = otp;
+      }
+      if (!payload.token && (!payload.email || !payload.otp)) {
+        toast.error("Please request for a new OTP");
+        return;
+      }
       const res = await processRequestNoAuth(
         "post",
         API_ENDPOINTS.RESET_PASSWORD,
-        {
-          token: token,
-          password: data.password,
-        }
+        payload
       );
       if (res?.status || res?.data?.status) {
         toast.success("Password reset successfully. You can now log in.");
@@ -163,6 +171,12 @@ const ResetPasswordClient = () => {
             >
               {isSubmitting ? <Spinner /> : "Submit"}
             </Button>
+            <Link
+              href="/login"
+              className="text-[#FAD900] hover:underline text-sm text-center mt-2"
+            >
+              Back to Login
+            </Link>
           </form>
         </div>
       </div>

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import useSWR from 'swr';
 import DepartmentCarousel from '@/components/Org/Departments/DepartmentCarousel';
 import DepartmentList from '@/components/Org/Departments/DepartmentList';
 import AddDepartmentForm from '@/components/Org/Departments/AddDepartmentForm';
@@ -138,6 +139,16 @@ const mapApiToDepartment = (dept: any, index: number): Department => {
   };
 };
 
+function departmentsListFromResponse(res: unknown): Record<string, unknown>[] {
+  if (!res) return [];
+  const r = res as { data?: unknown };
+  if (Array.isArray(r.data)) return r.data as Record<string, unknown>[];
+  const nested = r.data as { data?: unknown[] } | undefined;
+  if (Array.isArray(nested?.data)) return nested.data as Record<string, unknown>[];
+  if (Array.isArray(res)) return res as Record<string, unknown>[];
+  return [];
+}
+
 // Create columns function that accepts handlers
 const createColumns = (
   onEdit: (department: Department) => void,
@@ -216,13 +227,11 @@ const createColumns = (
 ];
 
 export default function DepartmentPage() {
-  const [departments, setDepartments] = useState<Department[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [recentlyViewedDepartment, setRecentlyViewedDepartment] = useState<string | null>(null);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -260,10 +269,47 @@ export default function DepartmentPage() {
     });
   };
 
+  const { data: departmentsResponse, isLoading, mutate: mutateDepartments } = useSWR(
+    API_ENDPOINTS.GET_DEPARTMENTS,
+    async (url: string) => processRequestOfflineAuth("get", url),
+    {
+      revalidateOnFocus: true,
+      refreshInterval: 30000,
+      dedupingInterval: 5000,
+      onError: (error: { response?: { status?: number } }) => {
+        console.error("Failed to load departments:", error);
+        if (error?.response?.status === 403) {
+          toast.error("Access denied. Please check your permissions or contact your administrator.", {
+            toastId: "departments-403-error",
+            autoClose: 5000,
+          });
+        } else if (error?.response?.status === 401) {
+          toast.error("Authentication failed. Please log in again.", {
+            toastId: "departments-401-error",
+            autoClose: 5000,
+          });
+        } else {
+          toast.error("Failed to load departments data", { toastId: "departments-load-error" });
+        }
+      },
+    }
+  );
+
+  const baseDepartments = useMemo(() => {
+    const depts = departmentsListFromResponse(departmentsResponse);
+    if (depts.length === 0) return [];
+    return depts.map((d, i) => mapApiToDepartment(d, i));
+  }, [departmentsResponse]);
+
+  const departments = useMemo(() => {
+    if (!recentlyViewedDepartment) return baseDepartments;
+    const recent = baseDepartments.find((d) => d.id === recentlyViewedDepartment);
+    if (!recent) return baseDepartments;
+    return [recent, ...baseDepartments.filter((d) => d.id !== recentlyViewedDepartment)];
+  }, [baseDepartments, recentlyViewedDepartment]);
+
   useEffect(() => {
-    loadDepartments();
-    // Load recently viewed department from localStorage on component mount
-    const recent = localStorage.getItem('recentlyViewedDepartment');
+    const recent = localStorage.getItem("recentlyViewedDepartment");
     if (recent) {
       setRecentlyViewedDepartment(recent);
     }
@@ -289,53 +335,6 @@ export default function DepartmentPage() {
     }
   }, [isEditModalOpen, isDeleteModalOpen, isViewModalOpen]);
 
-  const loadDepartments = async () => {
-    try {
-      setIsLoading(true);
-      const response = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_DEPARTMENTS);
-      
-      // Handle different response structures
-      const depts = Array.isArray(response?.data) 
-        ? response.data 
-        : Array.isArray(response) 
-        ? response 
-        : [];
-
-      if (depts.length > 0) {
-        const mappedDepartments = depts.map(mapApiToDepartment);
-        setDepartments(mappedDepartments);
-        
-        // Reorder if there's a recently viewed department
-        if (recentlyViewedDepartment) {
-          reorderDepartments(recentlyViewedDepartment);
-        }
-      } else {
-        setDepartments([]);
-      }
-    } catch (error: any) {
-      console.error("Failed to load departments:", error);
-      
-      // Handle specific error cases
-      if (error?.response?.status === 403) {
-        toast.error("Access denied. Please check your permissions or contact your administrator.", {
-          toastId: "departments-403-error",
-          autoClose: 5000,
-        });
-      } else if (error?.response?.status === 401) {
-        toast.error("Authentication failed. Please log in again.", {
-          toastId: "departments-401-error",
-          autoClose: 5000,
-        });
-      } else {
-        toast.error("Failed to load departments data", { toastId: "departments-load-error" });
-      }
-      
-      setDepartments([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handlePageClick = (event: { selected: number }) => {
     setCurrentPage(event.selected);
   };
@@ -350,18 +349,6 @@ export default function DepartmentPage() {
       (dept.description && dept.description.toLowerCase().includes(searchLower))
     );
   });
-
-
-  // Function to reorder departments based on recently viewed
-  const reorderDepartments = (departmentId: string) => {
-    setDepartments(prevDepartments => {
-      const recentDept = prevDepartments.find(dept => dept.id === departmentId);
-      if (!recentDept) return prevDepartments;
-
-      const otherDepts = prevDepartments.filter(dept => dept.id !== departmentId);
-      return [recentDept, ...otherDepts];
-    });
-  };
 
   // Handle department card click
   const handleDepartmentClick = (departmentId: string) => {
@@ -421,8 +408,7 @@ export default function DepartmentPage() {
         toast.success("Department created successfully", { toastId: "department-create-success" });
         setShowForm(false);
         setSuccessModal({ open: true, title: "Success", message: "Department created successfully." });
-        // Reload departments to update the table with fresh data
-        await loadDepartments();
+        await mutateDepartments();
       } else {
         throw new Error("Unexpected response from server");
       }
@@ -483,9 +469,7 @@ export default function DepartmentPage() {
       toast.success("Department deleted successfully", { toastId: "department-delete-success" });
       setIsDeleteModalOpen(false);
       setSelectedDepartment(null);
-      
-      // Reload departments to update the table
-      await loadDepartments();
+      await mutateDepartments();
     } catch (error: any) {
       console.error("Failed to delete department:", error);
       const errorText = getApiErrorMessagesString(error, "Failed to delete department.");
@@ -520,8 +504,7 @@ export default function DepartmentPage() {
         toast.success("Department updated successfully", { toastId: "department-update-success" });
         setIsEditModalOpen(false);
         setSuccessModal({ open: true, title: "Success", message: "Department updated successfully." });
-        // Reload departments to update the table
-        await loadDepartments();
+        await mutateDepartments();
       } else {
         throw new Error("Unexpected response from server");
       }
