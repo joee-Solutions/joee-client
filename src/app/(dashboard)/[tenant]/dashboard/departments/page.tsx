@@ -10,6 +10,7 @@ import DataTable, { Column } from '@/components/shared/table/DataTable';
 import Pagination from '@/components/shared/table/pagination';
 import { Button } from '@/components/ui/button';
 import { Search, MoreVertical, Edit, Trash2 } from 'lucide-react';
+import Link from "next/link";
 import { ListView } from '@/components/shared/table/DataTableFilter';
 import { processRequestOfflineAuth } from '@/framework/offline-https';
 import { API_ENDPOINTS } from '@/framework/api-endpoints';
@@ -148,6 +149,7 @@ function departmentsListFromResponse(res: unknown): Record<string, unknown>[] {
   if (Array.isArray(res)) return res as Record<string, unknown>[];
   return [];
 }
+const departmentSlug = (name: string) => name.trim().toLowerCase().replace(/\s+/g, "-");
 
 // Create columns function that accepts handlers
 const createColumns = (
@@ -165,7 +167,19 @@ const createColumns = (
       );
     },
   },
-  { header: "Department Name", key: "name" },
+  {
+    header: "Department Name",
+    render(row) {
+      return (
+        <Link
+          href={`/dashboard/departments/${departmentSlug(row.name)}`}
+          className="font-semibold text-xs text-[#003465] hover:underline"
+        >
+          {row.name}
+        </Link>
+      );
+    },
+  },
   { header: "No. of Employee", key: "employeeCount" },
   { header: "Date Created", key: "dateCreated" },
   {

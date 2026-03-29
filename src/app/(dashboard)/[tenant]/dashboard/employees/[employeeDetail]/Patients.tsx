@@ -2,22 +2,17 @@
 
 import DataTable, { Column } from "@/components/shared/table/DataTable";
 import Pagination from "@/components/shared/table/pagination";
-import { useEffect, useState } from "react";
-import { TableCell, TableRow } from "@/components/ui/table";
-import { ArrowDownUp, Ellipsis, Search, Settings2, Upload } from "lucide-react";
-import Image from "next/image";
+import { useMemo, useState } from "react";
+import { Search, Upload, UserRound } from "lucide-react";
+import { useParams } from "next/navigation";
+import useSWR from "swr";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { processRequestOfflineAuth } from "@/framework/offline-https";
+import { API_ENDPOINTS } from "@/framework/api-endpoints";
+import { arrayFromApiResponse } from "@/utils/api-array";
 
 type PatientDto = {
-  id: number;
+  id: number | string;
   profilePicture: string;
   firstName: string;
   lastName: string;
@@ -25,183 +20,98 @@ type PatientDto = {
   gender: string;
 };
 
-const columns: Column<PatientDto>[] = [
-  {
-    header: "#",
-    key: "id",
-  },
-  {
-    header: "Patients",
-    render(row) {
-      return (
-        <div className="flex items-center gap-[10px]">
-          <span className="w-[42px] h-42px rounded-full overflow-hidden">
-            <Image
-              src={row.profilePicture}
-              alt="patient image"
-              width={42}
-              height={42}
-              className="object-cover aspect-square w-full h-full"
-            />
-          </span>
-          <p className="font-medium text-xs text-black">
-            {row.firstName} {row.lastName}
-          </p>
-        </div>
-      );
-    },
-  },
-  {
-    header: "Created at",
-    render(row) {
-      return (
-        <p className="font-semibold text-xs text-[#737373]">{row.createdAt}</p>
-      );
-    },
-  },
-  {
-    header: "Gender",
-    render(row) {
-      return (
-        <div
-          className={`flex items-center justify-center font-medium text-xs h-[30px] w-[69px] rounded-[20px] ${
-            row.gender.toLowerCase() === "male"
-              ? "text-[#3FA907] bg-[#E5F8DA]"
-              : "text-[#EC0909] bg-[#FDE6E6]"
-          }`}
-        >
-          {row.gender[0].toUpperCase() + row.gender.slice(1)}
-        </div>
-      );
-    },
-  },
-  {
-    header: "Actions",
-    render(row) {
-      return (
-        <Link
-          href={"/dashboard/organization/1234"}
-          className="flex items-center justify-center px-2 h-6 rounded-[2px] border border-[#BFBFBF] bg-[#EDF0F6]"
-        >
-          <Ellipsis className="text-black size-5" />
-        </Link>
-      );
-    },
-  },
-];
-
-const PatientsTableData = [
-  {
-    id: 1,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
-    gender: "male",
-  },
-  {
-    id: 2,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
-    gender: "female",
-  },
-  {
-    id: 3,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
-    gender: "male",
-  },
-  {
-    id: 4,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
-    gender: "male",
-  },
-  {
-    id: 5,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
-    gender: "male",
-  },
-  {
-    id: 6,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
-    gender: "male",
-  },
-  {
-    id: 7,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
-    gender: "male",
-  },
-  {
-    id: 8,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
-    gender: "male",
-  },
-  {
-    id: 9,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
-    gender: "male",
-  },
-  {
-    id: 10,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
-    gender: "male",
-  },
-];
-
 export default function PatientPage() {
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState("");
-  const [filterBy, setFilterBy] = useState("");
+  const [currentPage, setCurrentPage] = useState(0);
+  const params = useParams();
+  const employeeSlug = String(params?.employeeDetail ?? "").toLowerCase();
 
-  let payload = {
-    page: 1,
-    pageSize: 10,
-    sortOrder: "",
-    type: "upcoming",
-  };
+  const { data: employeesResponse } = useSWR(
+    API_ENDPOINTS.GET_EMPLOYEE,
+    (url: string) => processRequestOfflineAuth("get", url),
+    { revalidateOnFocus: true, refreshInterval: 30000, dedupingInterval: 5000 }
+  );
+  const { data: patientsResponse } = useSWR(
+    API_ENDPOINTS.GET_PATIENTS,
+    (url: string) => processRequestOfflineAuth("get", url),
+    { revalidateOnFocus: true, refreshInterval: 30000, dedupingInterval: 5000 }
+  );
 
-  useEffect(() => {
-    // probably use the payload above to call the api for data for the first time
-    // or when the value of sortBy changes
-  }, []);
+  const employeeId = useMemo(() => {
+    const employees = arrayFromApiResponse(employeesResponse);
+    const found = employees.find((u) => {
+      const first = String(u.first_name ?? u.firstName ?? u.firstname ?? "").trim();
+      const last = String(u.last_name ?? u.lastName ?? u.lastname ?? "").trim();
+      return `${first} ${last}`.trim().split(/\s+/).join("-").toLowerCase() === employeeSlug;
+    });
+    return String(found?.id ?? found?._id ?? "");
+  }, [employeesResponse, employeeSlug]);
+
+  const rows = useMemo<PatientDto[]>(() => {
+    const all = arrayFromApiResponse(patientsResponse);
+    const mapped = all.map((p, i) => {
+      const firstName = String(p.first_name ?? p.firstName ?? "").trim();
+      const lastName = String(p.last_name ?? p.lastName ?? "").trim();
+      const createdRaw = String(p.created_at ?? p.createdAt ?? "");
+      const createdAt = createdRaw && !isNaN(new Date(createdRaw).getTime())
+        ? new Date(createdRaw).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+        : "—";
+      return {
+        id: String(p.id ?? p._id ?? i + 1),
+        profilePicture: String(p.image_url ?? p.imageUrl ?? p.profile_picture ?? p.profilePicture ?? ""),
+        firstName: firstName || String(p.name ?? "Patient"),
+        lastName,
+        createdAt,
+        gender: String(p.gender ?? p.sex ?? "—"),
+      };
+    });
+    if (!employeeId) return mapped;
+    const filtered = all.filter((p) => {
+      const owner = String(p.employee_id ?? p.doctor_id ?? p.user_id ?? p.created_by ?? "");
+      return owner === employeeId;
+    });
+    return filtered.length === 0 ? mapped : filtered.map((p, i) => ({
+      id: String(p.id ?? p._id ?? i + 1),
+      profilePicture: String(p.image_url ?? p.imageUrl ?? p.profile_picture ?? p.profilePicture ?? ""),
+      firstName: String(p.first_name ?? p.firstName ?? p.name ?? "Patient"),
+      lastName: String(p.last_name ?? p.lastName ?? ""),
+      createdAt: String(p.created_at ?? p.createdAt ?? "—"),
+      gender: String(p.gender ?? p.sex ?? "—"),
+    }));
+  }, [patientsResponse, employeeId]);
+
+  const columns: Column<PatientDto>[] = [
+    { header: "#", key: "id" },
+    {
+      header: "Patients",
+      render(row) {
+        return (
+          <div className="flex items-center gap-[10px]">
+            <span className="flex h-[42px] w-[42px] items-center justify-center overflow-hidden rounded-full bg-[#eef2f6]">
+              {row.profilePicture ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={row.profilePicture} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <UserRound className="h-6 w-6 text-[#94a3b8]" />
+              )}
+            </span>
+            <p className="text-xs font-medium text-black">{row.firstName} {row.lastName}</p>
+          </div>
+        );
+      },
+    },
+    { header: "Created at", key: "createdAt" },
+    {
+      header: "Gender",
+      render(row) {
+        return <p className="text-xs font-semibold text-[#737373]">{row.gender || "—"}</p>;
+      },
+    },
+  ];
 
   const handlePageClick = (event: { selected: number }) => {
-    const newPage = event.selected + 1;
-
-    payload = {
-      page: newPage,
-      pageSize: 10,
-      sortOrder: "",
-      type: sortBy,
-    };
-
-    // call the API
+    setCurrentPage(event.selected);
   };
 
   return (
@@ -223,64 +133,17 @@ export default function PatientPage() {
           />
           <Search className="size-5 text-[#999999] absolute right-4 top-1/2 -translate-y-1/2" />
         </div>
-
-        <div className="ml-auto">
-          <Select
-            value={sortBy}
-            onValueChange={(sortVal: string) => {
-              setSortBy(sortVal);
-            }}
-          >
-            <SelectTrigger className="flex py-4 gap-2 h-full min-w-max rounded-[8px] border border-[#B2B2B2] focus:ring-transparent">
-              <ArrowDownUp className="text-[#595959] size-5" />
-              <SelectValue placeholder={sortBy ? sortBy : "Sort"} />
-            </SelectTrigger>
-            <SelectContent className="bg-white">
-              {["Name", "Date", "Location", "Status"].map((currSortVal) => (
-                <SelectItem
-                  key={currSortVal}
-                  value={`${currSortVal}`}
-                  className="cursor-pointer hover:bg-[#003465] hover:text-white"
-                >
-                  {currSortVal}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Select
-            value={filterBy}
-            onValueChange={(filterVal: string) => {
-              setFilterBy(filterVal);
-            }}
-          >
-            <SelectTrigger className="flex py-4 gap-2 h-full min-w-max rounded-[8px] border border-[#B2B2B2] focus:ring-transparent">
-              <Settings2 className="text-[#595959] size-5" />
-              <SelectValue placeholder={filterBy ? filterBy : "Filter"} />
-            </SelectTrigger>
-            <SelectContent className="bg-white">
-              {["Name", "Date", "Location", "Status"].map((currFilterVal) => (
-                <SelectItem
-                  key={currFilterVal}
-                  value={`${currFilterVal}`}
-                  className="cursor-pointer hover:bg-[#003465] hover:text-white"
-                >
-                  {currFilterVal}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
       </div>
       <DataTable
-        columns={columns}
-        data={PatientsTableData}
+        columns={columns as any}
+        data={rows as any}
         bgHeader="bg-[#D9EDFF] text-black"
+        search={search}
+        searchableKeys={["firstName", "lastName", "gender"] as any}
       />
       <Pagination
-        dataLength={PatientsTableData.length}
-        numOfPages={1000}
+        dataLength={rows.length}
+        numOfPages={Math.max(1, Math.ceil(rows.length / pageSize))}
         pageSize={pageSize}
         handlePageClick={handlePageClick}
       />

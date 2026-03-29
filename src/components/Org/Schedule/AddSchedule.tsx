@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Plus, Calendar, User, Clock, ArrowLeft } from "lucide-react";
-import { DatePicker } from "@/components/ui/date-picker";
+import { X, Plus, User, Clock, ArrowLeft } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -11,7 +10,6 @@ import {
 
 interface DaySchedule {
   day: string;
-  date?: Date;
   startTime: string;
   endTime: string;
 }
@@ -46,24 +44,25 @@ const AddScheduleModal: React.FC<AddScheduleModalProps> = ({
     selectedDays: [],
     schedules: [{ day: "", startTime: "", endTime: "" }], // Start with one schedule day
   });
+  const weekdayOptions = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+  ];
 
   // Pre-fill the form when editing
   useEffect(() => {
     if (editMode && schedule) {
-      const normalizeDate = (d: unknown): Date | undefined => {
-        if (d instanceof Date && !isNaN(d.getTime())) return d
-        if (typeof d === "string") {
-          const parsed = new Date(d)
-          return !isNaN(parsed.getTime()) ? parsed : undefined
-        }
-        return undefined
-      }
       setFormData({
         ...schedule,
         schedules: schedule.schedules.length > 0 
           ? schedule.schedules.map((s) => ({
               ...s,
-              date: normalizeDate(s.date),
+              day: String(s.day ?? ""),
             }))
           : [{ day: "", startTime: "", endTime: "" }],
       });
@@ -103,12 +102,12 @@ const AddScheduleModal: React.FC<AddScheduleModalProps> = ({
     }));
   };
 
-  const handleScheduleDateChange = (index: number, date: Date | undefined) => {
+  const handleScheduleDayChange = (index: number, day: string) => {
     setFormData((prev) => {
       const updatedSchedules = [...prev.schedules];
       updatedSchedules[index] = {
         ...updatedSchedules[index],
-        date,
+        day,
       };
       return { ...prev, schedules: updatedSchedules };
     });
@@ -225,17 +224,26 @@ const AddScheduleModal: React.FC<AddScheduleModalProps> = ({
               {formData.schedules.map((schedule, index) => (
                 <div key={index} className="bg-white rounded-lg p-6 border border-gray-200">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Date Input */}
+                    {/* Day Input */}
                     <div>
                       <label className="block text-base font-medium text-gray-700 mb-2">
-                        Date <span className="text-red-500">*</span>
+                        Day <span className="text-red-500">*</span>
                       </label>
-                      <DatePicker
-                        date={schedule.date}
-                        onDateChange={(date) => handleScheduleDateChange(index, date)}
-                        placeholder="Pick a date"
-                        className="w-full"
-                      />
+                      <Select
+                        value={schedule.day}
+                        onValueChange={(value) => handleScheduleDayChange(index, value)}
+                      >
+                        <SelectTrigger className="w-full h-14 p-3 border border-gray-300 rounded-lg bg-white">
+                          <SelectValue placeholder="Select day" />
+                        </SelectTrigger>
+                        <SelectContent className="!z-[150] bg-white">
+                          {weekdayOptions.map((day) => (
+                            <SelectItem key={day} value={day} className="hover:bg-gray-200">
+                              {day}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     {/* Start Time Input */}
@@ -294,7 +302,7 @@ const AddScheduleModal: React.FC<AddScheduleModalProps> = ({
                 className="w-full py-3 px-4 border-2 border-[#003465] border-dashed text-[#003465] rounded-lg hover:bg-[#003465] hover:text-white transition-colors flex items-center justify-center gap-2 font-medium"
               >
                 <Plus size={20} />
-                Add Another Date
+                Add Another Day
               </button>
             </div>
           </div>

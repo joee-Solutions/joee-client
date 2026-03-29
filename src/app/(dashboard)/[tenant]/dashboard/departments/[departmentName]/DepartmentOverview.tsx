@@ -1,59 +1,61 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { Edit } from "lucide-react";
 
-export default function DepartmentOverview() {
+export type DepartmentDetailModel = {
+  id: string;
+  name: string;
+  description: string;
+  dateCreated: string;
+  employeeCount: number;
+  status: string;
+};
 
-
+export default function DepartmentOverview({ department }: { department: DepartmentDetailModel }) {
   return (
     <div className="flex flex-col gap-6">
       <h2 className="text-2xl font-semibold text-black">Department Overview</h2>
-      
-      {/* Short Description Section */}
-      <div className="bg-[#E8F4FD] p-6 rounded-lg">
-        <h3 className="text-sm font-medium text-[#666666] mb-3">Short Description</h3>
-        <p className="text-sm text-[#333333] leading-relaxed">
-          Lorem ipsum dolor sit amet consectetur. Cursus nec amet ipsum a. Faucibus 
-          volutpat quis cras aliquam a sed. Mattis porttitor risus elementum feugiat 
-          mauris. Nec tortor quisque turpis blandit mauris at tellus.
+
+      <div className="rounded-lg bg-[#E8F4FD] p-6">
+        <h3 className="mb-3 text-sm font-medium text-[#666666]">Description</h3>
+        <p className="text-sm leading-relaxed text-[#333333]">
+          {department.description || "No description provided."}
         </p>
       </div>
 
-      {/* Department Details Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-[#E8F4FD] p-4 rounded-lg">
-          <h4 className="text-sm font-medium text-[#666666] mb-2">Depart name</h4>
-          <p className="text-base font-medium text-[#333333]">Opthamology</p>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="rounded-lg bg-[#E8F4FD] p-4">
+          <h4 className="mb-2 text-sm font-medium text-[#666666]">Department name</h4>
+          <p className="text-base font-medium text-[#333333]">{department.name}</p>
         </div>
-        
-        <div className="bg-[#E8F4FD] p-4 rounded-lg">
-          <h4 className="text-sm font-medium text-[#666666] mb-2">Date Created</h4>
-          <p className="text-base font-medium text-[#333333]">17-04-1984</p>
+
+        <div className="rounded-lg bg-[#E8F4FD] p-4">
+          <h4 className="mb-2 text-sm font-medium text-[#666666]">Date created</h4>
+          <p className="text-base font-medium text-[#333333]">{department.dateCreated}</p>
         </div>
-        
-        <div className="bg-[#E8F4FD] p-4 rounded-lg">
-          <h4 className="text-sm font-medium text-[#666666] mb-2">Number of Employees</h4>
-          <p className="text-base font-medium text-[#333333]">24</p>
+
+        <div className="rounded-lg bg-[#E8F4FD] p-4">
+          <h4 className="mb-2 text-sm font-medium text-[#666666]">Number of employees</h4>
+          <p className="text-base font-medium text-[#333333]">{department.employeeCount}</p>
         </div>
-        
-        <div className="bg-[#E8F4FD] p-4 rounded-lg">
-          <h4 className="text-sm font-medium text-[#666666] mb-2">Status</h4>
-          <p className="text-base font-medium text-[#333333]">Active</p>
+
+        <div className="rounded-lg bg-[#E8F4FD] p-4">
+          <h4 className="mb-2 text-sm font-medium text-[#666666]">Status</h4>
+          <p className="text-base font-medium text-[#333333]">{department.status}</p>
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row gap-4 mt-6">
-        <Button className="bg-[#003465] hover:bg-[#002147] text-white font-medium py-3 px-8 rounded-lg flex items-center gap-2 flex-1">
-          <Edit className="w-4 h-4" />
-          Edit
-        </Button>
-        
-        <Button 
-          variant="outline" 
-          className="border-2 border-red-500 text-red-500 hover:bg-red-50 font-medium py-3 px-8 rounded-lg flex items-center gap-2 flex-1"
+      <div className="mt-6">
+        <Button
+          asChild
+          className="bg-[#003465] px-8 py-3 font-medium text-white hover:bg-[#002147]"
         >
-          <Trash2 className="w-4 h-4" />
-          Delete
+          <Link href="/dashboard/departments" className="flex items-center gap-2">
+            <Edit className="h-4 w-4" />
+            Manage on departments list
+          </Link>
         </Button>
       </div>
     </div>

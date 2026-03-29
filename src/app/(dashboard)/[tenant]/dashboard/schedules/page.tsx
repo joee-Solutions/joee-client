@@ -154,7 +154,7 @@ const createColumns = (
     size: 200,
   },
   { header: "Department", key: "department" as keyof TableDataItem, size: 150 },
-  { header: "Date", key: "date" as keyof TableDataItem, size: 120 },
+  { header: "Day", key: "date" as keyof TableDataItem, size: 120 },
   { header: "Start Time", key: "startTime" as keyof TableDataItem, size: 120 },
   { header: "End Time", key: "endTime" as keyof TableDataItem, size: 120 },
   {
@@ -259,7 +259,7 @@ const SchedulesPage: React.FC = () => {
         // Handle availableDays array - create one row per day
         if (schedule.availableDays && Array.isArray(schedule.availableDays) && schedule.availableDays.length > 0) {
           schedule.availableDays.forEach((daySchedule: any, dayIndex: number) => {
-            const day = daySchedule.day || "";
+            const day = String(daySchedule.day || "");
             const startTime = daySchedule.startTime || daySchedule.start_time || "09:00";
             const endTime = daySchedule.endTime || daySchedule.end_time || "17:00";
             
@@ -277,12 +277,17 @@ const SchedulesPage: React.FC = () => {
               return `${hour12}:${minutes || "00"}${ampm}`;
             };
             
+            const dayDisplay = day
+              ? day.length === 10 && !isNaN(new Date(day).getTime())
+                ? new Date(day).toLocaleDateString("en-US", { weekday: "long" })
+                : `${day.charAt(0).toUpperCase()}${day.slice(1)}`
+              : "—";
             const scheduleId = String(schedule.id ?? schedule._id ?? scheduleIndex);
             transformedSchedules.push({
               id: `${schedule.id || scheduleIndex}-${dayIndex}`,
               name: employeeName,
               department,
-              date: day ? (day.length === 10 ? new Date(day).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : day) : new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
+              date: dayDisplay,
               startTime: formatTime(startTime),
               endTime: formatTime(endTime),
               employeeId: userId,
@@ -418,7 +423,7 @@ const SchedulesPage: React.FC = () => {
 
       const employeeId = selectedEmployee.id;
       
-      // Backend expects availableDays[].day (string), startTime (HH:mm), endTime (HH:mm); no duplicate days
+      // Backend expects availableDays[].day (weekday string), startTime (HH:mm), endTime (HH:mm)
       const toHHmm = (t: string | undefined): string => {
         if (!t || typeof t !== "string") return "09:00";
         const trimmed = t.trim();
@@ -430,12 +435,7 @@ const SchedulesPage: React.FC = () => {
       const seenDays = new Set<string>();
       const availableDays: Array<{ day: string; startTime: string; endTime: string }> = [];
       for (const schedule of formData.schedules) {
-        const dateVal = (schedule as any).date;
-        const dayStr = !dateVal
-          ? ""
-          : typeof dateVal === "string"
-            ? dateVal.split("T")[0]
-            : dateVal.toISOString?.().split("T")[0] ?? "";
+        const dayStr = String(schedule.day ?? "").trim().toLowerCase();
         if (!dayStr || seenDays.has(dayStr)) continue;
         seenDays.add(dayStr);
         availableDays.push({
@@ -567,12 +567,10 @@ const SchedulesPage: React.FC = () => {
             );
             const rows = sameScheduleRows.length > 0 ? sameScheduleRows : [scheduleToEdit];
             const schedules = rows.map((row) => {
-              const d = row.rawDay ?? row.date;
-              const dateParsed = !d ? undefined : typeof d === "string" && d.length === 10 ? new Date(d) : typeof d === "string" ? new Date(d) : d;
-              const dateObj = dateParsed instanceof Date && !isNaN(dateParsed.getTime()) ? dateParsed : undefined;
+              const dayValue = String(row.rawDay ?? row.date ?? "")
+                .replace(/^\w/, (c) => c.toUpperCase());
               return {
-                day: typeof row.rawDay === "string" ? row.rawDay : "",
-                date: dateObj,
+                day: dayValue,
                 startTime: toHHmm(row.startTime),
                 endTime: toHHmm(row.endTime),
               };
@@ -584,7 +582,6 @@ const SchedulesPage: React.FC = () => {
             selectedDays: [],
               schedules: schedules.length > 0 ? schedules : [{
               day: "",
-                date: undefined,
                 startTime: "09:00",
                 endTime: "17:00",
               }],

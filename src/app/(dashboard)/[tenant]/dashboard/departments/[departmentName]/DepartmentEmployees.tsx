@@ -2,237 +2,117 @@
 
 import DataTable, { Column } from "@/components/shared/table/DataTable";
 import Pagination from "@/components/shared/table/pagination";
-import { useState } from "react";
-import { Search, Upload, ArrowDownUp, Settings2, Ellipsis } from "lucide-react";
-import Image from "next/image";
+import { useMemo, useState } from "react";
+import { Search, Upload, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
-type Employee = {
-  id: number;
-  employee_name: {
-    name: string;
-    picture: string;
-  };
+export type DepartmentEmployeeRow = {
+  id: number | string;
+  employee_name: { name: string; picture: string };
   designation: string;
-  gender: string;
+  specialty: string;
+  href: string;
 };
 
-const employees: Employee[] = [
-  {
-    id: 1,
-    employee_name: {
-      name: "Johnson Raymond",
-      picture: "/assets/imagePlaceholder.png",
-    },
-    designation: "Doctor",
-    gender: "Male",
-  },
-  {
-    id: 2,
-    employee_name: {
-      name: "Susan Denilson",
-      picture: "/assets/imagePlaceholder.png",
-    },
-    designation: "Doctor",
-    gender: "Female",
-  },
-  {
-    id: 3,
-    employee_name: {
-      name: "Lazarus Jennifer",
-      picture: "/assets/imagePlaceholder.png",
-    },
-    designation: "Nurse",
-    gender: "Female",
-  },
-  {
-    id: 4,
-    employee_name: {
-      name: "Larry Denilson",
-      picture: "/assets/imagePlaceholder.png",
-    },
-    designation: "Doctor",
-    gender: "Male",
-  },
-  {
-    id: 5,
-    employee_name: {
-      name: "John Janeth Esther",
-      picture: "/assets/imagePlaceholder.png",
-    },
-    designation: "Receptionist",
-    gender: "Female",
-  },
-  {
-    id: 6,
-    employee_name: {
-      name: "Paul Jameson",
-      picture: "/assets/imagePlaceholder.png",
-    },
-    designation: "Nurse",
-    gender: "Male",
-  },
-];
-
-
-export default function DepartmentEmployeesPage() {
+export default function DepartmentEmployees({ rows }: { rows: DepartmentEmployeeRow[] }) {
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState("");
-  const [filterBy, setFilterBy] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
 
   const handlePageClick = (event: { selected: number }) => {
     setCurrentPage(event.selected);
   };
 
-  const columns: Column<Employee>[] = [
-    {
-      header: "ID",
-      key: "id" as keyof Employee,
-      size: 80,
-    },
-    {
-      header: "Employee Name",
-      render: (row) => (
-        <div className="flex items-center gap-[10px] py-[21px]">
-          <span className="w-[42px] h-[42px] rounded-full overflow-hidden">
-            <Image
-              src={row.employee_name.picture}
-              alt="employee image"
-              width={42}
-              height={42}
-              className="object-cover aspect-square w-full h-full"
-            />
-          </span>
-          <p className="font-medium text-xs text-black">
-            {row.employee_name.name}
-          </p>
-        </div>
-      ),
-      size: 250,
-    },
-    {
-      header: "Designation",
-      key: "designation" as keyof Employee,
-      size: 150,
-    },
-    {
-      header: "Gender",
-      render: (row) => (
-        <div
-          className={`flex items-center justify-center font-medium text-xs h-[30px] w-[69px] rounded-[20px] ${
-            row.gender.toLowerCase() === "male"
-              ? "text-[#3FA907] bg-[#E5F8DA]"
-              : "text-[#EC0909] bg-[#FDE6E6]"
-          }`}
-        >
-          {row.gender[0].toUpperCase() + row.gender.slice(1)}
-        </div>
-      ),
-      size: 120,
-    },
-    {
-      header: "Actions",
-      render: () => (
-        <Link
-          href={"/dashboard/organization/1234"}
-          className="flex items-center justify-center px-2 h-6 rounded-[2px] border border-[#BFBFBF] bg-[#EDF0F6]"
-        >
-          <Ellipsis className="text-black size-5" />
-        </Link>
-      ),
-      size: 100,
-    },
-  ];
+  const columns: Column<DepartmentEmployeeRow>[] = useMemo(
+    () => [
+      {
+        header: "ID",
+        key: "id" as keyof DepartmentEmployeeRow,
+        size: 80,
+      },
+      {
+        header: "Employee Name",
+        render: (row) => (
+          <div className="flex items-center gap-[10px] py-[21px]">
+            <span className="flex h-[42px] w-[42px] items-center justify-center overflow-hidden rounded-full bg-[#eef2f6]">
+              {row.employee_name.picture?.trim() ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={row.employee_name.picture}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <UserRound className="h-7 w-7 text-[#94a3b8]" strokeWidth={1.25} aria-hidden />
+              )}
+            </span>
+            <p className="text-xs font-medium text-black">{row.employee_name.name}</p>
+          </div>
+        ),
+        size: 250,
+      },
+      {
+        header: "Designation",
+        key: "designation" as keyof DepartmentEmployeeRow,
+        size: 150,
+      },
+      {
+        header: "Specialty",
+        render: (row) => (
+          <p className="text-xs font-semibold text-[#737373]">{row.specialty || "—"}</p>
+        ),
+        size: 140,
+      },
+      {
+        header: "Actions",
+        render: (row) => (
+          <Link
+            href={row.href}
+            className="inline-flex h-7 items-center justify-center rounded-[4px] border border-[#003465] px-3 text-xs font-medium text-[#003465] hover:bg-[#003465] hover:text-white"
+          >
+            View
+          </Link>
+        ),
+        size: 100,
+      },
+    ],
+    []
+  );
+
+  const numOfPages = Math.max(1, Math.ceil(rows.length / pageSize));
 
   return (
     <section className="">
-      <header className="flex items-center justify-between gap-5 mb-10">
-        <h2 className="font-semibold text-xl text-black">Employees</h2>
-        <Button className="font-normal text-base text-white bg-[#003465] w-[130px] h-[50px]">
+      <header className="mb-10 flex items-center justify-between gap-5">
+        <h2 className="text-xl font-semibold text-black">Employees</h2>
+        <Button className="h-[50px] w-[130px] bg-[#003465] text-base font-normal text-white">
           Export <Upload />
         </Button>
       </header>
-      <div className="flex flex-wrap mb-5 gap-3">
+      <div className="mb-5 flex flex-wrap gap-3">
         <div className="relative">
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search data..."
-            className="py-4 px-5 pr-11 min-w-[274px] bg-white w-full font-medium text-sm text-[#4F504F] border border-[#BFBFBF] outline-none"
+            className="min-w-[274px] bg-white py-4 pl-5 pr-11 text-sm font-medium text-[#4F504F] outline-none w-full border border-[#BFBFBF]"
           />
-          <Search className="size-5 text-[#999999] absolute right-4 top-1/2 -translate-y-1/2" />
+          <Search className="absolute right-4 top-1/2 size-5 -translate-y-1/2 text-[#999999]" />
         </div>
 
-        <div className="ml-auto">
-          <Select
-            value={sortBy}
-            onValueChange={(sortVal: string) => {
-              setSortBy(sortVal);
-            }}
-          >
-            <SelectTrigger className="flex py-4 gap-2 h-full min-w-max rounded-[8px] border border-[#B2B2B2] focus:ring-transparent">
-              <ArrowDownUp className="text-[#595959] size-5" />
-              <SelectValue placeholder={sortBy ? sortBy : "Sort"} />
-            </SelectTrigger>
-            <SelectContent className="bg-white">
-              {["Name", "Date", "Location", "Status"].map((currSortVal) => (
-                <SelectItem
-                  key={currSortVal}
-                  value={`${currSortVal}`}
-                  className="cursor-pointer hover:bg-[#003465] hover:text-white"
-                >
-                  {currSortVal}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Select
-            value={filterBy}
-            onValueChange={(filterVal: string) => {
-              setFilterBy(filterVal);
-            }}
-          >
-            <SelectTrigger className="flex py-4 gap-2 h-full min-w-max rounded-[8px] border border-[#B2B2B2] focus:ring-transparent">
-              <Settings2 className="text-[#595959] size-5" />
-              <SelectValue placeholder={filterBy ? filterBy : "Filter"} />
-            </SelectTrigger>
-            <SelectContent className="bg-white">
-              {["Name", "Date", "Location", "Status"].map((currFilterVal) => (
-                <SelectItem
-                  key={currFilterVal}
-                  value={`${currFilterVal}`}
-                  className="cursor-pointer hover:bg-[#003465] hover:text-white"
-                >
-                  {currFilterVal}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
       </div>
       <DataTable
         columns={columns as any}
-        data={employees as any}
+        data={rows as any}
         bgHeader="bg-[#D9EDFF] text-black"
         search={search}
-        searchableKeys={["designation", "gender"] as any}
+        searchableKeys={["designation", "specialty"] as any}
       />
       <Pagination
-        dataLength={employees.length}
-        numOfPages={1000}
+        dataLength={rows.length}
+        numOfPages={numOfPages}
         pageSize={pageSize}
         handlePageClick={handlePageClick}
       />

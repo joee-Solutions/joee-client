@@ -6,8 +6,7 @@ import { ListView } from "@/components/shared/table/DataTableFilter";
 import Pagination from "@/components/shared/table/pagination";
 import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";
-import { ChevronRight, Ellipsis, Plus, Search, Edit, Trash2, MoreVertical } from "lucide-react";
-import Image from "next/image";
+import { ChevronRight, Ellipsis, Plus, Search, Edit, Trash2, MoreVertical, UserRound } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { processRequestOfflineAuth } from "@/framework/offline-https";
@@ -83,7 +82,7 @@ const mapUserToEmployeeDTO = (user: any, index: number): EmployeeDTO => {
     user.imageUrl ||
     user.profile_picture ||
     user.profilePicture ||
-    "/assets/imagePlaceholder.png";
+    "";
 
   return {
     id: user.id || user._id || index + 1,
@@ -117,7 +116,7 @@ const mapUserToEmployeeCard = (user: any, index: number): EmployeeCard => {
     user.imageUrl ||
     user.profile_picture ||
     user.profilePicture ||
-    "/assets/doctorFemale.png";
+    "";
 
   return {
     id: user.id || user._id || index + 1,
@@ -128,6 +127,22 @@ const mapUserToEmployeeCard = (user: any, index: number): EmployeeCard => {
     rgbColorCode,
   };
 };
+
+/** Data URL for JSON body field `image_url` when uploading a file. */
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result;
+      if (typeof result === "string") resolve(result);
+      else reject(new Error("Invalid read result"));
+    };
+    reader.onerror = () => reject(reader.error ?? new Error("read failed"));
+    reader.readAsDataURL(file);
+  });
+}
+const employeeSlug = (firstName: string, lastName: string) =>
+  `${firstName} ${lastName}`.trim().split(/\s+/).join("-");
 
 // Create columns function that accepts handlers
 const createColumns = (
@@ -149,17 +164,21 @@ const createColumns = (
     render(row) {
       return (
         <div className="flex items-center gap-[10px]">
-          <span className="w-[42px] h-[42px] rounded-full overflow-hidden">
-            <Image
-              src={row.profilePicture}
-              alt="employee image"
-              width={42}
-              height={42}
-              className="object-cover aspect-square w-full h-full rounded-full"
-            />
+          <span className="flex h-[42px] w-[42px] shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#eef2f6]">
+            {row.profilePicture?.trim() ? (
+              <img
+                src={row.profilePicture}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <UserRound className="h-7 w-7 text-[#94a3b8]" strokeWidth={1.25} aria-hidden />
+            )}
           </span>
           <p className="font-medium text-xs text-black">
-            {row.firstName} {row.lastName}
+            <Link href={`/dashboard/employees/${employeeSlug(row.firstName, row.lastName)}`} className="hover:underline text-[#003465]">
+              {row.firstName} {row.lastName}
+            </Link>
           </p>
         </div>
       );
@@ -267,6 +286,8 @@ export default function EmployeePage() {
     is_active?: boolean;
   }>>({});
   const [editImagePreviewUrl, setEditImagePreviewUrl] = useState<string | null>(null);
+  const [editProfileImageFailed, setEditProfileImageFailed] = useState(false);
+  const [viewProfileImageFailed, setViewProfileImageFailed] = useState(false);
   const editImageInputRef = useRef<HTMLInputElement>(null);
   const [successModal, setSuccessModal] = useState<{ open: boolean; title: string; message: string }>({
     open: false,
@@ -295,6 +316,14 @@ export default function EmployeePage() {
       return () => clearTimeout(timer);
     }
   }, [isEditModalOpen, isDeleteModalOpen, isViewModalOpen]);
+
+  useEffect(() => {
+    setViewProfileImageFailed(false);
+  }, [isViewModalOpen, selectedEmployee?.id, selectedEmployee?.profilePicture]);
+
+  useEffect(() => {
+    setEditProfileImageFailed(false);
+  }, [isEditModalOpen, editFormData.employeeImage, editImagePreviewUrl]);
 
   const loadEmployees = async () => {
     try {
@@ -451,7 +480,13 @@ export default function EmployeePage() {
         specialty: employeeDetails?.specialty || employeeDetails?.specialization || '',
         gender: employeeDetails?.gender || employeeDetails?.sex || '',
         hireDate: employeeDetails?.hire_date || employeeDetails?.hireDate || employeeDetails?.date_hired || '',
-        bio: employeeDetails?.bio || employeeDetails?.biography || employeeDetails?.short_biography || employeeDetails?.description || '',
+        bio:
+          employeeDetails?.about ||
+          employeeDetails?.bio ||
+          employeeDetails?.biography ||
+          employeeDetails?.short_biography ||
+          employeeDetails?.description ||
+          "",
         employeeImage:
           employeeDetails?.image_url ||
           employeeDetails?.imageUrl ||
@@ -494,7 +529,13 @@ export default function EmployeePage() {
         specialty: fullData?.specialty || fullData?.specialization || '',
         gender: fullData?.gender || fullData?.sex || '',
         hireDate: fullData?.hire_date || fullData?.hireDate || fullData?.date_hired || '',
-        bio: fullData?.bio || fullData?.biography || fullData?.short_biography || fullData?.description || '',
+        bio:
+          fullData?.about ||
+          fullData?.bio ||
+          fullData?.biography ||
+          fullData?.short_biography ||
+          fullData?.description ||
+          "",
         employeeImage:
           fullData?.image_url ||
           fullData?.imageUrl ||
@@ -549,7 +590,13 @@ export default function EmployeePage() {
       specialty: employeeData?.specialty || employeeData?.specialization || '',
       gender: employeeData?.gender || employeeData?.sex || '',
       hireDate: formatDateForInput(employeeData?.hire_date || employeeData?.hireDate || employeeData?.date_hired),
-      bio: employeeData?.bio || employeeData?.biography || employeeData?.short_biography || employeeData?.description || '',
+      bio:
+        employeeData?.about ||
+        employeeData?.bio ||
+        employeeData?.biography ||
+        employeeData?.short_biography ||
+        employeeData?.description ||
+        "",
       employeeImage:
         employeeData?.image_url ||
         employeeData?.imageUrl ||
@@ -644,7 +691,7 @@ export default function EmployeePage() {
       if (updatedData.designation) transformedData.designation = updatedData.designation;
       if (updatedData.gender) transformedData.gender = updatedData.gender;
       if (updatedData.hireDate) transformedData.hire_date = updatedData.hireDate;
-      if (updatedData.bio !== undefined) transformedData.bio = updatedData.bio || "";
+      if (updatedData.bio !== undefined) transformedData.about = updatedData.bio || "";
       
       // Handle status - send only status as string ("active" or "inactive")
       // Use the form value if set, otherwise use the current employee's status
@@ -658,18 +705,25 @@ export default function EmployeePage() {
       
       console.log("Transformed data being sent to API:", transformedData);
       
-      // Use PATCH method with /tenant/user/{id} endpoint
-      // Backend expects `image_url` as a string (data URL or existing URL).
-      if (typeof updatedData.employeeImage === "string") {
-        const trimmed = updatedData.employeeImage.trim();
-        if (trimmed) {
-          transformedData.image_url = trimmed;
+      // Profile photo: backend expects a string on `image_url` only (URL or data URL).
+      const editImg = updatedData.employeeImage;
+      if (typeof editImg === "string") {
+        const trimmed = editImg.trim();
+        if (trimmed) transformedData.image_url = trimmed;
+      } else if (editImg instanceof File) {
+        try {
+          transformedData.image_url = await readFileAsDataUrl(editImg);
+        } catch {
+          toast.error("Could not read the image file. Try another image.", {
+            toastId: "employee-edit-image-read-error",
+          });
+          return;
         }
       }
-      
+
       await processRequestOfflineAuth(
         "patch",
-        `/tenant/user/${selectedEmployee.id}`,
+        API_ENDPOINTS.PATCH_TENANT_USER(selectedEmployee.id),
         transformedData,
       );
       
@@ -783,7 +837,7 @@ export default function EmployeePage() {
         specialty: employeeData.specialty ?? "",
         designation: employeeData.designation ?? "",
         gender: employeeData.gender ?? "",
-        bio: employeeData.bio ?? "",
+        about: employeeData.bio ?? "",
       };
 
       if (employeeData.dob && employeeData.dob.trim() !== "") {
@@ -793,10 +847,17 @@ export default function EmployeePage() {
         transformedData.hire_date = employeeData.hireDate;
       }
 
-      // Backend expects `image_url` as a string.
-      // FieldFileInput provides `imagePreviewer` as a data URL (base64) via FileReader.
-      if (employeeImage instanceof File && imagePreviewer.trim() !== "") {
-        transformedData.image_url = imagePreviewer;
+      // Profile photo: backend expects a string on `image_url` only (URL or data URL).
+      if (employeeImage instanceof File) {
+        const preview = imagePreviewer.trim();
+        try {
+          transformedData.image_url = preview || (await readFileAsDataUrl(employeeImage));
+        } catch {
+          toast.error("Could not read the image file. Try another image.", {
+            toastId: "employee-create-image-read-error",
+          });
+          return;
+        }
       }
       const deptId = (departmentId ?? "").toString().trim();
       if (!deptId) {
@@ -892,6 +953,12 @@ export default function EmployeePage() {
   // Create columns with handlers
   const columns = createColumns(handleEdit, handleDelete);
 
+  const editAvatarPreview =
+    editImagePreviewUrl ||
+    (typeof editFormData.employeeImage === "string" && editFormData.employeeImage.trim()
+      ? editFormData.employeeImage.trim()
+      : "");
+
   return (
     <section>
       <SectionHeader
@@ -919,14 +986,17 @@ export default function EmployeePage() {
                     borderWidth: "3px",
                     borderColor: `rgb(${empCard.rgbColorCode})`,
                   }}
-                  className="size-[80px] -mt-10 rounded-full mb-[10px] flex items-center justify-center overflow-hidden"
+                  className="size-[80px] -mt-10 mb-[10px] flex items-center justify-center overflow-hidden rounded-full bg-[#eef2f6]"
                 >
-                  <Image
-                    src={empCard.picture}
-                    width={80}
-                    height={80}
-                    alt={`${empCard.name} photo`}
-                  />
+                  {empCard.picture?.trim() ? (
+                    <img
+                      src={empCard.picture}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <UserRound className="h-12 w-12 text-[#94a3b8]" strokeWidth={1.25} aria-hidden />
+                  )}
                 </div>
                 <h3 className="font-medium text-sm text-black">
                   {empCard.name}
@@ -1037,6 +1107,8 @@ export default function EmployeePage() {
                         name="dob"
                         render={({ field }) => (
                           <DatePicker
+                            popoverTitle="Date of birth"
+                            disableFuture
                             placeholder="Pick date of birth"
                             date={field.value ? (() => {
                               const d = new Date(field.value);
@@ -1123,6 +1195,7 @@ export default function EmployeePage() {
                         name="hireDate"
                         render={({ field }) => (
                           <DatePicker
+                            popoverTitle="Hire date"
                             placeholder="Pick hire date"
                             date={field.value ? (() => {
                               const d = new Date(field.value);
@@ -1264,19 +1337,18 @@ export default function EmployeePage() {
             <div className="space-y-6 py-2">
               {/* Employee Image and Name Section */}
               <div className="flex flex-col items-center space-y-4 pb-6 border-b border-gray-200">
-                <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-[#003465] shadow-lg">
-                  <Image
-                    src={selectedEmployee.profilePicture || '/assets/doctorFemale.png'}
-                    alt={`${selectedEmployee.firstName} ${selectedEmployee.lastName}`}
-                    fill
-                    sizes="128px"
-                    className="object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = '/assets/doctorFemale.png';
-                    }}
-                  />
-      </div>
+                <div className="relative flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border-4 border-[#003465] bg-[#f1f5f9] shadow-lg">
+                  {selectedEmployee.profilePicture?.trim() && !viewProfileImageFailed ? (
+                    <img
+                      src={selectedEmployee.profilePicture}
+                      alt=""
+                      className="absolute inset-0 h-full w-full object-cover"
+                      onError={() => setViewProfileImageFailed(true)}
+                    />
+                  ) : (
+                    <UserRound className="h-20 w-20 text-[#94a3b8]" strokeWidth={1.25} aria-hidden />
+                  )}
+                </div>
                 <div className="text-center">
                   <h3 className="text-2xl font-bold text-[#003465] mb-2">
                     {selectedEmployee.firstName} {selectedEmployee.lastName}
@@ -1455,29 +1527,16 @@ export default function EmployeePage() {
             {/* Employee image select */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pb-4 border-b border-[#D9D9D9]">
               <div className="flex items-center gap-4">
-                <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-[#D9D9D9] bg-gray-100 flex-shrink-0">
-                  {editFormData.employeeImage instanceof File && editImagePreviewUrl ? (
+                <div className="relative flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-[#D9D9D9] bg-[#f1f5f9]">
+                  {editAvatarPreview && !editProfileImageFailed ? (
                     <img
-                      src={editImagePreviewUrl}
-                      alt="Employee preview"
-                      className="w-full h-full object-cover"
+                      src={editAvatarPreview}
+                      alt=""
+                      className="absolute inset-0 h-full w-full object-cover"
+                      onError={() => setEditProfileImageFailed(true)}
                     />
                   ) : (
-                    <Image
-                      src={
-                        typeof editFormData.employeeImage === "string" && editFormData.employeeImage
-                          ? editFormData.employeeImage
-                          : "/assets/doctorFemale.png"
-                      }
-                      alt="Employee"
-                      fill
-                      sizes="96px"
-                      className="object-cover"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = "/assets/doctorFemale.png";
-                      }}
-                    />
+                    <UserRound className="h-12 w-12 text-[#94a3b8]" strokeWidth={1.25} aria-hidden />
                   )}
                 </div>
                 <div>

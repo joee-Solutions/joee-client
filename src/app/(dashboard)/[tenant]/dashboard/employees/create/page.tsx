@@ -12,8 +12,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
+import { DatePicker } from "@/components/ui/date-picker";
 
 const employeeCards = [
   {
@@ -243,13 +244,38 @@ export default function EmployeeRegistrationForm() {
                   />
                 </div>
                 <div className="grid sm:grid-cols-2 gap-[18px]">
-                  <FieldBox
-                    control={form.control}
-                    labelText="Date of Birth"
-                    name="dob"
-                    type="date"
-                    placeholder="Enter here"
-                  />
+                  <div className="flex flex-col gap-1">
+                    <label className="font-medium text-base text-black">Date of Birth</label>
+                    <Controller
+                      control={form.control}
+                      name="dob"
+                      render={({ field }) => (
+                        <DatePicker
+                          popoverTitle="Date of birth"
+                          disableFuture
+                          placeholder="Pick date of birth"
+                          date={
+                            field.value
+                              ? (() => {
+                                  const d = new Date(field.value);
+                                  return isNaN(d.getTime()) ? undefined : d;
+                                })()
+                              : undefined
+                          }
+                          onDateChange={(date) =>
+                            field.onChange(
+                              date
+                                ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
+                                : ""
+                            )
+                          }
+                        />
+                      )}
+                    />
+                    {form.formState.errors.dob && (
+                      <p className="text-red-500 text-sm mt-1">{String(form.formState.errors.dob.message)}</p>
+                    )}
+                  </div>
                   <FieldBox
                     control={form.control}
                     labelText="Specialty"
@@ -302,13 +328,37 @@ export default function EmployeeRegistrationForm() {
                   </div>
                 </div>
                 <div className="grid sm:grid-cols-2 gap-[18px]">
-                  <FieldBox
-                    control={form.control}
-                    labelText="Hire date"
-                    name="hireDate"
-                    type="date"
-                    placeholder="Enter here"
-                  />
+                  <div className="flex flex-col gap-1">
+                    <label className="font-medium text-base text-black">Hire date</label>
+                    <Controller
+                      control={form.control}
+                      name="hireDate"
+                      render={({ field }) => (
+                        <DatePicker
+                          popoverTitle="Hire date"
+                          placeholder="Pick hire date"
+                          date={
+                            field.value
+                              ? (() => {
+                                  const d = new Date(field.value);
+                                  return isNaN(d.getTime()) ? undefined : d;
+                                })()
+                              : undefined
+                          }
+                          onDateChange={(date) =>
+                            field.onChange(
+                              date
+                                ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
+                                : ""
+                            )
+                          }
+                        />
+                      )}
+                    />
+                    {form.formState.errors.hireDate && (
+                      <p className="text-red-500 text-sm mt-1">{String(form.formState.errors.hireDate.message)}</p>
+                    )}
+                  </div>
                 </div>
                 <FieldTextBox
                   control={form.control}

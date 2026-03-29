@@ -2,180 +2,126 @@
 
 import DataTable, { Column } from "@/components/shared/table/DataTable";
 import Pagination from "@/components/shared/table/pagination";
-import { useState } from "react";
-import { TableCell, TableRow } from "@/components/ui/table";
-import { ArrowDownUp, Ellipsis, Search, Settings2, Upload } from "lucide-react";
-import Image from "next/image";
+import { useMemo, useState } from "react";
+import { Search, Upload } from "lucide-react";
+import { useParams } from "next/navigation";
+import useSWR from "swr";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { processRequestOfflineAuth } from "@/framework/offline-https";
+import { API_ENDPOINTS } from "@/framework/api-endpoints";
+import { arrayFromApiResponse } from "@/utils/api-array";
 
 type AppointmentDTO = {
+  id: string;
+  patientName: string;
   date: string;
-  firstName: string;
-  lastName: string;
   startTime: string;
   endTime: string;
   status: string;
 };
 
-const AppointmentTableData: AppointmentDTO[] = [
-  {
-    date: "21 Jan 2024",
-    firstName: "Susan",
-    lastName: "Denilson",
-    startTime: "11:00 AM",
-    endTime: "12:00 PM",
-    status: "Approved",
-  },
-  {
-    date: "22 Jan 2024",
-    firstName: "Susan",
-    lastName: "Denilson",
-    startTime: "11:00 AM",
-    endTime: "12:00 PM",
-    status: "Approved",
-  },
-  {
-    date: "23 Jan 2024",
-    firstName: "Susan",
-    lastName: "Denilson",
-    startTime: "11:00 AM",
-    endTime: "12:00 PM",
-    status: "Pending",
-  },
-  {
-    date: "24 Jan 2024",
-    firstName: "Susan",
-    lastName: "Denilson",
-    startTime: "11:00 AM",
-    endTime: "12:00 PM",
-    status: "Cancelled",
-  },
-  {
-    date: "25 Jan 2024",
-    firstName: "Susan",
-    lastName: "Denilson",
-    startTime: "11:00 AM",
-    endTime: "12:00 PM",
-    status: "Cancelled",
-  },
-  {
-    date: "26 Jan 2024",
-    firstName: "Susan",
-    lastName: "Denilson",
-    startTime: "11:00 AM",
-    endTime: "12:00 PM",
-    status: "Approved",
-  },
-  {
-    date: "27 Jan 2024",
-    firstName: "Susan",
-    lastName: "Denilson",
-    startTime: "11:00 AM",
-    endTime: "12:00 PM",
-    status: "Pending",
-  },
-  {
-    date: "28 Jan 2024",
-    firstName: "Susan",
-    lastName: "Denilson",
-    startTime: "11:00 AM",
-    endTime: "12:00 PM",
-    status: "Cancelled",
-  },
-  {
-    date: "29 Jan 2024",
-    firstName: "Susan",
-    lastName: "Denilson",
-    startTime: "11:00 AM",
-    endTime: "12:00 PM",
-    status: "Approved",
-  },
-  {
-    date: "30 Jan 2024",
-    firstName: "Susan",
-    lastName: "Denilson",
-    startTime: "11:00 AM",
-    endTime: "12:00 PM",
-    status: "Approved",
-  },
-];
-
-const columns: Column<AppointmentDTO>[] = [
-  {
-    header: "Date",
-    render(row) {
-      return <p>{row.date}</p>;
-    },
-  },
-  {
-    header: "Patients",
-    render(row) {
-      return (
-        <div className="flex items-center gap-[10px] py-[21px]">
-          <p className="font-medium text-xs text-black">
-            {row.firstName} {row.lastName}
-          </p>
-        </div>
-      );
-    },
-  },
-  {
-    header: "Time",
-    render(row) {
-      return (
-        <p className="font-semibold text-xs text-black">
-          {row.startTime} {row.endTime}
-        </p>
-      );
-    },
-  },
-  {
-    header: "Status",
-    render(row) {
-      return (
-        <div
-          className={`flex items-center justify-center font-medium text-xs h-[30px] w-[80px] rounded-[20px] ${
-            row.status.toLowerCase() === "approved"
-              ? "text-[#3FA907] bg-[#E5F8DA]"
-              : row.status.toLowerCase() === "pending"
-              ? "text-[#C8AE00] bg-[#FEF9D9]"
-              : "text-[#EC0909] bg-[#FDE6E6]"
-          }`}
-        >
-          {row.status}
-        </div>
-      );
-    },
-  },
-  {
-    header: "Action",
-    render(row) {
-      return (
-        <Button
-          type="button"
-          className="flex items-center justify-center px-2 h-6 rounded-[2px] border border-[#BFBFBF] bg-[#EDF0F6]"
-        >
-          <Ellipsis className="text-black size-5" />
-        </Button>
-      );
-    },
-  },
-];
-
 export default function AppointmentPage() {
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState("");
-  const [filterBy, setFilterBy] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
+  const params = useParams();
+  const employeeSlug = String(params?.employeeDetail ?? "").toLowerCase();
+
+  const { data: employeesResponse } = useSWR(
+    API_ENDPOINTS.GET_EMPLOYEE,
+    (url: string) => processRequestOfflineAuth("get", url),
+    { revalidateOnFocus: true, refreshInterval: 30000, dedupingInterval: 5000 }
+  );
+  const { data: appointmentsResponse } = useSWR(
+    API_ENDPOINTS.GET_APPOINTMENTS,
+    (url: string) => processRequestOfflineAuth("get", url),
+    { revalidateOnFocus: true, refreshInterval: 30000, dedupingInterval: 5000 }
+  );
+
+  const employeeId = useMemo(() => {
+    const employees = arrayFromApiResponse(employeesResponse);
+    const found = employees.find((u) => {
+      const first = String(u.first_name ?? u.firstName ?? u.firstname ?? "").trim();
+      const last = String(u.last_name ?? u.lastName ?? u.lastname ?? "").trim();
+      return `${first} ${last}`.trim().split(/\s+/).join("-").toLowerCase() === employeeSlug;
+    });
+    return String(found?.id ?? found?._id ?? "");
+  }, [employeesResponse, employeeSlug]);
+
+  const rows = useMemo<AppointmentDTO[]>(() => {
+    const all = arrayFromApiResponse(appointmentsResponse);
+    const maybeFiltered = employeeId
+      ? all.filter((a) => {
+          const row = a as Record<string, unknown>;
+          const user = row.user as Record<string, unknown> | undefined;
+          const doctor = row.doctor as Record<string, unknown> | undefined;
+          return String(
+            row.userId ?? row.doctorId ?? user?.id ?? doctor?.id ?? ""
+          ) === employeeId;
+        })
+      : all;
+    const source = maybeFiltered.length > 0 ? maybeFiltered : all;
+    return source.map((a, i) => {
+      const row = a as Record<string, unknown>;
+      const patient = (row.patient ?? {}) as Record<string, unknown>;
+      const patientName = String(
+        row.patientName ??
+          [patient.first_name, patient.middle_name, patient.last_name]
+            .filter(Boolean)
+            .join(" ") ??
+          "—"
+      ).trim();
+      const dateRaw = String(
+        row.date ?? row.appointmentDate ?? row.scheduledAt ?? row.createdAt ?? ""
+      );
+      const date =
+        dateRaw && !isNaN(new Date(dateRaw).getTime())
+          ? new Date(dateRaw).toLocaleDateString("en-GB", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            })
+          : "—";
+      return {
+        id: String(row.id ?? row.appointmentId ?? i + 1),
+        patientName,
+        date,
+        startTime: String(row.startTime ?? "").trim() || "—",
+        endTime: String(row.endTime ?? "").trim() || "—",
+        status: String(row.status ?? "pending"),
+      };
+    });
+  }, [appointmentsResponse, employeeId]);
+
+  const columns: Column<AppointmentDTO>[] = [
+    { header: "Date", key: "date" },
+    { header: "Patients", key: "patientName" },
+    {
+      header: "Time",
+      render(row) {
+        return <p className="text-xs font-semibold text-black">{row.startTime} - {row.endTime}</p>;
+      },
+    },
+    {
+      header: "Status",
+      render(row) {
+        const s = row.status.toLowerCase();
+        return (
+          <div
+            className={`flex h-[30px] w-[90px] items-center justify-center rounded-[20px] text-xs font-medium ${
+              s === "approved" || s === "active"
+                ? "bg-[#E5F8DA] text-[#3FA907]"
+                : s === "pending"
+                ? "bg-[#FEF9D9] text-[#C8AE00]"
+                : "bg-[#FDE6E6] text-[#EC0909]"
+            }`}
+          >
+            {row.status}
+          </div>
+        );
+      },
+    },
+  ];
 
   const handlePageClick = (event: { selected: number }) => {
     setCurrentPage(event.selected);
@@ -200,64 +146,17 @@ export default function AppointmentPage() {
           />
           <Search className="size-5 text-[#999999] absolute right-4 top-1/2 -translate-y-1/2" />
         </div>
-
-        <div className="ml-auto">
-          <Select
-            value={sortBy}
-            onValueChange={(sortVal: string) => {
-              setSortBy(sortVal);
-            }}
-          >
-            <SelectTrigger className="flex py-4 gap-2 h-full min-w-max rounded-[8px] border border-[#B2B2B2] focus:ring-transparent">
-              <ArrowDownUp className="text-[#595959] size-5" />
-              <SelectValue placeholder={sortBy ? sortBy : "Sort"} />
-            </SelectTrigger>
-            <SelectContent className="bg-white">
-              {["Name", "Date", "Location", "Status"].map((currSortVal) => (
-                <SelectItem
-                  key={currSortVal}
-                  value={`${currSortVal}`}
-                  className="cursor-pointer hover:bg-[#003465] hover:text-white"
-                >
-                  {currSortVal}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Select
-            value={filterBy}
-            onValueChange={(filterVal: string) => {
-              setFilterBy(filterVal);
-            }}
-          >
-            <SelectTrigger className="flex py-4 gap-2 h-full min-w-max rounded-[8px] border border-[#B2B2B2] focus:ring-transparent">
-              <Settings2 className="text-[#595959] size-5" />
-              <SelectValue placeholder={filterBy ? filterBy : "Filter"} />
-            </SelectTrigger>
-            <SelectContent className="bg-white">
-              {["Name", "Date", "Location", "Status"].map((currFilterVal) => (
-                <SelectItem
-                  key={currFilterVal}
-                  value={`${currFilterVal}`}
-                  className="cursor-pointer hover:bg-[#003465] hover:text-white"
-                >
-                  {currFilterVal}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
       </div>
       <DataTable
-        columns={columns}
-        data={AppointmentTableData}
+        columns={columns as any}
+        data={rows as any}
         bgHeader="bg-[#D9EDFF] text-black"
+        search={search}
+        searchableKeys={["patientName", "status", "date"] as any}
       />
       <Pagination
-        dataLength={AppointmentTableData.length}
-        numOfPages={1000}
+        dataLength={rows.length}
+        numOfPages={Math.max(1, Math.ceil(rows.length / pageSize))}
         pageSize={pageSize}
         handlePageClick={handlePageClick}
       />
