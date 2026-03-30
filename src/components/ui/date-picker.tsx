@@ -84,6 +84,7 @@ export function DatePicker({
         </Button>
       </PopoverTrigger>
       <PopoverContent
+        portalled={false}
         className="w-auto overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-0 shadow-2xl shadow-slate-400/25 z-[10000]"
         align="start"
         sideOffset={8}

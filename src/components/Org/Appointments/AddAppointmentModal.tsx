@@ -1,11 +1,11 @@
 "use client";
 
 import { useForm } from "react-hook-form";
+import { Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/Textarea";
 import {
   Select,
@@ -14,9 +14,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { TimeSelect24h } from "@/components/ui/time-select-24h";
 import { X } from "lucide-react";
 import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
+import { DatePicker } from "@/components/ui/date-picker";
 
 const AppointmentSchema = z.object({
   patientId: z.string().min(1, "Patient is required"),
@@ -51,6 +53,12 @@ export default function AddAppointmentModal({ onClose, onSave }: AddAppointmentM
       appointmentDescription: "",
     },
   });
+
+  const parseInputDate = (raw: string | undefined): Date | undefined => {
+    if (!raw) return undefined;
+    const parsed = new Date(raw);
+    return isNaN(parsed.getTime()) ? undefined : parsed;
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -166,26 +174,22 @@ export default function AddAppointmentModal({ onClose, onSave }: AddAppointmentM
             {/* Appointment Date */}
             <div>
               <label className="block text-base text-black font-normal mb-2">Appointment Date</label>
-              <div className="relative">
-                <Input
-                  type="date"
-                  {...form.register("appointmentDate")}
-                  className="w-full p-3 border border-[#737373] h-14 rounded pl-10"
-                />
-                <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+              <Controller
+                control={form.control}
+                name="appointmentDate"
+                render={({ field }) => (
+                  <DatePicker
+                    date={parseInputDate(field.value)}
+                    onDateChange={(d) => {
+                      const isoDate = d ? d.toISOString().split("T")[0] : "";
+                      field.onChange(isoDate);
+                    }}
+                    popoverTitle="Appointment date"
+                    placeholder="Choose appointment date"
+                    className="h-14 rounded border border-[#737373] bg-white"
                   />
-                </svg>
-              </div>
+                )}
+              />
             </div>
 
             {/* Appointment With */}
@@ -216,21 +220,34 @@ export default function AddAppointmentModal({ onClose, onSave }: AddAppointmentM
 
             {/* Start Time */}
             <div>
-              <label className="block text-base text-black font-normal mb-2">Start Time</label>
-              <Input
-                type="time"
-                {...form.register("appointmentTime")}
-                className="w-full p-3 border border-[#737373] h-14 rounded"
+              <label className="block text-base text-black font-normal mb-2">
+                Start Time (24h)
+              </label>
+              <TimeSelect24h
+                value={form.watch("appointmentTime")}
+                onValueChange={(v) =>
+                  form.setValue("appointmentTime", v, { shouldValidate: true })
+                }
+                placeholder="Select start time"
+                className="w-full border border-[#737373] h-14 rounded px-3"
+                contentClassName="!z-[150] bg-white"
               />
             </div>
 
             {/* End Time */}
             <div>
-              <label className="block text-base text-black font-normal mb-2">End Time</label>
-              <Input
-                type="time"
-                {...form.register("appointmentEndTime")}
-                className="w-full p-3 border border-[#737373] h-14 rounded"
+              <label className="block text-base text-black font-normal mb-2">
+                End Time (24h)
+              </label>
+              <TimeSelect24h
+                optional
+                value={form.watch("appointmentEndTime") ?? ""}
+                onValueChange={(v) =>
+                  form.setValue("appointmentEndTime", v, { shouldValidate: true })
+                }
+                placeholder="Optional"
+                className="w-full border border-[#737373] h-14 rounded px-3"
+                contentClassName="!z-[150] bg-white"
               />
             </div>
           </div>

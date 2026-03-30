@@ -1,10 +1,10 @@
 "use client";
 
 import { useForm } from "react-hook-form";
+import { Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/Textarea";
 import {
   Select,
@@ -22,6 +22,9 @@ import {
 import { useEffect, useState } from "react";
 import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
+import { TimeSelect24h } from "@/components/ui/time-select-24h";
+import { valueForTimeSelect24h } from "@/utils/time-options";
+import { DatePicker } from "@/components/ui/date-picker";
 
 const AppointmentSchema = z.object({
   patientId: z.string().min(1, "Patient is required"),
@@ -76,10 +79,25 @@ export default function EditAppointmentModal({
     }
   }
 
-  function timeToInput(t: string | undefined): string {
-    if (!t || typeof t !== "string") return "";
-    const part = t.trim().slice(0, 5);
-    return part.length === 5 ? part : t;
+  const parseInputDate = (raw: string | undefined): Date | undefined => {
+    if (!raw) return undefined;
+    const parsed = new Date(raw);
+    return isNaN(parsed.getTime()) ? undefined : parsed;
+  };
+
+  function initialStartTime(a: Appointment): string {
+    return (
+      valueForTimeSelect24h(a.startTime) ||
+      valueForTimeSelect24h(a.time?.split(" - ")[0]?.trim()) ||
+      ""
+    );
+  }
+
+  function initialEndTime(a: Appointment): string {
+    const tail = a.time?.includes(" - ")
+      ? a.time.split(" - ")[1]?.trim()
+      : "";
+    return valueForTimeSelect24h(a.endTime) || valueForTimeSelect24h(tail) || "";
   }
 
   const form = useForm<AppointmentSchemaType>({
@@ -89,8 +107,8 @@ export default function EditAppointmentModal({
       patientId: appointment.patientId ?? "",
       appointmentWithId: appointment.doctorId ?? "",
       appointmentDate: formatDateForInput(appointment.date),
-      appointmentTime: timeToInput(appointment.startTime) ?? appointment.time?.split(" - ")[0] ?? appointment.time ?? "",
-      appointmentEndTime: timeToInput(appointment.endTime) ?? appointment.time?.split(" - ")[1] ?? "",
+      appointmentTime: initialStartTime(appointment),
+      appointmentEndTime: initialEndTime(appointment),
       appointmentDescription: appointment.description ?? "",
     },
   });
@@ -101,8 +119,8 @@ export default function EditAppointmentModal({
       patientId: appointment.patientId ?? "",
       appointmentWithId: appointment.doctorId ?? "",
       appointmentDate: formatDateForInput(appointment.date),
-      appointmentTime: timeToInput(appointment.startTime) ?? appointment.time?.split(" - ")[0] ?? appointment.time ?? "",
-      appointmentEndTime: timeToInput(appointment.endTime) ?? appointment.time?.split(" - ")[1] ?? "",
+      appointmentTime: initialStartTime(appointment),
+      appointmentEndTime: initialEndTime(appointment),
       appointmentDescription: appointment.description ?? "",
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset when appointment changes
@@ -286,32 +304,54 @@ export default function EditAppointmentModal({
             {/* Appointment Date */}
             <div>
               <label className="block text-base text-black font-normal mb-2">Appointment Date</label>
-              <Input
-                type="date"
-                {...form.register("appointmentDate")}
-                className="w-full p-3 border border-[#737373] h-14 rounded"
+              <Controller
+                control={form.control}
+                name="appointmentDate"
+                render={({ field }) => (
+                  <DatePicker
+                    date={parseInputDate(field.value)}
+                    onDateChange={(d) => {
+                      const isoDate = d ? d.toISOString().split("T")[0] : "";
+                      field.onChange(isoDate);
+                    }}
+                    popoverTitle="Appointment date"
+                    placeholder="Choose appointment date"
+                    className="h-14 rounded border border-[#737373] bg-white"
+                  />
+                )}
               />
             </div>
 
-            {/* Appointment Time (Start) */}
+            {/* Start Time */}
             <div>
-              <label className="block text-base text-black font-normal mb-2">Start Time</label>
-              <Input
-                placeholder="Enter here"
-                type="time"
-                {...form.register("appointmentTime")}
-                className="w-full p-3 border border-[#737373] h-14 rounded"
+              <label className="block text-base text-black font-normal mb-2">
+                Start Time (24h)
+              </label>
+              <TimeSelect24h
+                value={form.watch("appointmentTime")}
+                onValueChange={(v) =>
+                  form.setValue("appointmentTime", v, { shouldValidate: true })
+                }
+                placeholder="Select start time"
+                className="w-full border border-[#737373] h-14 rounded px-3"
+                contentClassName="!z-[150] bg-white"
               />
             </div>
 
-            {/* Appointment End Time */}
+            {/* End Time */}
             <div>
-              <label className="block text-base text-black font-normal mb-2">End Time</label>
-              <Input
-                placeholder="Enter here"
-                type="time"
-                {...form.register("appointmentEndTime")}
-                className="w-full p-3 border border-[#737373] h-14 rounded"
+              <label className="block text-base text-black font-normal mb-2">
+                End Time (24h)
+              </label>
+              <TimeSelect24h
+                optional
+                value={form.watch("appointmentEndTime") ?? ""}
+                onValueChange={(v) =>
+                  form.setValue("appointmentEndTime", v, { shouldValidate: true })
+                }
+                placeholder="Optional"
+                className="w-full border border-[#737373] h-14 rounded px-3"
+                contentClassName="!z-[150] bg-white"
               />
             </div>
           </div>

@@ -204,6 +204,7 @@ const SchedulesPage: React.FC = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [scheduleToDelete, setScheduleToDelete] = useState<TableDataItem | null>(null);
   const [schedulesData, setSchedulesData] = useState<TableDataItem[]>([]);
+  const [modalErrorMessage, setModalErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [employees, setEmployees] = useState<{ id: string; firstname: string; lastname: string; name: string }[]>([]);
   const [successModal, setSuccessModal] = useState<{ open: boolean; title: string; message: string }>({
@@ -367,6 +368,7 @@ const SchedulesPage: React.FC = () => {
   const handleEdit = (row: TableDataItem): void => {
     setScheduleToEdit(row);
     setIsEditMode(true);
+    setModalErrorMessage("");
     setIsAddModalOpen(true);
   };
 
@@ -400,6 +402,7 @@ const SchedulesPage: React.FC = () => {
   const handleCreateSchedule = (): void => {
     setScheduleToEdit(null);
     setIsEditMode(false);
+    setModalErrorMessage("");
     setIsAddModalOpen(true);
   };
 
@@ -407,6 +410,7 @@ const SchedulesPage: React.FC = () => {
     setIsEditMode(false);
     setIsAddModalOpen(false);
     setScheduleToEdit(null);
+    setModalErrorMessage("");
   };
 
   const handleSave = async (formData: ScheduleFormData): Promise<void> => {
@@ -466,7 +470,19 @@ const SchedulesPage: React.FC = () => {
       await loadSchedules(); // Reload schedules after save
     } catch (error: any) {
       console.error("Failed to save schedule:", error);
-      const errorMessage = error?.response?.data?.message || error?.message || "Failed to save schedule";
+      const apiMessage = String(
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.response?.data?.validationErrors ||
+        error?.message ||
+        ""
+      );
+      const isDuplicateSchedule =
+        /duplicate key|unique constraint|UQ_/i.test(apiMessage);
+      const errorMessage = isDuplicateSchedule
+        ? "There is already a schedule for this employee. Please edit the existing schedule."
+        : apiMessage || "Failed to save schedule";
+      setModalErrorMessage(errorMessage);
       toast.error(errorMessage, { toastId: "schedule-save-error" });
     }
   };
@@ -545,6 +561,7 @@ const SchedulesPage: React.FC = () => {
           onClose={handleCloseModal}
           onSave={handleSave}
           employees={employees}
+          errorMessage={modalErrorMessage}
           editMode={isEditMode}
           schedule={scheduleToEdit ? (() => {
             const toHHmm = (t: string | undefined): string => {

@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { TimeSelect24h } from "@/components/ui/time-select-24h";
 
 const AppointmentSchema = z.object({
   patientName: z.string().min(1, "Patient name is required"),
@@ -125,12 +126,17 @@ export default function AddAppointment() {
           
           {/* Appointment Time */}
           <div>
-            <label className="block text-base text-black font-normal mb-2">Appointment Time</label>
-            <Input 
-              placeholder="Enter here"
-              type="time"
-              {...form.register("appointmentTime")}
-              className="w-full p-3 border border-[#737373] h-14 rounded"
+            <label className="block text-base text-black font-normal mb-2">
+              Appointment Time (24h)
+            </label>
+            <TimeSelect24h
+              value={form.watch("appointmentTime")}
+              onValueChange={(v) =>
+                form.setValue("appointmentTime", v, { shouldValidate: true })
+              }
+              placeholder="Select time"
+              className="w-full border border-[#737373] h-14 rounded px-3"
+              contentClassName="z-[150] bg-white"
             />
           </div>
           

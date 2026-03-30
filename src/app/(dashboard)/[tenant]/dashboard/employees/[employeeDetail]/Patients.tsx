@@ -3,7 +3,7 @@
 import DataTable, { Column } from "@/components/shared/table/DataTable";
 import Pagination from "@/components/shared/table/pagination";
 import { useMemo, useState } from "react";
-import { Search, Upload, UserRound } from "lucide-react";
+import { Search, Upload } from "lucide-react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
 import { Button } from "@/components/ui/button";
@@ -12,8 +12,8 @@ import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { arrayFromApiResponse } from "@/utils/api-array";
 
 type PatientDto = {
+  sn: number;
   id: number | string;
-  profilePicture: string;
   firstName: string;
   lastName: string;
   createdAt: string;
@@ -58,8 +58,8 @@ export default function PatientPage() {
         ? new Date(createdRaw).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
         : "—";
       return {
+        sn: i + 1,
         id: String(p.id ?? p._id ?? i + 1),
-        profilePicture: String(p.image_url ?? p.imageUrl ?? p.profile_picture ?? p.profilePicture ?? ""),
         firstName: firstName || String(p.name ?? "Patient"),
         lastName,
         createdAt,
@@ -72,8 +72,8 @@ export default function PatientPage() {
       return owner === employeeId;
     });
     return filtered.length === 0 ? mapped : filtered.map((p, i) => ({
+      sn: i + 1,
       id: String(p.id ?? p._id ?? i + 1),
-      profilePicture: String(p.image_url ?? p.imageUrl ?? p.profile_picture ?? p.profilePicture ?? ""),
       firstName: String(p.first_name ?? p.firstName ?? p.name ?? "Patient"),
       lastName: String(p.last_name ?? p.lastName ?? ""),
       createdAt: String(p.created_at ?? p.createdAt ?? "—"),
@@ -82,22 +82,12 @@ export default function PatientPage() {
   }, [patientsResponse, employeeId]);
 
   const columns: Column<PatientDto>[] = [
-    { header: "#", key: "id" },
+    { header: "S/N", key: "sn" },
     {
       header: "Patients",
       render(row) {
         return (
-          <div className="flex items-center gap-[10px]">
-            <span className="flex h-[42px] w-[42px] items-center justify-center overflow-hidden rounded-full bg-[#eef2f6]">
-              {row.profilePicture ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={row.profilePicture} alt="" className="h-full w-full object-cover" />
-              ) : (
-                <UserRound className="h-6 w-6 text-[#94a3b8]" />
-              )}
-            </span>
-            <p className="text-xs font-medium text-black">{row.firstName} {row.lastName}</p>
-          </div>
+          <p className="text-xs font-medium text-black">{row.firstName} {row.lastName}</p>
         );
       },
     },

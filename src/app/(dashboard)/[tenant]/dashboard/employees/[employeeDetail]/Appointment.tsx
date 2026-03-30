@@ -12,12 +12,12 @@ import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { arrayFromApiResponse } from "@/utils/api-array";
 
 type AppointmentDTO = {
+  sn: number;
   id: string;
   patientName: string;
   date: string;
   startTime: string;
   endTime: string;
-  status: string;
 };
 
 export default function AppointmentPage() {
@@ -83,42 +83,24 @@ export default function AppointmentPage() {
             })
           : "—";
       return {
+        sn: i + 1,
         id: String(row.id ?? row.appointmentId ?? i + 1),
         patientName,
         date,
         startTime: String(row.startTime ?? "").trim() || "—",
         endTime: String(row.endTime ?? "").trim() || "—",
-        status: String(row.status ?? "pending"),
       };
     });
   }, [appointmentsResponse, employeeId]);
 
   const columns: Column<AppointmentDTO>[] = [
+    { header: "S/N", key: "sn" },
     { header: "Date", key: "date" },
     { header: "Patients", key: "patientName" },
     {
       header: "Time",
       render(row) {
         return <p className="text-xs font-semibold text-black">{row.startTime} - {row.endTime}</p>;
-      },
-    },
-    {
-      header: "Status",
-      render(row) {
-        const s = row.status.toLowerCase();
-        return (
-          <div
-            className={`flex h-[30px] w-[90px] items-center justify-center rounded-[20px] text-xs font-medium ${
-              s === "approved" || s === "active"
-                ? "bg-[#E5F8DA] text-[#3FA907]"
-                : s === "pending"
-                ? "bg-[#FEF9D9] text-[#C8AE00]"
-                : "bg-[#FDE6E6] text-[#EC0909]"
-            }`}
-          >
-            {row.status}
-          </div>
-        );
       },
     },
   ];
@@ -152,7 +134,7 @@ export default function AppointmentPage() {
         data={rows as any}
         bgHeader="bg-[#D9EDFF] text-black"
         search={search}
-        searchableKeys={["patientName", "status", "date"] as any}
+        searchableKeys={["patientName", "date"] as any}
       />
       <Pagination
         dataLength={rows.length}

@@ -12,6 +12,7 @@ import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { arrayFromApiResponse } from "@/utils/api-array";
 
 type ScheduleDTO = {
+  sn: number;
   id: string;
   availableDay: string;
   startTime: string;
@@ -65,6 +66,7 @@ export default function SchedulePage() {
         days.forEach((d, j) => {
           const dayRow = d as Record<string, unknown>;
           out.push({
+            sn: out.length + 1,
             id: `${row.id ?? i}-${j}`,
             availableDay: String(dayRow.day ?? "—"),
             startTime: String(dayRow.startTime ?? dayRow.start_time ?? "—"),
@@ -73,6 +75,7 @@ export default function SchedulePage() {
         });
       } else {
         out.push({
+          sn: out.length + 1,
           id: String(row.id ?? i + 1),
           availableDay: String(row.day ?? row.date ?? "—"),
           startTime: String(row.start_time ?? row.startTime ?? "—"),
@@ -84,6 +87,7 @@ export default function SchedulePage() {
   }, [schedulesResponse, employeeId]);
 
   const columns: Column<ScheduleDTO>[] = [
+    { header: "S/N", key: "sn" },
     { header: "Day", key: "availableDay" },
     {
       header: "Available Time",

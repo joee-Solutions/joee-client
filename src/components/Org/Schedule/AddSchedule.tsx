@@ -7,6 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { TimeSelect24h } from "@/components/ui/time-select-24h";
 
 interface DaySchedule {
   day: string;
@@ -28,6 +29,7 @@ interface AddScheduleModalProps {
   editMode?: boolean;
   schedule?: FormData;
   employees: { id: string; firstname: string; lastname: string; name: string }[];
+  errorMessage?: string;
 }
 
 const AddScheduleModal: React.FC<AddScheduleModalProps> = ({
@@ -36,6 +38,7 @@ const AddScheduleModal: React.FC<AddScheduleModalProps> = ({
   editMode = false,
   schedule,
   employees,
+  errorMessage,
 }) => {
   const [formData, setFormData] = useState<FormData>({
     employeeName: "",
@@ -167,6 +170,12 @@ const AddScheduleModal: React.FC<AddScheduleModalProps> = ({
         </div>
 
         <div className="px-8 py-6 space-y-6 max-h-[calc(100vh-300px)] overflow-y-auto">
+          {errorMessage ? (
+            <div className="rounded-lg border border-[#f5c2c7] bg-[#fde8ea] px-4 py-3 text-sm font-medium text-[#B42318]">
+              {errorMessage}
+            </div>
+          ) : null}
+
           {/* Employee Information Section */}
           <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
             <div className="flex items-center gap-4 mb-4">
@@ -246,42 +255,36 @@ const AddScheduleModal: React.FC<AddScheduleModalProps> = ({
                       </Select>
                     </div>
 
-                    {/* Start Time Input */}
+                    {/* Start Time */}
                     <div>
                       <label className="block text-base font-medium text-gray-700 mb-2">
-                        Start Time <span className="text-red-500">*</span>
+                        Start Time (24h) <span className="text-red-500">*</span>
                       </label>
-                      <div className="relative">
-                        <input
-                          type="time"
-                          value={schedule.startTime}
-                          onChange={(e) =>
-                            handleScheduleTimeChange(index, "startTime", e.target.value)
-                          }
-                          className="w-full h-14 p-3 border border-gray-300 rounded-lg pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-[#003465]"
-                          placeholder="--:-- --"
-                        />
-                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      </div>
+                      <TimeSelect24h
+                        value={schedule.startTime}
+                        onValueChange={(v) =>
+                          handleScheduleTimeChange(index, "startTime", v)
+                        }
+                        placeholder="Select start time"
+                        className="w-full h-14 border border-gray-300 rounded-lg bg-white px-3"
+                        contentClassName="!z-[150] bg-white"
+                      />
                     </div>
 
-                    {/* End Time Input */}
+                    {/* End Time */}
                     <div>
                       <label className="block text-base font-medium text-gray-700 mb-2">
-                        End Time <span className="text-red-500">*</span>
+                        End Time (24h) <span className="text-red-500">*</span>
                       </label>
-                      <div className="relative">
-                        <input
-                          type="time"
-                          value={schedule.endTime}
-                          onChange={(e) =>
-                            handleScheduleTimeChange(index, "endTime", e.target.value)
-                          }
-                          className="w-full h-14 p-3 border border-gray-300 rounded-lg pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-[#003465]"
-                          placeholder="--:-- --"
-                        />
-                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      </div>
+                      <TimeSelect24h
+                        value={schedule.endTime}
+                        onValueChange={(v) =>
+                          handleScheduleTimeChange(index, "endTime", v)
+                        }
+                        placeholder="Select end time"
+                        className="w-full h-14 border border-gray-300 rounded-lg bg-white px-3"
+                        contentClassName="!z-[150] bg-white"
+                      />
                     </div>
                   </div>
                   {formData.schedules.length > 1 && (

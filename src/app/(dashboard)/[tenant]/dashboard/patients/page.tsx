@@ -9,6 +9,7 @@ import { Plus, Search, Edit, Trash2, MoreVertical } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { usePathname, useParams } from "next/navigation";
+import Link from "next/link";
 import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { toast } from "react-toastify";
@@ -228,9 +229,12 @@ const createColumns = (
               }}
             />
           </span>
-          <p className="font-medium text-xs text-black">
+          <Link
+            href={`/dashboard/patients/${row.id}`}
+            className="font-medium text-xs text-black hover:underline"
+          >
             {patientName}
-          </p>
+          </Link>
         </div>
       );
     },

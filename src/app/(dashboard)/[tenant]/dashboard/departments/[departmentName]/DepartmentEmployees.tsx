@@ -27,8 +27,10 @@ export default function DepartmentEmployees({ rows }: { rows: DepartmentEmployee
   const columns: Column<DepartmentEmployeeRow>[] = useMemo(
     () => [
       {
-        header: "ID",
-        key: "id" as keyof DepartmentEmployeeRow,
+        header: "S/N",
+        render: (_row, index = 0) => (
+          <p className="text-xs font-semibold text-[#737373]">{(index ?? 0) + 1}</p>
+        ),
         size: 80,
       },
       {

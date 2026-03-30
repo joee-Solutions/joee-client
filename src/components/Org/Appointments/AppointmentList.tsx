@@ -5,7 +5,6 @@ import { ListView } from "@/components/shared/table/DataTableFilter";
 import Pagination from "@/components/shared/table/pagination";
 import { useState } from "react";
 import { MoreVertical, Edit, Trash2 } from "lucide-react";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search";
 import {
@@ -14,7 +13,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import orgPlaceholder from "./../../../../public/assets/orgPlaceholder.png";
 
 interface Appointment {
   id: string;
@@ -61,7 +59,8 @@ export default function AppointmentList({
       appointment.department?.toLowerCase().includes(query) ||
       appointment.date?.toLowerCase().includes(query) ||
       appointment.time?.toLowerCase().includes(query) ||
-      appointment.id?.toLowerCase().includes(query)
+      appointment.id?.toLowerCase().includes(query) ||
+      (appointment.description?.toLowerCase().includes(query) ?? false)
     );
   });
 
@@ -78,18 +77,7 @@ export default function AppointmentList({
     {
       header: "Patient name",
       render: (row) => (
-        <div className="flex items-center gap-[10px] py-[21px]">
-          <span className="w-[42px] h-[42px] rounded-full overflow-hidden">
-            <Image
-              src={orgPlaceholder}
-              alt="patient image"
-              width={42}
-              height={42}
-              className="object-cover aspect-square w-full h-full rounded-full"
-            />
-          </span>
-          <p className="font-medium text-xs text-black">{row.patientName}</p>
-        </div>
+        <p className="py-[21px] font-medium text-xs text-black">{row.patientName}</p>
       ),
       size: 200,
     },

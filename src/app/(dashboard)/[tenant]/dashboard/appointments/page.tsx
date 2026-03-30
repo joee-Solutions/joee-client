@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import AppointmentCalendar from "@/components/Org/Appointments/AppointmentCalendar";
 import AppointmentList from "@/components/Org/Appointments/AppointmentList";
 import AddAppointmentModal from "@/components/Org/Appointments/AddAppointmentModal";
 import ViewAppointmentModal from "@/components/Org/Appointments/ViewAppointmentModal";
 import EditAppointmentModal from "@/components/Org/Appointments/EditAppointmentModal";
+import SuccessModal from "@/components/shared/SuccessModal";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +37,7 @@ interface Appointment {
   startTime?: string;
   endTime?: string;
   description?: string;
+  status?: string;
   age?: number;
   appointmentDate: Date;
 }
@@ -51,31 +53,6 @@ function formatTime(t: string): string {
   return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
 }
 
-// Mock appointment data (fallback)
-const mockAppointments: Appointment[] = [
-  {
-    id: "JOE101",
-    patientName: "John Janet Esther",
-    doctorName: "Dr. Deniis Hampton",
-    department: "Cardiology",
-    date: "10 February, 2022",
-    time: "09:00 - 10:00 AM",
-    description: "Back pain, Discomfort at back.",
-    age: 43,
-    appointmentDate: new Date(2022, 1, 10, 9, 0),
-  },
-  {
-    id: "JOE102",
-    patientName: "Temitope Denilson",
-    doctorName: "Dr. Smith",
-    department: "Neurology",
-    date: "10 February, 2022",
-    time: "10:00 - 11:00 AM",
-    age: 34,
-    appointmentDate: new Date(2022, 1, 10, 10, 0),
-  },
-];
-
 export default function AppointmentsPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("month");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -85,51 +62,100 @@ export default function AppointmentsPage() {
   const [loading, setLoading] = useState(true);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [appointmentToDelete, setAppointmentToDelete] = useState<Appointment | null>(null);
+  const [successModal, setSuccessModal] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+  }>({ open: false, title: "Success", message: "" });
 
-  useEffect(() => {
-    const fetchAppointments = async () => {
-      try {
-        setLoading(true);
-        const response = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_APPOINTMENTS);
-        const raw = Array.isArray(response?.data) ? response.data : Array.isArray((response as any)?.data?.data) ? (response as any).data.data : Array.isArray(response) ? response : [];
-        setAppointments(raw.map((a: any) => {
-          const dateStr = a.date ?? a.appointmentDate ?? a.scheduledAt ?? a.createdAt;
-          const d = dateStr ? new Date(dateStr) : new Date();
-          const patient = a.patient ?? {};
-          const user = a.user ?? {};
-          const patientName = a.patientName ?? ([patient.first_name, patient.middle_name, patient.last_name].filter(Boolean).join(" ") || "—");
-          const doctorName = a.doctorName ?? ([user.firstname, user.lastname].filter(Boolean).join(" ") || user.name || "—");
-          const startTime = a.startTime ?? "";
-          const endTime = a.endTime ?? "";
-          const timeStr = startTime && endTime ? `${formatTime(startTime)} - ${formatTime(endTime)}` : a.time ?? a.timeSlot ?? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-          const dept = a.department ?? a.department?.name ?? a.departmentName ?? "—";
-          const patientId = patient.id ?? patient._id ?? a.patientId;
-          const doctorId = user.id ?? user._id ?? a.userId ?? a.doctorId;
+  const loadAppointments = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_APPOINTMENTS);
+      const raw = Array.isArray(response?.data)
+        ? response.data
+        : Array.isArray((response as { data?: { data?: unknown[] } })?.data?.data)
+          ? (response as { data: { data: unknown[] } }).data.data
+          : Array.isArray(response)
+            ? response
+            : [];
+      setAppointments(
+        (raw as Record<string, unknown>[]).map((a) => {
+          const rec = a as Record<string, unknown>;
+          const dateStr = rec.date ?? rec.appointmentDate ?? rec.scheduledAt ?? rec.createdAt;
+          const d = dateStr ? new Date(String(dateStr)) : new Date();
+          const patient = (rec.patient ?? {}) as Record<string, unknown>;
+          const user = (rec.user ?? {}) as Record<string, unknown>;
+          const patientName =
+            (rec.patientName as string) ??
+            (
+              [patient.first_name, patient.middle_name, patient.last_name]
+                .filter(Boolean)
+                .join(" ") || "—"
+            );
+          const doctorName =
+            (rec.doctorName as string) ??
+            (
+              [user.firstname, user.lastname].filter(Boolean).join(" ") ||
+              (user.name as string) ||
+              "—"
+            );
+          const startTime = String(rec.startTime ?? "");
+          const endTime = String(rec.endTime ?? "");
+          const timeStr =
+            startTime && endTime
+              ? `${formatTime(startTime)} - ${formatTime(endTime)}`
+              : (rec.time as string) ??
+                (rec.timeSlot as string) ??
+                d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+          const deptRaw = rec.department;
+          const deptName = rec.departmentName ?? rec.department_name;
+          const dept =
+            typeof deptRaw === "string"
+              ? deptRaw
+              : (deptRaw as { name?: string } | undefined)?.name ??
+                (deptName as string) ??
+                (
+                  (rec.employee as { department?: { name?: string } } | undefined)?.department
+                    ?.name ?? "—"
+                );
+          const patientId = patient.id ?? patient._id ?? rec.patientId;
+          const doctorId = user.id ?? user._id ?? rec.userId ?? rec.doctorId;
           return {
-            id: String(a.id ?? a.appointmentId ?? ""),
+            id: String(rec.id ?? rec.appointmentId ?? ""),
             patientId: patientId != null ? String(patientId) : undefined,
             doctorId: doctorId != null ? String(doctorId) : undefined,
             patientName,
             doctorName,
-            department: typeof dept === "string" ? dept : (dept?.name ?? "—"),
-            date: d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
+            department: typeof dept === "string" ? dept : String(dept ?? "—"),
+            date: d.toLocaleDateString("en-GB", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            }),
             time: timeStr,
-            startTime: a.startTime ?? startTime,
-            endTime: a.endTime ?? endTime,
-            description: a.description ?? a.notes,
-            age: a.age ?? patient?.age,
+            startTime: (rec.startTime as string) ?? startTime,
+            endTime: (rec.endTime as string) ?? endTime,
+            description: (rec.description ?? rec.notes) as string | undefined,
+            age: (rec.age ?? patient.age) as number | undefined,
             appointmentDate: d,
           };
-        }));
-      } catch (e: any) {
-        toast.error((e?.response?.data?.message as string) ?? "Failed to load appointments", { toastId: "appointments-load" });
-        setAppointments([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAppointments();
+        })
+      );
+    } catch (e: unknown) {
+      const msg =
+        (e as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        "Failed to load appointments";
+      toast.error(String(msg), { toastId: "appointments-load" });
+      setAppointments([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadAppointments();
+  }, [loadAppointments]);
 
   const handleAddAppointment = () => {
     setModalMode("add");
@@ -150,21 +176,60 @@ export default function AppointmentsPage() {
     setSelectedAppointment(null);
   };
 
-  const handleSaveAppointment = (appointmentData: Partial<Appointment>) => {
-    if (modalMode === "add") {
-      const newAppointment: Appointment = {
-        ...appointmentData as Appointment,
-        id: `JOE${Math.floor(Math.random() * 1000)}`,
-      } as Appointment;
-      setAppointments([...appointments, newAppointment]);
-    } else if (modalMode === "edit" && selectedAppointment) {
-      setAppointments(
-        appointments.map((apt) =>
-          apt.id === selectedAppointment.id ? { ...apt, ...appointmentData } : apt
-        )
-      );
+  const handleSaveAppointment = async (appointmentData: Partial<Appointment>) => {
+    const date =
+      appointmentData.appointmentDate instanceof Date
+        ? appointmentData.appointmentDate
+        : new Date(appointmentData.appointmentDate as unknown as string);
+    const iso = !isNaN(date.getTime()) ? date.toISOString() : new Date().toISOString();
+
+    const payload: Record<string, unknown> = {
+      patient_id: appointmentData.patientId,
+      user_id: appointmentData.doctorId,
+      patientId: appointmentData.patientId,
+      userId: appointmentData.doctorId,
+      date: iso,
+      start_time: appointmentData.startTime,
+      end_time: appointmentData.endTime || undefined,
+      startTime: appointmentData.startTime,
+      endTime: appointmentData.endTime,
+      description: appointmentData.description ?? "",
+      status: appointmentData.status ?? "pending",
+    };
+
+    try {
+      if (modalMode === "add") {
+        await processRequestOfflineAuth(
+          "post",
+          API_ENDPOINTS.CREATE_APPOINTMENT(0),
+          payload
+        );
+        setSuccessModal({
+          open: true,
+          title: "Success",
+          message: "Appointment created successfully.",
+        });
+      } else if (modalMode === "edit" && selectedAppointment) {
+        await processRequestOfflineAuth(
+          "patch",
+          API_ENDPOINTS.UPDATE_APPOINTMENT(0, selectedAppointment.id),
+          payload
+        );
+        setSuccessModal({
+          open: true,
+          title: "Success",
+          message: "Appointment updated successfully.",
+        });
+      }
+      await loadAppointments();
+      handleCloseModal();
+    } catch (e: unknown) {
+      const msg =
+        (e as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        (e as Error)?.message ??
+        "Could not save appointment";
+      toast.error(String(msg), { toastId: "appointment-save-error" });
     }
-    handleCloseModal();
   };
 
   const handleDeleteAppointment = (appointment: Appointment) => {
@@ -172,12 +237,27 @@ export default function AppointmentsPage() {
     setIsDeleteModalOpen(true);
   };
 
-  const confirmDelete = () => {
-    if (appointmentToDelete) {
-      setAppointments(appointments.filter((apt) => apt.id !== appointmentToDelete.id));
-      toast.success("Appointment deleted successfully", { toastId: "appointment-delete-success" });
+  const confirmDelete = async () => {
+    if (!appointmentToDelete) return;
+    const id = appointmentToDelete.id;
+    try {
+      await processRequestOfflineAuth(
+        "delete",
+        API_ENDPOINTS.DELETE_APPOINTMENT(0, id)
+      );
       setIsDeleteModalOpen(false);
       setAppointmentToDelete(null);
+      await loadAppointments();
+      setSuccessModal({
+        open: true,
+        title: "Success",
+        message: "Appointment deleted successfully.",
+      });
+    } catch (e: unknown) {
+      const msg =
+        (e as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        "Failed to delete appointment";
+      toast.error(String(msg), { toastId: "appointment-delete-error" });
     }
   };
 
@@ -328,6 +408,13 @@ export default function AppointmentsPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <SuccessModal
+          open={successModal.open}
+          onOpenChange={(open) => setSuccessModal((s) => ({ ...s, open }))}
+          title={successModal.title}
+          message={successModal.message}
+        />
       </div>
     </div>
   );
