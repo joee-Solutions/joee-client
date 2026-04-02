@@ -141,6 +141,41 @@ function readFileAsDataUrl(file: File): Promise<string> {
     reader.readAsDataURL(file);
   });
 }
+
+/** Resize/compress image before sending as base64 to avoid payload-too-large errors. */
+async function readCompressedImageDataUrl(
+  file: File,
+  opts: { maxWidth?: number; maxHeight?: number; maxBytes?: number } = {}
+): Promise<string> {
+  const { maxWidth = 1280, maxHeight = 1280, maxBytes = 450 * 1024 } = opts;
+  const src = await readFileAsDataUrl(file);
+
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const i = new window.Image();
+    i.onload = () => resolve(i);
+    i.onerror = () => reject(new Error("Could not load image"));
+    i.src = src;
+  });
+
+  const ratio = Math.min(maxWidth / img.width, maxHeight / img.height, 1);
+  const targetW = Math.max(1, Math.round(img.width * ratio));
+  const targetH = Math.max(1, Math.round(img.height * ratio));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = targetW;
+  canvas.height = targetH;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas not supported");
+  ctx.drawImage(img, 0, 0, targetW, targetH);
+
+  let quality = 0.9;
+  let out = canvas.toDataURL("image/jpeg", quality);
+  while (out.length > maxBytes * 1.37 && quality > 0.45) {
+    quality -= 0.1;
+    out = canvas.toDataURL("image/jpeg", quality);
+  }
+  return out;
+}
 const employeeSlug = (firstName: string, lastName: string) =>
   `${firstName} ${lastName}`.trim().split(/\s+/).join("-");
 
@@ -712,7 +747,7 @@ export default function EmployeePage() {
         if (trimmed) transformedData.image_url = trimmed;
       } else if (editImg instanceof File) {
         try {
-          transformedData.image_url = await readFileAsDataUrl(editImg);
+          transformedData.image_url = await readCompressedImageDataUrl(editImg);
         } catch {
           toast.error("Could not read the image file. Try another image.", {
             toastId: "employee-edit-image-read-error",
@@ -849,9 +884,8 @@ export default function EmployeePage() {
 
       // Profile photo: backend expects a string on `image_url` only (URL or data URL).
       if (employeeImage instanceof File) {
-        const preview = imagePreviewer.trim();
         try {
-          transformedData.image_url = preview || (await readFileAsDataUrl(employeeImage));
+          transformedData.image_url = await readCompressedImageDataUrl(employeeImage);
         } catch {
           toast.error("Could not read the image file. Try another image.", {
             toastId: "employee-create-image-read-error",
@@ -892,6 +926,13 @@ export default function EmployeePage() {
       ) {
         toast.error("Email already exists. Please use a different email address.", {
           toastId: "employee-create-duplicate-email",
+          autoClose: 7000,
+        });
+        return;
+      }
+      if (typeof msg === "string" && msg.toLowerCase().includes("request entity too large")) {
+        toast.error("Image is too large. Please use a smaller image file.", {
+          toastId: "employee-create-image-too-large",
           autoClose: 7000,
         });
         return;

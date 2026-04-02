@@ -1,96 +1,124 @@
-import EmergencyContact from "@/components/Org/Patients/PersonalInformation/EmergencyContact";
-import ChildrenInformation from "@/components/Org/Patients/PersonalInformation/ChildrenInformation";
-// import PatientStepper from "@/components/Org/Patients/PatientStepper";
-import Additionaldemographics from "@/components/Org/Patients/PersonalInformation/Additionaldemographics";
-import PatientDemographicsForm from "@/components/Org/Patients/PersonalInformation/PatientDemographicsForm";
-import FormComposer from "@/components/shared/form/FormComposer";
-import { Button } from "@/components/ui/button";
-import useMultiStepForm from "@/hooks/useMultiStepForm";
-import { PersonalInfoSchema, PersonalInfoSchemaType } from "@/models/form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Edit, Trash2, Upload } from "lucide-react";
-import { useForm } from "react-hook-form";
+import useSWR from "swr";
+import { useMemo } from "react";
+import { useParams } from "next/navigation";
+import { processRequestOfflineAuth } from "@/framework/offline-https";
+import { API_ENDPOINTS } from "@/framework/api-endpoints";
+
+function parseDateOnlyToLocalDate(raw: unknown): Date | null {
+  if (raw == null) return null;
+  const s = String(raw).trim();
+  if (!s) return null;
+  // Handle backend date-only strings (YYYY-MM-DD) as LOCAL dates to avoid day-shift.
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) {
+    const year = Number(m[1]);
+    const month = Number(m[2]);
+    const day = Number(m[3]);
+    return new Date(year, month - 1, day);
+  }
+  const dt = new Date(s);
+  return isNaN(dt.getTime()) ? null : dt;
+}
+
+function formatDate(raw: unknown): string {
+  const dt = parseDateOnlyToLocalDate(raw);
+  if (!dt) return "—";
+  return dt.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function InfoItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg bg-[#D9EDFF] p-4">
+      <p className="text-xs font-medium text-[#666666]">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-[#1f2937]">{value || "—"}</p>
+    </div>
+  );
+}
 
 export default function PersonalInfo() {
-  const mult = useMultiStepForm([
-    <PatientDemographicsForm key="patient-demographics" />,
-    <Additionaldemographics key="additional-demographics" />,
-    <EmergencyContact key="emergency-contact" />,
-    <ChildrenInformation key="children-information" />,
-  ]);
+  const params = useParams();
+  const patientId = Number(params?.patientDetail ?? "");
 
-  const form = useForm<PersonalInfoSchemaType>({
-    resolver: zodResolver(PersonalInfoSchema),
-    mode: "onChange",
-    defaultValues: {
-      firstName: "",
-      lastName: "",
-      dob: "",
-      ethnicity: "",
-      gender: "",
-      genderIdentity: "",
-      interpreterRequired: "",
-      maritalStatus: "",
-      medicalRecordNumber: "",
-      middleName: "",
-      preferredLanguage: "",
-      prefferedName: "",
-      race: "",
-      religion: "",
-      sexualOrientation: "",
-      suffix: "",
-    },
-  });
+  const { data: patientResponse, isLoading } = useSWR(
+    patientId ? API_ENDPOINTS.GET_PATIENT(patientId) : null,
+    (url: string) => processRequestOfflineAuth("get", url),
+    { revalidateOnFocus: true }
+  );
 
-  const onSubmit = (payload: PersonalInfoSchemaType) => {
-    console.log(payload);
-  };
+  const patient = useMemo(() => {
+    if (!patientResponse) return null;
+    // PatientStepper expects either {data:{data:...}} or {data:...}
+    const raw = patientResponse?.data?.data ?? patientResponse?.data ?? patientResponse;
+    return raw && typeof raw === "object" ? raw : null;
+  }, [patientResponse]);
+
+  const contactInfo = (patient?.contact_info ?? {}) as Record<string, unknown>;
+  const firstName = String(patient?.first_name ?? patient?.firstname ?? patient?.firstname ?? "").trim();
+  const lastName = String(patient?.last_name ?? patient?.lastname ?? patient?.lastname ?? "").trim();
+
+  const fullName = `${firstName} ${lastName}`.trim() || "—";
+  const email =
+    String(contactInfo?.email ?? patient?.email ?? "").trim() ||
+    String(patient?.email ?? "").trim();
+  const phone =
+    String(contactInfo?.phone_number_mobile ?? patient?.phone_number_mobile ?? "").trim() ||
+    String(contactInfo?.phone_number_home ?? patient?.phone_number_home ?? "").trim();
+
+  const address = String(contactInfo?.address ?? patient?.address ?? "").trim();
+  const stateOrRegion =
+    String(contactInfo?.state ?? contactInfo?.region ?? patient?.state ?? "").trim() || "—";
+
+  const gender = String(patient?.sex ?? patient?.gender ?? "").trim() || "—";
+  const dob = formatDate(patient?.date_of_birth ?? patient?.dob ?? "");
+  const status = String(patient?.status ?? patient?.patientStatus ?? "").trim() || "—";
+
+  const imageSrc = (patient?.image ?? patient?.patient_image ?? "") as string;
 
   return (
-    <>
-      <div className="flex justify-between gap-10">
-        <h2 className="font-bold text-base text-black mb-[30px]">
-          Personal Information
-        </h2>
-        <Button className="h-[50px] w-[130px] bg-[#003465] text-sm font-normal text-white rounded">
-          Export <Upload size={16} />
-        </Button>
-      </div>
-      <FormComposer form={form} onSubmit={onSubmit}>
-        {mult.steps[mult.currentPos]}
-
-        <div className="flex items-center gap-7">
-          <Button className="h-[60px] bg-[#003465] text-base font-medium text-white rounded w-full">
-            Edit <Edit size={20} />
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="h-[60px] w-full border border-[#EC0909] text-[#EC0909] text-base font-medium"
-          >
-            Delete
-            <Trash2 size={20} />
-          </Button>
+    <div>
+      <div className="flex justify-between items-start gap-10 mb-6">
+        <div>
+          <h2 className="font-bold text-base text-black">Personal Information</h2>
+          <p className="text-xs font-medium text-[#595959] mt-1">{fullName}</p>
         </div>
-      </FormComposer>
-      {/* Pagination component removed - MultiStepPagination not found */}
-      <div className="flex gap-2 mt-4">
-        <Button
-          type="button"
-          onClick={mult.handlePrevious}
-          disabled={mult.isFirstStep}
-          variant="outline"
-        >
-          Previous
-        </Button>
-        <Button
-          type="button"
-          onClick={mult.handleNext}
-          disabled={mult.isLastStep}
-        >
-          Next
-        </Button>
+
+        {imageSrc ? (
+          <img
+            src={imageSrc}
+            alt="patient"
+            className="w-[120px] h-[120px] rounded-full object-cover bg-gray-100 flex-shrink-0"
+          />
+        ) : (
+          <div className="w-[120px] h-[120px] rounded-full bg-gray-100 flex items-center justify-center text-xs text-[#737373] flex-shrink-0">
+            No Image
+          </div>
+        )}
       </div>
-    </>
+
+      {isLoading && (
+        <div className="text-sm text-[#737373]">Loading patient information...</div>
+      )}
+
+      {!isLoading && patient && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <InfoItem label="Full Name" value={fullName} />
+          <InfoItem label="Email" value={email || "—"} />
+          <InfoItem label="Phone Number" value={phone || "—"} />
+          <InfoItem label="Address" value={address || "—"} />
+          <InfoItem label="Region/State" value={stateOrRegion} />
+          <InfoItem label="Date of Birth" value={dob} />
+          <InfoItem label="Gender" value={gender} />
+          <InfoItem label="Status" value={status} />
+        </div>
+      )}
+
+      {!isLoading && !patient && (
+        <div className="text-sm text-red-600">Patient not found.</div>
+      )}
+    </div>
   );
 }

@@ -68,19 +68,35 @@ export default function EditAppointmentModal({
   const [employees, setEmployees] = useState<Array<{ id: string; name: string }>>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  const toISODateLocal = (d: Date): string => {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
   function formatDateForInput(dateString: string): string {
-    if (!dateString) return new Date().toISOString().split("T")[0];
+    if (!dateString) return toISODateLocal(new Date());
+    const m = dateString.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (m) return dateString;
     try {
       const date = new Date(dateString);
-      if (isNaN(date.getTime())) return new Date().toISOString().split("T")[0];
-      return date.toISOString().split("T")[0];
+      if (isNaN(date.getTime())) return toISODateLocal(new Date());
+      return toISODateLocal(date);
     } catch {
-      return new Date().toISOString().split("T")[0];
+      return toISODateLocal(new Date());
     }
   }
 
   const parseInputDate = (raw: string | undefined): Date | undefined => {
     if (!raw) return undefined;
+    const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (m) {
+      const year = Number(m[1]);
+      const month = Number(m[2]);
+      const day = Number(m[3]);
+      return new Date(year, month - 1, day);
+    }
     const parsed = new Date(raw);
     return isNaN(parsed.getTime()) ? undefined : parsed;
   };
@@ -106,7 +122,7 @@ export default function EditAppointmentModal({
     defaultValues: {
       patientId: appointment.patientId ?? "",
       appointmentWithId: appointment.doctorId ?? "",
-      appointmentDate: formatDateForInput(appointment.date),
+      appointmentDate: toISODateLocal(appointment.appointmentDate ?? new Date()),
       appointmentTime: initialStartTime(appointment),
       appointmentEndTime: initialEndTime(appointment),
       appointmentDescription: appointment.description ?? "",
@@ -118,7 +134,7 @@ export default function EditAppointmentModal({
     form.reset({
       patientId: appointment.patientId ?? "",
       appointmentWithId: appointment.doctorId ?? "",
-      appointmentDate: formatDateForInput(appointment.date),
+      appointmentDate: toISODateLocal(appointment.appointmentDate ?? new Date()),
       appointmentTime: initialStartTime(appointment),
       appointmentEndTime: initialEndTime(appointment),
       appointmentDescription: appointment.description ?? "",
@@ -214,7 +230,7 @@ export default function EditAppointmentModal({
   }, []);
 
   const onSubmit = (data: AppointmentSchemaType) => {
-    const appointmentDate = new Date(data.appointmentDate);
+    const appointmentDate = parseInputDate(data.appointmentDate) ?? new Date();
     const timeStr = data.appointmentEndTime
       ? `${data.appointmentTime} - ${data.appointmentEndTime}`
       : data.appointmentTime;
@@ -311,7 +327,7 @@ export default function EditAppointmentModal({
                   <DatePicker
                     date={parseInputDate(field.value)}
                     onDateChange={(d) => {
-                      const isoDate = d ? d.toISOString().split("T")[0] : "";
+                      const isoDate = d ? toISODateLocal(d) : "";
                       field.onChange(isoDate);
                     }}
                     popoverTitle="Appointment date"

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addDays, addMonths, subMonths } from "date-fns";
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addDays, addMonths, subMonths, startOfDay } from "date-fns";
 
 type ViewMode = "month" | "week" | "day";
 
@@ -38,7 +38,11 @@ export default function AppointmentCalendar({
   onViewAppointment,
   onAddAppointment,
 }: AppointmentCalendarProps) {
-  const [currentDate, setCurrentDate] = useState(selectedDate);
+  const [currentDate, setCurrentDate] = useState(() => startOfDay(selectedDate));
+
+  useEffect(() => {
+    setCurrentDate(startOfDay(selectedDate));
+  }, [selectedDate]);
 
   const handlePrevious = () => {
     if (viewMode === "month") {
@@ -61,7 +65,7 @@ export default function AppointmentCalendar({
   };
 
   const handleToday = () => {
-    const today = new Date();
+    const today = startOfDay(new Date());
     setCurrentDate(today);
     setSelectedDate(today);
   };
@@ -100,7 +104,7 @@ export default function AppointmentCalendar({
                 className={`min-h-[100px] border rounded-lg p-2 cursor-pointer transition-colors ${
                   !isCurrentMonth ? "bg-gray-50 text-gray-400" : "bg-white"
                 } ${isSelected ? "ring-2 ring-blue-500" : ""} ${isToday ? "bg-blue-50" : ""}`}
-                onClick={() => setSelectedDate(day)}
+                onClick={() => setSelectedDate(startOfDay(day))}
               >
                 <div className={`text-sm font-medium mb-1 ${isToday ? "text-blue-600 font-bold" : ""}`}>
                   {format(day, "d")}

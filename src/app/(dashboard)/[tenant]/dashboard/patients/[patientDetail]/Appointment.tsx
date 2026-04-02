@@ -1,296 +1,159 @@
 "use client";
 
+import { useMemo, useState } from "react";
+import useSWR from "swr";
+import { useParams } from "next/navigation";
 import DataTable, { Column } from "@/components/shared/table/DataTable";
-import Pagination from "@/components/shared/table/pagination";
-import { useEffect, useState } from "react";
-import { TableCell, TableRow } from "@/components/ui/table";
-import {
-  ArrowDownUp,
-  Ellipsis,
-  Plus,
-  Search,
-  Settings2,
-  Upload,
-} from "lucide-react";
-import Image from "next/image";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchInput } from "@/components/ui/search";
+import { processRequestOfflineAuth } from "@/framework/offline-https";
+import { API_ENDPOINTS } from "@/framework/api-endpoints";
 
-type PatientDto = {
-  id: number;
-  profilePicture: string;
-  firstName: string;
-  lastName: string;
-  createdAt: string;
-  gender: string;
+type PatientAppointmentRow = {
+  id: string;
+  sn: number;
+  date: string;
+  time: string;
+  doctorName: string;
+  department: string;
 };
 
-const columns: Column<PatientDto>[] = [
-  {
-    header: "#",
-    key: "id",
-  },
-  {
-    header: "Patients",
-    render(row) {
-      return (
-        <div className="flex items-center gap-[10px]">
-          <span className="w-[42px] h-42px rounded-full overflow-hidden">
-            <Image
-              src={row.profilePicture}
-              alt="patient image"
-              width={42}
-              height={42}
-              className="object-cover aspect-square w-full h-full"
-            />
-          </span>
-          <p className="font-medium text-xs text-black">
-            {row.firstName} {row.lastName}
-          </p>
-        </div>
-      );
-    },
-  },
-  {
-    header: "Created at",
-    render(row) {
-      return (
-        <p className="font-semibold text-xs text-[#737373]">{row.createdAt}</p>
-      );
-    },
-  },
-  {
-    header: "Gender",
-    render(row) {
-      return (
-        <div
-          className={`flex items-center justify-center font-medium text-xs h-[30px] w-[69px] rounded-[20px] ${
-            row.gender.toLowerCase() === "male"
-              ? "text-[#3FA907] bg-[#E5F8DA]"
-              : "text-[#EC0909] bg-[#FDE6E6]"
-          }`}
-        >
-          {row.gender[0].toUpperCase() + row.gender.slice(1)}
-        </div>
-      );
-    },
-  },
-  {
-    header: "Actions",
-    render(row) {
-      return (
-        <Link
-          href={"/dashboard/organization/1234"}
-          className="flex items-center justify-center px-2 h-6 rounded-[2px] border border-[#BFBFBF] bg-[#EDF0F6]"
-        >
-          <Ellipsis className="text-black size-5" />
-        </Link>
-      );
-    },
-  },
-];
+function parseDateOnlyToLocalDate(raw: unknown): Date {
+  if (raw == null) return new Date();
+  const s = String(raw).trim();
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) {
+    const year = Number(m[1]);
+    const month = Number(m[2]);
+    const day = Number(m[3]);
+    return new Date(year, month - 1, day);
+  }
+  const dt = new Date(s);
+  return isNaN(dt.getTime()) ? new Date() : dt;
+}
 
-const PatientsTableData = [
-  {
-    id: 1,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
-    gender: "male",
-  },
-  {
-    id: 2,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
-    gender: "female",
-  },
-  {
-    id: 3,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
-    gender: "male",
-  },
-  {
-    id: 4,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
-    gender: "male",
-  },
-  {
-    id: 5,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
-    gender: "male",
-  },
-  {
-    id: 6,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
-    gender: "male",
-  },
-  {
-    id: 7,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
-    gender: "male",
-  },
-  {
-    id: 8,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
-    gender: "male",
-  },
-  {
-    id: 9,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
-    gender: "male",
-  },
-  {
-    id: 10,
-    profilePicture: "/assets/imagePlaceholder.png",
-    firstName: "Susan",
-    lastName: "Denilson",
-    createdAt: "20 Jan 2024",
-    gender: "male",
-  },
-];
+function formatDateForUI(raw: unknown): string {
+  const dt = parseDateOnlyToLocalDate(raw);
+  return dt.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function formatTime(t: string): string {
+  if (!t || typeof t !== "string") return "";
+  const parts = t.trim().split(/[:\s]/).filter(Boolean);
+  const h = parseInt(parts[0] ?? "0", 10);
+  const m = parseInt(parts[1] ?? "0", 10);
+  if (isNaN(h)) return t;
+  const ampm = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 || 12;
+  return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
+}
 
 export default function Appointment() {
-  const [pageSize, setPageSize] = useState(10);
-  const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState("");
-  const [filterBy, setFilterBy] = useState("");
+  const params = useParams();
+  const patientId = params?.patientDetail ? String(params.patientDetail) : "";
 
-  let payload = {
-    page: 1,
-    pageSize: 10,
-    sortOrder: "",
-    type: "upcoming",
-  };
+  const { data: appointmentsResponse } = useSWR(
+    API_ENDPOINTS.GET_APPOINTMENTS,
+    (url: string) => processRequestOfflineAuth("get", url),
+    { revalidateOnFocus: true }
+  );
 
-  useEffect(() => {
-    // probably use the payload above to call the api for data for the first time
-    // or when the value of sortBy changes
-  }, []);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const handlePageClick = (event: { selected: number }) => {
-    const newPage = event.selected + 1;
+  const appointments: PatientAppointmentRow[] = useMemo(() => {
+    const raw =
+      Array.isArray((appointmentsResponse as any)?.data?.data)
+        ? (appointmentsResponse as any).data.data
+        : Array.isArray((appointmentsResponse as any)?.data)
+          ? (appointmentsResponse as any).data
+          : Array.isArray(appointmentsResponse)
+            ? appointmentsResponse
+            : [];
 
-    payload = {
-      page: newPage,
-      pageSize: 10,
-      sortOrder: "",
-      type: sortBy,
-    };
+    const rows: PatientAppointmentRow[] = (raw as any[]).filter((rec) => {
+      const patient = rec.patient ?? {};
+      const candidate =
+        rec.patientId ??
+        rec.patient_id ??
+        rec.patient?.id ??
+        rec.patient?._id ??
+        patient.id ??
+        patient._id;
+      if (candidate == null) return false;
+      return String(candidate) === patientId;
+    }).map((rec, idx) => {
+      const dateStr = rec.date ?? rec.appointmentDate ?? rec.scheduledAt ?? rec.createdAt;
+      const date = formatDateForUI(dateStr);
 
-    // call the API
-  };
+      const startTime = String(rec.startTime ?? "");
+      const endTime = String(rec.endTime ?? "");
+      const time = startTime && endTime
+        ? `${formatTime(startTime)} - ${formatTime(endTime)}`
+        : (rec.time as string) ?? "";
+
+      const user = rec.user ?? {};
+      const doctorName =
+        (rec.doctorName as string) ??
+        [user.firstname, user.lastname].filter(Boolean).join(" ") ??
+        (user.name as string) ??
+        "—";
+
+      const deptRaw = rec.department;
+      const department = rec.departmentName ?? rec.department_name ?? (typeof deptRaw === "string" ? deptRaw : deptRaw?.name) ?? "—";
+
+      return {
+        id: String(rec.id ?? rec.appointmentId ?? ""),
+        sn: idx + 1,
+        date,
+        time,
+        doctorName: String(doctorName),
+        department: String(department),
+      };
+    });
+
+    return rows;
+  }, [appointmentsResponse, patientId]);
+
+  const columns: Column<PatientAppointmentRow>[] = [
+    {
+      header: "S/N",
+      key: "sn",
+      render: (_row, index = 0) => <span className="font-semibold text-xs text-[#737373]">{index + 1}</span>,
+      size: 80,
+    },
+    { header: "Date", key: "date", size: 160 },
+    { header: "Time", key: "time", size: 220 },
+    { header: "Doctor", key: "doctorName", size: 220 },
+    { header: "Department", key: "department", size: 220 },
+  ];
 
   return (
     <section className="">
       <header className="flex items-center justify-between gap-5 mb-10">
-        <h2 className="font-semibold text-xl text-black">Medical Records</h2>
-        <Button className="font-normal text-base text-white bg-[#003465] w-[130px] h-[50px]">
-          New record <Plus />
-        </Button>
+        <h2 className="font-semibold text-xl text-black">Appointments</h2>
       </header>
-      <div className="flex flex-wrap mb-5 gap-3">
-        <div className="relative">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search data..."
-            className="py-4 px-5 pr-11 min-w-[274px] bg-white w-full font-medium text-sm text-[#4F504F] border border-[#BFBFBF] outline-none"
-          />
-          <Search className="size-5 text-[#999999] absolute right-4 top-1/2 -translate-y-1/2" />
-        </div>
 
-        <div className="ml-auto">
-          <Select
-            value={sortBy}
-            onValueChange={(sortVal: string) => {
-              setSortBy(sortVal);
-            }}
-          >
-            <SelectTrigger className="flex py-4 gap-2 h-full min-w-max rounded-[8px] border border-[#B2B2B2] focus:ring-transparent">
-              <ArrowDownUp className="text-[#595959] size-5" />
-              <SelectValue placeholder={sortBy ? sortBy : "Sort"} />
-            </SelectTrigger>
-            <SelectContent className="bg-white">
-              {["Name", "Date", "Location", "Status"].map((currSortVal) => (
-                <SelectItem
-                  key={currSortVal}
-                  value={`${currSortVal}`}
-                  className="cursor-pointer hover:bg-[#003465] hover:text-white"
-                >
-                  {currSortVal}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Select
-            value={filterBy}
-            onValueChange={(filterVal: string) => {
-              setFilterBy(filterVal);
-            }}
-          >
-            <SelectTrigger className="flex py-4 gap-2 h-full min-w-max rounded-[8px] border border-[#B2B2B2] focus:ring-transparent">
-              <Settings2 className="text-[#595959] size-5" />
-              <SelectValue placeholder={filterBy ? filterBy : "Filter"} />
-            </SelectTrigger>
-            <SelectContent className="bg-white">
-              {["Name", "Date", "Location", "Status"].map((currFilterVal) => (
-                <SelectItem
-                  key={currFilterVal}
-                  value={`${currFilterVal}`}
-                  className="cursor-pointer hover:bg-[#003465] hover:text-white"
-                >
-                  {currFilterVal}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="mb-6">
+        <SearchInput
+          placeholder="Search appointments..."
+          onSearch={(q) => setSearchQuery(q)}
+        />
       </div>
-      <DataTable
-        columns={columns}
-        data={PatientsTableData}
-        bgHeader="bg-[#D9EDFF] text-black"
-      />
-      <Pagination
-        dataLength={PatientsTableData.length}
-        numOfPages={1000}
-        pageSize={pageSize}
-        handlePageClick={handlePageClick}
-      />
+
+      {appointments.length === 0 ? (
+        <div className="py-10 text-center text-sm text-[#737373]">No appointments found.</div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={appointments as any}
+          bgHeader="bg-[#D9EDFF] text-black"
+          search={searchQuery}
+          searchableKeys={["doctorName", "department", "date", "time"]}
+        />
+      )}
     </section>
   );
 }

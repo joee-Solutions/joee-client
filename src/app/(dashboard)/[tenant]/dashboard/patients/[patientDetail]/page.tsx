@@ -4,25 +4,15 @@ import { Button } from "@/components/ui/button";
 import {
   CalendarClock,
   CircleArrowLeft,
-  FilePlus,
   HeartPulse,
-  Upload,
 } from "lucide-react";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import userProfileImage from "./../../../../../../../public/assets/doctorMale.png";
 import { useState } from "react";
-import { AppointmentIcon, ScheduleIcon } from "@/components/icons/icon";
 import PersonalInfo from "./PersonalInfo";
-import AppointmentPage from "./Appointment";
-import SchedulePage from "./Uploads";
-import PatientPage from "../page";
 import { FaUser } from "react-icons/fa";
-import MedicalInfo from "./MedicalInfo";
-import Patients from "./MedicalRecords";
-import Uploads from "./Uploads";
 import Appointment from "./Appointment";
-import MedicalRecords from "./MedicalRecords";
 
 const tabBtns = [
   {
@@ -32,23 +22,8 @@ const tabBtns = [
   },
   {
     icon: HeartPulse,
-    label: "Medical Information",
-    currTab: 2,
-  },
-  {
-    icon: FilePlus,
-    label: "Medical Records",
-    currTab: 3,
-  },
-  {
-    icon: CalendarClock,
     label: "Appointments",
-    currTab: 4,
-  },
-  {
-    icon: Upload,
-    label: "Uploads",
-    currTab: 5,
+    currTab: 2,
   },
 ];
 
@@ -111,14 +86,8 @@ export default function MedicalInformationPage() {
           <div className="px-[25px] pt-[32px] pb-[56px] shadow-[0px_0px_4px_1px_#0000004D] rounded-md overflow-hidden">
             {currTab === 1 ? (
               <PersonalInfo />
-            ) : currTab === 2 ? (
-              <MedicalInfo />
-            ) : currTab === 3 ? (
-              <MedicalRecords />
-            ) : currTab === 4 ? (
-              <Appointment />
             ) : (
-              <Uploads />
+              <Appointment />
             )}
           </div>
         </div>

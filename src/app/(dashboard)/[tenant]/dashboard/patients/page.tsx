@@ -9,7 +9,6 @@ import { Plus, Search, Edit, Trash2, MoreVertical } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { usePathname, useParams } from "next/navigation";
-import Link from "next/link";
 import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { toast } from "react-toastify";
@@ -229,12 +228,9 @@ const createColumns = (
               }}
             />
           </span>
-          <Link
-            href={`/dashboard/patients/${row.id}`}
-            className="font-medium text-xs text-black hover:underline"
-          >
+          <p className="font-medium text-xs text-black">
             {patientName}
-          </Link>
+          </p>
         </div>
       );
     },
@@ -510,9 +506,12 @@ export default function PatientPage() {
   const handlePatientSuccessModalClose = (open: boolean) => {
     if (!open) {
       setPatientSuccessModal((s) => ({ ...s, open: false }));
-      setShowForm(false);
-      setEditingPatientId(null);
-      setSelectedPatient(null);
+      // Keep edit form open after successful update so users can continue editing.
+      if (!editingPatientId) {
+        setShowForm(false);
+        setEditingPatientId(null);
+        setSelectedPatient(null);
+      }
       loadPatients();
     }
   };

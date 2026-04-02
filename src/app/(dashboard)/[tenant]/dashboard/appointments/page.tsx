@@ -53,6 +53,21 @@ function formatTime(t: string): string {
   return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
 }
 
+function parseApiDateToLocalDate(raw: unknown): Date {
+  if (raw == null) return new Date();
+  const s = String(raw).trim();
+  // Treat YYYY-MM-DD as LOCAL date, not UTC (prevents day-shift).
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) {
+    const year = Number(m[1]);
+    const month = Number(m[2]);
+    const day = Number(m[3]);
+    return new Date(year, month - 1, day);
+  }
+  const dt = new Date(s);
+  return isNaN(dt.getTime()) ? new Date() : dt;
+}
+
 export default function AppointmentsPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("month");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -83,7 +98,7 @@ export default function AppointmentsPage() {
         (raw as Record<string, unknown>[]).map((a) => {
           const rec = a as Record<string, unknown>;
           const dateStr = rec.date ?? rec.appointmentDate ?? rec.scheduledAt ?? rec.createdAt;
-          const d = dateStr ? new Date(String(dateStr)) : new Date();
+          const d = dateStr ? parseApiDateToLocalDate(dateStr) : new Date();
           const patient = (rec.patient ?? {}) as Record<string, unknown>;
           const user = (rec.user ?? {}) as Record<string, unknown>;
           const patientName =
@@ -199,11 +214,31 @@ export default function AppointmentsPage() {
 
     try {
       if (modalMode === "add") {
-        await processRequestOfflineAuth(
-          "post",
+        const candidateCreatePaths: string[] = [
           API_ENDPOINTS.CREATE_APPOINTMENT(0),
-          payload
-        );
+          "/tenant/appointment",
+          "/tenant/appointments",
+        ];
+
+        let created = false;
+        let lastError: unknown = null;
+        for (const path of candidateCreatePaths) {
+          try {
+            await processRequestOfflineAuth("post", path, payload);
+            created = true;
+            break;
+          } catch (err) {
+            lastError = err;
+            const status =
+              (err as any)?.response?.status ??
+              (err as any)?.response?.data?.statusCode ??
+              undefined;
+            // If the first route is wrong, try the next one.
+            if (status !== 404) throw err;
+          }
+        }
+
+        if (!created) throw lastError ?? new Error("Failed to create appointment");
         setSuccessModal({
           open: true,
           title: "Success",

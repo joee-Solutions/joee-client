@@ -54,8 +54,22 @@ export default function AddAppointmentModal({ onClose, onSave }: AddAppointmentM
     },
   });
 
+  const toISODateLocal = (d: Date): string => {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
   const parseInputDate = (raw: string | undefined): Date | undefined => {
     if (!raw) return undefined;
+    const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (m) {
+      const year = Number(m[1]);
+      const month = Number(m[2]);
+      const day = Number(m[3]);
+      return new Date(year, month - 1, day);
+    }
     const parsed = new Date(raw);
     return isNaN(parsed.getTime()) ? undefined : parsed;
   };
@@ -105,7 +119,8 @@ export default function AddAppointmentModal({ onClose, onSave }: AddAppointmentM
   }, []);
 
   const onSubmit = (data: AppointmentSchemaType) => {
-    const appointmentDate = new Date(data.appointmentDate);
+    const appointmentDate =
+      parseInputDate(data.appointmentDate) ?? new Date();
     const patientName = patients.find((p) => p.id === data.patientId)?.name ?? "";
     const doctorName = employees.find((e) => e.id === data.appointmentWithId)?.name ?? "";
     const timeStr = data.appointmentEndTime
@@ -181,7 +196,7 @@ export default function AddAppointmentModal({ onClose, onSave }: AddAppointmentM
                   <DatePicker
                     date={parseInputDate(field.value)}
                     onDateChange={(d) => {
-                      const isoDate = d ? d.toISOString().split("T")[0] : "";
+                      const isoDate = d ? toISODateLocal(d) : "";
                       field.onChange(isoDate);
                     }}
                     popoverTitle="Appointment date"

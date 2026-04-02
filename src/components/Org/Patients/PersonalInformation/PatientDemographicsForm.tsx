@@ -129,7 +129,11 @@ export default function PatientInfoForm() {
   // Sync fileName with form value when it changes (e.g., from localStorage)
   useEffect(() => {
     if (currentImage && currentImage !== fileName) {
-      setFileName(currentImage);
+      if (currentImage.startsWith("data:image/")) {
+        setFileName("Selected image");
+      } else {
+        setFileName(currentImage);
+      }
     }
   }, [currentImage]);
 
@@ -150,7 +154,7 @@ export default function PatientInfoForm() {
 
 
   return (
-    <div className="mx-auto p-6">
+    <div className="mx-auto p-6 overflow-x-hidden min-w-0">
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* First Name */}
@@ -302,26 +306,26 @@ export default function PatientInfoForm() {
 
 
           {/* Upload Patient Image */}
-          <div className="md:col-span-2">
+          <div className="md:col-span-2 min-w-0">
             <label
               htmlFor="patientImage"
               className="block text-base text-black font-normal mb-2"
             >
               Upload Patient Image
             </label>
-            <div className="flex">
+            <div className="flex w-full min-w-0">
               <label
                 htmlFor="file-upload"
-                className="flex-grow flex items-center px-4 py-3 border border-gray-300 rounded-l-md bg-white text-gray-400 cursor-pointer"
+                className="flex-1 min-w-0 flex items-center px-4 py-3 border border-gray-300 rounded-l-md bg-white text-gray-400 cursor-pointer overflow-hidden"
               >
                 <span className="mr-2">
                   <Paperclip className="h-5 w-5" />
                 </span>
-                <span className="truncate">{fileName || "Choose File"}</span>
+                <span className="block min-w-0 truncate">{fileName || "Choose File"}</span>
                 <input
                   id="file-upload"
                   type="file"
-                  className="sr-only w-full h-14 p-3 border border-[#737373] rounded"
+                  className="sr-only"
                   onChange={handleFileChange}
                 />
               </label>

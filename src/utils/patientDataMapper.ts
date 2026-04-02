@@ -1,22 +1,6 @@
 import { FormDataStepper } from "@/components/Org/Patients/PatientStepper";
 import { formatPhoneNumber } from "@/utils/phoneFormatter";
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const E164_REGEX = /^\+\d{10,15}$/;
-
-function isValidEmail(val: unknown): boolean {
-  if (val == null) return false;
-  const s = typeof val === "string" ? val.trim() : String(val).trim();
-  return s.length > 0 && EMAIL_REGEX.test(s);
-}
-
-function isValidE164Phone(val: unknown): boolean {
-  if (val == null) return false;
-  const s = typeof val === "string" ? val.trim() : String(val).trim();
-  if (s.length === 0) return false;
-  const formatted = formatPhoneNumber(s);
-  return !!(formatted && E164_REGEX.test(formatted));
-}
+import { isContactEmailValid, isContactMobileE164Valid } from "@/utils/patientContactValidation";
 
 /**
  * Returns a payload safe for POST/PATCH: contact_info is rebuilt so email/phone are only
@@ -24,6 +8,28 @@ function isValidE164Phone(val: unknown): boolean {
  */
 export function sanitizePatientPayloadForApi<T extends { contact_info?: any; emergencyInfo?: any }>(payload: T): T {
   const out = JSON.parse(JSON.stringify(payload)) as T;
+
+  const parseDateOnlyOrAnyToISO = (raw: unknown): string | undefined => {
+    if (raw == null) return undefined;
+    const s = String(raw).trim();
+    if (!s) return undefined;
+
+    // Backend validation errors mention "ISO 8601 date string".
+    // To be safe, normalize to a date-only ISO string (YYYY-MM-DD) instead of full datetime.
+    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (m) {
+      // Already in YYYY-MM-DD format
+      return s;
+    }
+
+    const dt = new Date(s);
+    if (isNaN(dt.getTime())) return undefined;
+    const year = dt.getFullYear();
+    const month = String(dt.getMonth() + 1).padStart(2, "0");
+    const day = String(dt.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
   if (out.contact_info && typeof out.contact_info === "object") {
     const src = out.contact_info as Record<string, unknown>;
     // Rebuild contact_info: copy all keys except email/phone, then add those only when valid
@@ -32,38 +38,60 @@ export function sanitizePatientPayloadForApi<T extends { contact_info?: any; eme
       if (key === "email" || key === "email_work" || key === "phone_number_mobile" || key === "phone_number_home") continue;
       ci[key] = src[key];
     }
-    const email = (src.email != null && typeof src.email === "string") ? src.email.trim() : "";
-    if (email && EMAIL_REGEX.test(email)) ci.email = email;
-    const emailWork = (src.email_work != null && typeof src.email_work === "string") ? src.email_work.trim() : "";
-    if (emailWork && EMAIL_REGEX.test(emailWork)) ci.email_work = emailWork;
+    const email = src.email != null ? String(src.email).trim() : "";
+    if (email && isContactEmailValid(email)) ci.email = email;
+    const emailWork = src.email_work != null ? String(src.email_work).trim() : "";
+    if (emailWork && isContactEmailValid(emailWork)) ci.email_work = emailWork;
     const mobileStr = (src.phone_number_mobile != null && String(src.phone_number_mobile).trim() !== "") ? String(src.phone_number_mobile).trim() : "";
     if (mobileStr) {
       const formatted = formatPhoneNumber(mobileStr);
-      if (formatted && E164_REGEX.test(formatted)) ci.phone_number_mobile = formatted;
+      if (formatted && isContactMobileE164Valid(formatted)) ci.phone_number_mobile = formatted;
     }
     const homeStr = (src.phone_number_home != null && String(src.phone_number_home).trim() !== "") ? String(src.phone_number_home).trim() : "";
     if (homeStr) {
       const formatted = formatPhoneNumber(homeStr);
-      if (formatted && E164_REGEX.test(formatted)) ci.phone_number_home = formatted;
+      if (formatted && isContactMobileE164Valid(formatted)) ci.phone_number_home = formatted;
     }
     // Final guard: never leave invalid values (backend validates if key is present)
-    if (ci.email !== undefined && !isValidEmail(ci.email)) delete ci.email;
-    if (ci.email_work !== undefined && !isValidEmail(ci.email_work)) delete ci.email_work;
-    if (ci.phone_number_mobile !== undefined && !isValidE164Phone(ci.phone_number_mobile)) delete ci.phone_number_mobile;
-    if (ci.phone_number_home !== undefined && !isValidE164Phone(ci.phone_number_home)) delete ci.phone_number_home;
+    if (ci.email !== undefined && !isContactEmailValid(ci.email)) delete ci.email;
+    if (ci.email_work !== undefined && !isContactEmailValid(ci.email_work)) delete ci.email_work;
+    if (ci.phone_number_mobile !== undefined && !isContactMobileE164Valid(ci.phone_number_mobile)) delete ci.phone_number_mobile;
+    if (ci.phone_number_home !== undefined && !isContactMobileE164Valid(ci.phone_number_home)) delete ci.phone_number_home;
     if (ci.household_size !== undefined) {
       const n = Number(ci.household_size);
       ci.household_size = typeof n === "number" && !isNaN(n) ? n : 0;
+    }
+    for (const k of ["email", "email_work", "phone_number_mobile", "phone_number_home"] as const) {
+      const v = ci[k];
+      if (v === null || v === undefined || v === "") delete ci[k];
     }
     out.contact_info = ci;
   }
   if (out.emergencyInfo && typeof out.emergencyInfo === "object") {
     const ec = out.emergencyInfo as Record<string, unknown>;
-    const ecEmail = (ec.emergency_contact_email != null && typeof ec.emergency_contact_email === "string") ? ec.emergency_contact_email.trim() : "";
-    if (!ecEmail || !EMAIL_REGEX.test(ecEmail)) delete ec.emergency_contact_email;
+    const ecEmail = ec.emergency_contact_email != null ? String(ec.emergency_contact_email).trim() : "";
+    if (!ecEmail || !isContactEmailValid(ecEmail)) delete ec.emergency_contact_email;
     else ec.emergency_contact_email = ecEmail;
     ec.contact_emergency_contact = ec.contact_emergency_contact === true || ec.contact_emergency_contact === "Yes";
   }
+
+  // Backend expects ISO 8601 date strings for diagnosis onset/end.
+  if (Array.isArray((out as any).diagnosisHistory)) {
+    (out as any).diagnosisHistory = (out as any).diagnosisHistory.map((row: any) => {
+      const next = { ...row };
+      const onsetIso = parseDateOnlyOrAnyToISO(next.onsetDate);
+      const endIso = parseDateOnlyOrAnyToISO(next.endDate);
+
+      if (onsetIso) next.onsetDate = onsetIso;
+      else delete next.onsetDate;
+
+      if (endIso) next.endDate = endIso;
+      else delete next.endDate;
+
+      return next;
+    });
+  }
+
   return out;
 }
 
@@ -256,29 +284,21 @@ export function mapFormDataToPatientDto(formData: FormDataStepper) {
       };
       // Only add emails if they are non-empty and valid (backend rejects empty string)
       const emailVal = (addDemographic?.email || "").trim();
-      if (emailVal && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+      if (emailVal && isContactEmailValid(emailVal)) {
         contactInfo.email = emailVal;
       }
       const workEmailVal = (addDemographic?.workEmail || "").trim();
-      if (workEmailVal && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(workEmailVal)) {
+      if (workEmailVal && isContactEmailValid(workEmailVal)) {
         contactInfo.email_work = workEmailVal;
       }
-      // Only add phone numbers if they have valid, non-empty values
-      // Format phone numbers before adding - must be valid E.164 format
       const mobilePhone = formatPhoneNumber(addDemographic?.mobilePhone);
-      if (mobilePhone && mobilePhone.length > 0 && /^\+\d{10,15}$/.test(mobilePhone)) {
+      if (mobilePhone && isContactMobileE164Valid(mobilePhone)) {
         contactInfo.phone_number_mobile = mobilePhone;
-      } else if (addDemographic?.mobilePhone !== undefined && addDemographic?.mobilePhone !== null && addDemographic?.mobilePhone !== '') {
-        // If phone number was provided but is invalid, don't include it (let backend handle validation)
-        // Or set to null to explicitly remove it on update
-        // For PATCH updates, we can omit the field entirely if invalid
       }
-      
+
       const homePhone = formatPhoneNumber(addDemographic?.homePhone);
-      if (homePhone && homePhone.length > 0 && /^\+\d{10,15}$/.test(homePhone)) {
+      if (homePhone && isContactMobileE164Valid(homePhone)) {
         contactInfo.phone_number_home = homePhone;
-      } else if (addDemographic?.homePhone !== undefined && addDemographic?.homePhone !== null && addDemographic?.homePhone !== '') {
-        // If phone number was provided but is invalid, don't include it
       }
       
       return contactInfo;
@@ -294,14 +314,12 @@ export function mapFormDataToPatientDto(formData: FormDataStepper) {
       };
       
       // Only add email if it's a valid email address
-      if (emergency?.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emergency.email)) {
+      if (emergency?.email && isContactEmailValid(emergency.email)) {
         emergencyInfo.emergency_contact_email = emergency.email;
       }
-      
-      // Only add phone number if it has a valid, non-empty value
-      // Format phone number before adding - must be valid E.164 format
+
       const phone = formatPhoneNumber(emergency?.phone);
-      if (phone && phone.length > 0 && /^\+\d{10,15}$/.test(phone)) {
+      if (phone && isContactMobileE164Valid(phone)) {
         emergencyInfo.emergency_contact_phone_number = phone;
       }
       
@@ -514,13 +532,13 @@ export function normalizePatientData(mappedData: ReturnType<typeof mapFormDataTo
     mappedData.contact_info.zip_code = mappedData.contact_info.zip_code || '';
     // Backend requires email fields to be valid emails if present; omit when empty/invalid
     const ciEmail = (mappedData.contact_info.email || '').trim();
-    if (!ciEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ciEmail)) {
+    if (!ciEmail || !isContactEmailValid(ciEmail)) {
       delete mappedData.contact_info.email;
     } else {
       mappedData.contact_info.email = ciEmail;
     }
     const ciWorkEmail = (mappedData.contact_info.email_work || '').trim();
-    if (!ciWorkEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ciWorkEmail)) {
+    if (!ciWorkEmail || !isContactEmailValid(ciWorkEmail)) {
       delete mappedData.contact_info.email_work;
     } else {
       mappedData.contact_info.email_work = ciWorkEmail;
@@ -536,8 +554,8 @@ export function normalizePatientData(mappedData: ReturnType<typeof mapFormDataTo
     
     // Validate and format phone numbers - only include if valid E.164, otherwise remove (backend rejects invalid/empty)
     if (mappedData.contact_info.phone_number_mobile !== undefined && mappedData.contact_info.phone_number_mobile !== null && String(mappedData.contact_info.phone_number_mobile).trim() !== '') {
-      const formattedMobile = formatPhoneNumber(mappedData.contact_info.phone_number_mobile);
-      if (formattedMobile && /^\+\d{10,15}$/.test(formattedMobile)) {
+      const formattedMobile = formatPhoneNumber(String(mappedData.contact_info.phone_number_mobile));
+      if (formattedMobile && isContactMobileE164Valid(formattedMobile)) {
         mappedData.contact_info.phone_number_mobile = formattedMobile;
       } else {
         delete mappedData.contact_info.phone_number_mobile;
@@ -545,13 +563,12 @@ export function normalizePatientData(mappedData: ReturnType<typeof mapFormDataTo
     } else {
       delete mappedData.contact_info.phone_number_mobile;
     }
-    
+
     if (mappedData.contact_info.phone_number_home !== undefined) {
       const formattedHome = formatPhoneNumber(mappedData.contact_info.phone_number_home);
-      if (formattedHome && /^\+\d{10,15}$/.test(formattedHome)) {
+      if (formattedHome && isContactMobileE164Valid(formattedHome)) {
         mappedData.contact_info.phone_number_home = formattedHome;
       } else {
-        // Remove invalid phone number - don't send it to backend
         delete mappedData.contact_info.phone_number_home;
       }
     }
@@ -610,7 +627,7 @@ export function normalizePatientData(mappedData: ReturnType<typeof mapFormDataTo
     mappedData.emergencyInfo.emergency_contact_relationship = mappedData.emergencyInfo.emergency_contact_relationship || '';
     // Backend requires emergency_contact_email to be valid if present; omit when empty/invalid
     const ecEmail = (mappedData.emergencyInfo.emergency_contact_email || '').trim();
-    if (!ecEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ecEmail)) {
+    if (!ecEmail || !isContactEmailValid(ecEmail)) {
       delete mappedData.emergencyInfo.emergency_contact_email;
     } else {
       mappedData.emergencyInfo.emergency_contact_email = ecEmail;

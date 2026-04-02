@@ -59,7 +59,7 @@ export default function GuardianInfoForm() {
       {isUnder18 && (
         <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
           <p className="text-blue-800 text-sm">
-            <strong>Note:</strong> Guardian information (Full Name, Relationship, Phone, and Email) is required for patients under 18 years old.
+            <strong>Note:</strong> Guardian information is recommended for patients under 18 years old.
           </p>
         </div>
       )}
@@ -72,7 +72,7 @@ export default function GuardianInfoForm() {
               htmlFor="fullName"
               className="block text-base text-black font-normal mb-2"
             >
-              Guardian Full Name {isUnder18 && <span className="text-red-500">*</span>}
+              Guardian Full Name
             </label>
             <Input
               type="text"
@@ -131,7 +131,7 @@ export default function GuardianInfoForm() {
               htmlFor="relationship"
               className="block text-base text-black font-normal mb-2"
             >
-              Relationship {isUnder18 && <span className="text-red-500">*</span>}
+              Relationship
             </label>
             <Input
               type="text"
@@ -153,7 +153,7 @@ export default function GuardianInfoForm() {
               htmlFor="phone"
               className="block text-base text-black font-normal mb-2"
             >
-              Phone {isUnder18 && <span className="text-red-500">*</span>}
+              Phone
             </label>
             <Input
               type="tel"
@@ -175,7 +175,7 @@ export default function GuardianInfoForm() {
               htmlFor="email"
               className="block text-base text-black font-normal mb-2"
             >
-              Email {isUnder18 && <span className="text-red-500">*</span>}
+              Email
             </label>
             <Input
               type="email"

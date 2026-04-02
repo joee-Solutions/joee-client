@@ -29,3 +29,25 @@ export function parseISOStringToLocalDate(dateString: string | undefined | null)
     return isNaN(date.getTime()) ? undefined : date;
   }
 }
+
+/**
+ * Parse stored/API date strings to a Date at **local midnight** for that calendar day.
+ * Avoids `new Date("YYYY-MM-DD")` and UTC midnight ISO shifting to the previous local day.
+ */
+export function parseCalendarDateString(raw: string | undefined | null): Date | undefined {
+  if (raw == null || String(raw).trim() === "") return undefined;
+  const s = String(raw).trim();
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+  if (m) {
+    const y = Number(m[1]);
+    const mo = Number(m[2]) - 1;
+    const d = Number(m[3]);
+    if (Number.isFinite(y) && Number.isFinite(mo) && Number.isFinite(d)) {
+      const dt = new Date(y, mo, d);
+      if (!isNaN(dt.getTime())) return dt;
+    }
+  }
+  const dt = new Date(s);
+  if (isNaN(dt.getTime())) return undefined;
+  return new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+}

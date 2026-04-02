@@ -7,32 +7,28 @@ import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { getApiErrorMessagesString } from "@/utils/api-error";
 import { mapFormDataToPatientDto, normalizePatientData, sanitizePatientPayloadForApi, prepareCreatePayload } from "../utils/patientDataMapper";
 import { formatPhoneNumber } from "@/utils/phoneFormatter";
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const E164_REGEX = /^\+\d{10,15}$/;
-
-function isValidEmail(val: unknown): boolean {
-  if (val == null) return false;
-  const s = typeof val === "string" ? val.trim() : String(val).trim();
-  return s.length > 0 && EMAIL_REGEX.test(s);
-}
-
-function isValidE164Phone(val: unknown): boolean {
-  if (val == null) return false;
-  const s = typeof val === "string" ? String(val).trim() : String(val).trim();
-  if (s.length === 0) return false;
-  const formatted = formatPhoneNumber(s);
-  return !!(formatted && E164_REGEX.test(formatted));
-}
+import { isContactEmailValid, isContactMobileE164Valid } from "@/utils/patientContactValidation";
 
 /** Strip contact_info email/phone so backend never receives invalid values (POST/PATCH). */
 function stripInvalidContactFields(payload: any): void {
   const ci = payload?.contact_info;
   if (!ci || typeof ci !== "object") return;
-  if (!isValidEmail(ci.email)) delete ci.email;
-  if (!isValidEmail(ci.email_work)) delete ci.email_work;
-  if (!isValidE164Phone(ci.phone_number_mobile)) delete ci.phone_number_mobile;
-  if (!isValidE164Phone(ci.phone_number_home)) delete ci.phone_number_home;
+  if (!isContactEmailValid(ci.email)) delete ci.email;
+  if (!isContactEmailValid(ci.email_work)) delete ci.email_work;
+
+  const normalizePhoneKey = (key: "phone_number_mobile" | "phone_number_home") => {
+    const raw = ci[key];
+    if (raw == null || String(raw).trim() === "") {
+      delete ci[key];
+      return;
+    }
+    const str = String(raw).trim();
+    const e164 = isContactMobileE164Valid(str) ? str : formatPhoneNumber(str);
+    if (e164 && isContactMobileE164Valid(e164)) ci[key] = e164;
+    else delete ci[key];
+  };
+  normalizePhoneKey("phone_number_mobile");
+  normalizePhoneKey("phone_number_home");
 }
 import { validateRequiredFields, getFirstStepWithMissingData } from "@/utils/patientValidation";
 
@@ -182,8 +178,10 @@ export function usePatientForm({
           setIsSavedToAPI(true); // Mark as saved to API
           setError(null);
           
-          // Call onSaveSuccess callback if provided
-          if (onSaveSuccess) {
+          // For edit mode, keep the form open after success.
+          // Only fire external "save complete" callbacks for new patient creation flows.
+          const wasCreateOperation = !patientId;
+          if (onSaveSuccess && wasCreateOperation) {
             setTimeout(() => {
               onSaveSuccess();
             }, 500);
@@ -192,12 +190,24 @@ export function usePatientForm({
           console.error("Failed to save to API:", error);
           const errorText = getApiErrorMessagesString(error, "Failed to save to server.");
           const lower = errorText.toLowerCase();
+          const hasContactValidationError =
+            lower.includes("contact_info.email must be an email") ||
+            lower.includes("contact_info.phone_number_mobile must be a valid phone number");
           if (lower.includes("date_of_birth must be a valid iso 8601 date string")) {
             toast.error("Date of birth is required and must be a valid date. Data saved locally.", {
               toastId: "save-api-error-dob",
               autoClose: 7000,
               position: "top-right",
             });
+          } else if (hasContactValidationError) {
+            toast.error(
+              "Contact info is invalid. Enter a valid email and mobile phone (e.g. +12345678901), or clear those fields.",
+              {
+                toastId: "save-api-error-contact-info",
+                autoClose: 7000,
+                position: "top-right",
+              }
+            );
           } else {
             toast.error(`${errorText} Data saved locally.`, { 
               toastId: "save-api-error",
@@ -211,13 +221,7 @@ export function usePatientForm({
         }
       }
       
-      if (showNotification && !saveToAPI) {
-        toast.success("Data auto-saved", { 
-          toastId: "auto-save",
-          autoClose: 2000,
-          position: "top-right"
-        });
-      }
+      // Keep auto-save silent to avoid frequent toast noise while typing.
       // Don't reset hasUnsavedChanges on localStorage save - only on API save
       // This ensures navigation warnings work correctly
     } catch (error) {
@@ -273,7 +277,6 @@ export function usePatientForm({
   // Auto-save progress whenever form data changes (on input)
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
-    let saveCount = 0;
     
     const subscription = methods.watch(() => {
       // Clear previous timeout
@@ -282,9 +285,7 @@ export function usePatientForm({
       
       // Debounce auto-save to avoid too frequent saves
       timeoutId = setTimeout(() => {
-        saveCount++;
-        // Show notification every 5 saves to avoid spam
-        saveToLocalStorage(saveCount % 5 === 0);
+        saveToLocalStorage(false);
       }, 1000); // Save 1 second after last change
     });
 
@@ -302,7 +303,7 @@ export function usePatientForm({
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
         // Small delay to ensure the value is updated in the form
         setTimeout(() => {
-          saveToLocalStorage(true); // Show notification on blur
+          saveToLocalStorage(false);
         }, 100);
       }
     };

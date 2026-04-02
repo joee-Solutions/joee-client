@@ -840,7 +840,7 @@ export default function PatientStepper({ slug, patientId: propPatientId, onSaveC
   const CurrentStepComponent = steps[currentStep]?.component;
 
   return (
-    <div className="flex h-full bg-gray-50">
+    <div className="flex h-full bg-gray-50 overflow-x-hidden">
       {/* Left Sidebar - Steps */}
       <div className="w-80 bg-white shadow-lg border-r border-gray-200 overflow-y-auto">
         <div className="p-6">
@@ -927,8 +927,8 @@ export default function PatientStepper({ slug, patientId: propPatientId, onSaveC
       </div>
 
       {/* Right Content Area */}
-      <div className="flex-1 overflow-y-auto min-h-screen">
-        <div className="p-8 max-w-full">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-screen min-w-0">
+        <div className="p-8 max-w-full min-w-0">
           {/* Header */}
           <div className="flex justify-between items-center mb-8">
             <div className="flex items-center gap-4">
@@ -971,7 +971,7 @@ export default function PatientStepper({ slug, patientId: propPatientId, onSaveC
                 </div>
               )}
 
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 overflow-x-hidden">
                 {CurrentStepComponent ? (
                   <CurrentStepComponent />
                 ) : (
@@ -1038,7 +1038,7 @@ export default function PatientStepper({ slug, patientId: propPatientId, onSaveC
                         disabled={loading}
                         className="font-normal text-base text-white bg-green-600 hover:bg-green-700 h-[60px] px-6 flex items-center"
                       >
-                        {loading ? (!isNewPatient ? "Updating..." : "Saving...") : (!isNewPatient ? "Update" : "Save")}
+                        {loading ? (!isNewPatient ? "Updating..." : "Creating...") : (!isNewPatient ? "Update" : "Create")}
                       </Button>
                     <Button
                       type="button"
@@ -1057,9 +1057,9 @@ export default function PatientStepper({ slug, patientId: propPatientId, onSaveC
                         disabled={loading}
                         className="font-normal text-base text-white bg-green-600 hover:bg-green-700 h-[60px] px-6 flex items-center"
                       >
-                        {loading ? (!isNewPatient ? "Updating..." : "Saving...") : (!isNewPatient ? "Update" : "Save")}
+                        {loading ? (!isNewPatient ? "Updating..." : "Creating...") : (!isNewPatient ? "Update" : "Create")}
                       </Button>
-                      <p className="text-xs text-gray-500">Data is auto-saved as you enter information</p>
+                      <p className="text-xs text-gray-500">Draft is auto-saved locally as you enter information</p>
                     </div>
                   )}
                 </div>
@@ -1076,7 +1076,7 @@ export default function PatientStepper({ slug, patientId: propPatientId, onSaveC
                 </AlertDialogTitle>
                 <AlertDialogDescription className="text-base text-gray-600 mt-2">
                   <p className="mb-3">
-                    You have unsaved changes. Please click the <strong>"Save"</strong> button to save your data to the server before leaving. Your data is auto-saved locally, but it won't be saved to the server until you click "Save".
+                    You have unsaved changes. Please click the <strong>{isNewPatient ? '"Create"' : '"Update"'}</strong> button to save your data to the server before leaving. Your data is auto-saved locally, but it will not be saved to the server until you click that button.
                   </p>
                   <div className="bg-yellow-50 border border-yellow-200 rounded p-3 mt-3">
                     <p className="text-sm font-semibold text-yellow-800 mb-1">⚠️ Required fields before saving:</p>

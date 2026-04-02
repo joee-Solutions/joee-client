@@ -49,6 +49,70 @@ function isOnline(): boolean {
   return typeof navigator !== "undefined" && navigator.onLine;
 }
 
+function isBackendUnreachableError(error: any): boolean {
+  const msg = String(error?.message || "").toLowerCase();
+  const code = String(error?.code || "").toUpperCase();
+  const status = error?.response?.status;
+  const apiError = String(error?.response?.data?.error || "").toLowerCase();
+  return (
+    code === "ENOTFOUND" ||
+    code === "ERR_NETWORK" ||
+    code === "ECONNABORTED" ||
+    code === "ETIMEDOUT" ||
+    msg.includes("getaddrinfo") ||
+    msg.includes("network error") ||
+    (status === 503 && apiError === "backend_unreachable")
+  );
+}
+
+async function queueOfflineMutation(
+  method: "post" | "put" | "patch" | "delete",
+  path: string,
+  data: any,
+  storeName: keyof JoeeOfflineDB | null,
+  tenant?: string,
+  callback?: (path: string, data: any, error?: any) => void
+): Promise<any> {
+  await offlineDB.init();
+  const url = getBaseURL() + path;
+  const token = getToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+    ...(tenant ? { "x-tenant-id": tenant } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+
+  const body =
+    data != null && typeof data === "object" && !(data instanceof FormData)
+      ? JSON.stringify(data)
+      : undefined;
+
+  await offlineDB.queueRequest({
+    url,
+    method: method.toUpperCase(),
+    headers,
+    body,
+  });
+
+  if (storeName && tenant && (method === "post" || method === "put" || method === "patch")) {
+    const payload = data && typeof data === "object" ? data : {};
+    const tempId = payload.id ?? `offline-${Date.now()}`;
+    try {
+      await offlineDB.cacheData(storeName, [{ ...payload, id: tempId }], tenant);
+    } catch (_) {}
+  }
+
+  const payloadObj = data && typeof data === "object" ? data : {};
+  const optimisticId = payloadObj.id ?? `offline-${Date.now()}`;
+  const optimistic = toResponseShape([{ ...payloadObj, id: optimisticId }]);
+  if (method === "post" && optimistic.data?.data?.[0]) {
+    (optimistic.data as any).id = optimisticId;
+  }
+  if (callback) callback(path, optimistic);
+  return optimistic;
+}
+
 export type ProcessRequestOfflineAuthOptions = {
   /** If true, skip cache write (e.g. for one-off requests). */
   skipCache?: boolean;
@@ -105,6 +169,20 @@ export async function processRequestOfflineAuth(
 
       return result;
     } catch (error) {
+      // If backend is unreachable (DNS/network) treat as offline fallback, even if navigator says "online".
+      if (isBackendUnreachableError(error)) {
+        if (method === "get" && storeName && tenant) {
+          try {
+            await offlineDB.init();
+            const cached = await offlineDB.getCachedData(storeName, tenant);
+            const out = toResponseShape(cached);
+            if (callback) callback(path, out);
+            return out;
+          } catch (_) {}
+        } else if (method !== "get") {
+          return queueOfflineMutation(method, path, data, storeName, tenant, callback);
+        }
+      }
       // Optional: on network error with GET, try cache as fallback
       if (method === "get" && storeName && tenant) {
         try {
@@ -121,10 +199,8 @@ export async function processRequestOfflineAuth(
     }
   }
 
-  // Offline path
-  await offlineDB.init();
-
   if (method === "get") {
+    await offlineDB.init();
     if (storeName && tenant) {
       const cached = await offlineDB.getCachedData(storeName, tenant);
       const out = toResponseShape(cached);
@@ -137,48 +213,6 @@ export async function processRequestOfflineAuth(
     return empty;
   }
 
-  // Offline mutation: queue and optimistic update
-  const url = getBaseURL() + path;
-  const token = getToken();
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    Accept: "application/json",
-    ...(tenant ? { "x-tenant-id": tenant } : {}),
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-
-  const body =
-    data != null && typeof data === "object" && !(data instanceof FormData)
-      ? JSON.stringify(data)
-      : undefined;
-
-  await offlineDB.queueRequest({
-    url,
-    method: method.toUpperCase(),
-    headers,
-    body,
-  });
-
-  // Optimistic: add to local cache for known entities (so UI updates)
-  if (storeName && tenant && (method === "post" || method === "put" || method === "patch")) {
-    const payload = data && typeof data === "object" ? data : {};
-    const tempId = payload.id ?? `offline-${Date.now()}`;
-    try {
-      await offlineDB.cacheData(
-        storeName,
-        [{ ...payload, id: tempId }],
-        tenant
-      );
-    } catch (_) {}
-  }
-
-  // Return a success-like shape so callers don't throw
-  const payloadObj = data && typeof data === "object" ? data : {};
-  const optimisticId = payloadObj.id ?? `offline-${Date.now()}`;
-  const optimistic = toResponseShape([{ ...payloadObj, id: optimisticId }]);
-  if (method === "post" && optimistic.data?.data?.[0]) {
-    (optimistic.data as any).id = optimisticId;
-  }
-  if (callback) callback(path, optimistic);
-  return optimistic;
+  // Offline mutation: queue and return optimistic response
+  return queueOfflineMutation(method, path, data, storeName, tenant, callback);
 }

@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
 import { FormDataStepper } from "../PatientStepper";
-import { Country, State, City } from "country-state-city";
+import { Country, State } from "country-state-city";
 import { useMemo, useEffect } from "react";
 import { formatDateLocal, parseISOStringToLocalDate } from "@/lib/utils";
 
@@ -45,29 +45,6 @@ export const addionalDemoSchema = z.object({
 });
 
 
-// Using country-state-city library - options will be generated dynamically
-const postalOptions = [
-  "10001",
-  "90001",
-  "60601",
-  "77001",
-  "85001",
-  "19101",
-  "78201",
-  "92101",
-  "75201",
-  "95101",
-  "73301",
-  "32099",
-  "76101",
-  "43085",
-  "46201",
-  "28201",
-  "94101",
-  "98101",
-  "80201",
-  "20001",
-];
 const contactMethodOptions = ["Email", "Phone", "Text Message", "Mail"];
 const livingSituationOptions = [
   "Own Home",
@@ -131,15 +108,6 @@ export default function ContactDemographicForm() {
     return country?.isoCode || null;
   }, [selectedCountry]);
 
-  // Get state code from state name
-  const selectedStateCode = useMemo(() => {
-    if (!selectedState || !selectedCountryCode) return null;
-    const state = State.getStatesOfCountry(selectedCountryCode).find(
-      (s) => s.name === selectedState
-    );
-    return state?.isoCode || null;
-  }, [selectedState, selectedCountryCode]);
-
   // Generate options from country-state-city library
   const countryOptions = useMemo(() => {
     return Country.getAllCountries()
@@ -153,13 +121,6 @@ export default function ContactDemographicForm() {
       .map((state) => state.name)
       .sort((a, b) => a.localeCompare(b));
   }, [selectedCountryCode]);
-
-  const cityOptions = useMemo(() => {
-    if (!selectedCountryCode || !selectedStateCode) return [];
-    return City.getCitiesOfState(selectedCountryCode, selectedStateCode)
-      .map((city) => city.name)
-      .sort((a, b) => a.localeCompare(b));
-  }, [selectedCountryCode, selectedStateCode]);
 
   // Reset state and city when country changes
   useEffect(() => {
@@ -269,80 +230,48 @@ export default function ContactDemographicForm() {
         />
 
         {/* City */}
-        <Controller
-          name="addDemographic.city"
-          render={({ field }) => (
-            <div>
-              <label
-                htmlFor="city"
-                className="block text-base text-black font-normal mb-2"
-              >
-                City
-              </label>
-              <Select 
-                value={field.value || ""} 
-                onValueChange={field.onChange}
-                disabled={!selectedState}
-              >
-                <SelectTrigger className="w-full h-14 p-3 border border-[#737373] rounded">
-                  <SelectValue placeholder={selectedState ? "Select City" : "Select State first"} />
-                </SelectTrigger>
-                <SelectContent className="z-10 bg-white">
-                  {cityOptions.map((option) => (
-                    <SelectItem
-                      key={option}
-                      value={option}
-                      className="hover:bg-gray-200"
-                    >
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.addDemographic?.city && (
-                <p className="text-red-500 text-sm">
-                  {errors.addDemographic.city.message}
-                </p>
-              )}
-            </div>
+        <div>
+          <label
+            htmlFor="city"
+            className="block text-base text-black font-normal mb-2"
+          >
+            City
+          </label>
+          <Input
+            type="text"
+            id="city"
+            placeholder="Enter city"
+            className="w-full h-14 p-3 border border-[#737373] rounded"
+            {...register("addDemographic.city")}
+          />
+          {errors.addDemographic?.city && (
+            <p className="text-red-500 text-sm">
+              {errors.addDemographic.city.message}
+            </p>
           )}
-        />
+        </div>
 
         {/* Postal/Zip code */}
-        <Controller
-          name="addDemographic.postal"
-          render={({ field }) => (
-            <div>
-              <label
-                htmlFor="postal"
-                className="block text-base text-black font-normal mb-2"
-              >
-                Postal/Zip code
-              </label>
-              <Select value={field.value ?? ""} onValueChange={field.onChange}>
-                <SelectTrigger className="w-full h-14 p-3 border border-[#737373] rounded">
-                  <SelectValue placeholder={`Select Postal/Zip code`} />
-                </SelectTrigger>
-                <SelectContent className="z-10 bg-white">
-                  {postalOptions.map((option, index) => (
-                    <SelectItem
-                      key={index}
-                      value={option}
-                      className="hover:bg-gray-200"
-                    >
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.addDemographic?.postal && (
-                <p className="text-red-500 text-sm">
-                  {errors.addDemographic.postal.message}
-                </p>
-              )}
-            </div>
+        <div>
+          <label
+            htmlFor="postal"
+            className="block text-base text-black font-normal mb-2"
+          >
+            Postal/Zip code
+          </label>
+          <Input
+            type="text"
+            id="postal"
+            placeholder="Enter postal/zip code"
+            className="w-full h-14 p-3 border border-[#737373] rounded"
+            {...register("addDemographic.postal")}
+          />
+          {errors.addDemographic?.postal && (
+            <p className="text-red-500 text-sm">
+              {errors.addDemographic.postal.message}
+            </p>
           )}
-        />
+        </div>
 
         {/* Email */}
         <div>

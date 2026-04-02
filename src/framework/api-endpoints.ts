@@ -4,7 +4,7 @@ export const API_ENDPOINTS = {
   RESET_PASSWORD: "/auth/tenant/reset-password",
   VERIFY_LOGIN: "/auth/tenant/verify-login-otp",
   VERIFY_OTP: "/auth/tenant/verify-otp", // For password reset OTP verification
-  RESEND_OTP: "/tenant/auth/resend-otp",
+  RESEND_OTP: "/auth/tenant/resend-otp",
   REFRESH_TOKEN: "/auth/tenant/refresh",
 
   // Profile endpoints (GET, PATCH) — tenant org profile
@@ -21,7 +21,9 @@ export const API_ENDPOINTS = {
   GET_APPOINTMENTS: "/tenant/appointment",
   DELETE_APPOINTMENT: (_tenantId: number, appointmentId: number | string) => `/tenant/appointment/${appointmentId}`,
   UPDATE_APPOINTMENT: (_tenantId: number, appointmentId: number | string) => `/tenant/appointment/${appointmentId}`,
-  CREATE_APPOINTMENT: (_tenantId: number) => `/tenant/appointment`,
+  // Backend route for creating an appointment.
+  // GET list remains at /tenant/appointment.
+  CREATE_APPOINTMENT: (_tenantId: number) => `/tenant/appointment/create`,
   GET_EMPLOYEE: "/tenant/employee",
 
   // Schedule endpoints
