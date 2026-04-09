@@ -146,10 +146,10 @@ export default function Appointment() {
       {appointments.length === 0 ? (
         <div className="py-10 text-center text-sm text-[#737373]">No appointments found.</div>
       ) : (
-        <DataTable
-          columns={columns}
+      <DataTable
+        columns={columns}
           data={appointments as any}
-          bgHeader="bg-[#D9EDFF] text-black"
+        bgHeader="bg-[#D9EDFF] text-black"
           search={searchQuery}
           searchableKeys={["doctorName", "department", "date", "time"]}
         />

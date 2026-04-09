@@ -16,6 +16,7 @@ import { z } from "zod";
 import { Controller, useFormContext } from "react-hook-form";
 import { FormDataStepper } from "../PatientStepper";
 import { formatDateLocal, parseISOStringToLocalDate } from "@/lib/utils";
+import { toast } from "react-toastify";
 
 export const PatientDemoSchema = z.object({
   suffix: z.string().optional(),
@@ -103,6 +104,7 @@ export const dropdownOptions = {
   ],
 };
 type DropdownKeys = keyof typeof dropdownOptions;
+const MAX_PATIENT_IMAGE_BYTES = 2 * 1024 * 1024; // 2MB
 
 export default function PatientInfoForm() {
   // const {
@@ -128,18 +130,37 @@ export default function PatientInfoForm() {
 
   // Sync fileName with form value when it changes (e.g., from localStorage)
   useEffect(() => {
-    if (currentImage && currentImage !== fileName) {
-      if (currentImage.startsWith("data:image/")) {
-        setFileName("Selected image");
-      } else {
-        setFileName(currentImage);
-      }
+    if (!currentImage) {
+      setFileName("");
+      return;
     }
-  }, [currentImage]);
+    // Show a readable data-url name style when image is stored as base64 in form state.
+    if (currentImage.startsWith("data:image/")) {
+      const preview = currentImage.slice(0, 19);
+      setFileName(`image: "${preview}"`);
+      return;
+    }
+    if (currentImage !== fileName) {
+      const normalized = currentImage.split("?")[0];
+      const maybeName = normalized.split("/").filter(Boolean).pop();
+      setFileName(maybeName || currentImage);
+    }
+  }, [currentImage, fileName]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !file.type.startsWith("image/")) return;
+    if (file.size > MAX_PATIENT_IMAGE_BYTES) {
+      setValue("demographic.patientImage", "");
+      setFileName("Choose File");
+      e.target.value = "";
+      toast.error("Image size too large for Upload Patient Image. Max 2MB.", {
+        toastId: "patient-image-too-large",
+        autoClose: 5000,
+        position: "top-right",
+      });
+      return;
+    }
     setFileName(file.name);
     const reader = new FileReader();
     reader.onload = () => {
@@ -325,6 +346,7 @@ export default function PatientInfoForm() {
                 <input
                   id="file-upload"
                   type="file"
+                  accept="image/*"
                   className="sr-only"
                   onChange={handleFileChange}
                 />

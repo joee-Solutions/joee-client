@@ -214,31 +214,19 @@ export default function AppointmentsPage() {
 
     try {
       if (modalMode === "add") {
-        const candidateCreatePaths: string[] = [
-          API_ENDPOINTS.CREATE_APPOINTMENT(0),
-          "/tenant/appointment",
-          "/tenant/appointments",
-        ];
-
-        let created = false;
-        let lastError: unknown = null;
-        for (const path of candidateCreatePaths) {
-          try {
-            await processRequestOfflineAuth("post", path, payload);
-            created = true;
-            break;
-          } catch (err) {
-            lastError = err;
-            const status =
-              (err as any)?.response?.status ??
-              (err as any)?.response?.data?.statusCode ??
-              undefined;
-            // If the first route is wrong, try the next one.
-            if (status !== 404) throw err;
-          }
+        const patientId = appointmentData.patientId;
+        const employeeId = appointmentData.doctorId;
+        if (!patientId || !employeeId) {
+          toast.error("Please select both patient and doctor before saving.", {
+            toastId: "appointment-missing-path-ids",
+          });
+          return;
         }
-
-        if (!created) throw lastError ?? new Error("Failed to create appointment");
+        await processRequestOfflineAuth(
+          "post",
+          API_ENDPOINTS.CREATE_APPOINTMENT(patientId, employeeId),
+          payload
+        );
         setSuccessModal({
           open: true,
           title: "Success",

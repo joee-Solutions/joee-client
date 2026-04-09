@@ -18,7 +18,9 @@ import { BellIcon } from "@/components/icons/icon";
 import useSWR from "swr";
 import {
   AlertDialog,
+  AlertDialogCancel,
   AlertDialogContent,
+  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
@@ -531,8 +533,12 @@ const MainHeaderContent = ({ onToggleMobileMenu }: MainHeaderProps) => {
                 {selectedNotification.date}
                 {selectedNotification.time ? ` • ${selectedNotification.time}` : ""}
               </div>
-              <div className="pt-2">
+              <AlertDialogFooter className="flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end sm:space-x-2">
+                <AlertDialogCancel className="h-[44px] border-[#003465] text-[#003465] hover:bg-gray-50 mt-0">
+                  Close
+                </AlertDialogCancel>
                 <button
+                  type="button"
                   onClick={() => {
                     setIsNotificationDetailOpen(false);
                     router.push(`/dashboard/notifications/${selectedNotification.id}`);
@@ -541,7 +547,7 @@ const MainHeaderContent = ({ onToggleMobileMenu }: MainHeaderProps) => {
                 >
                   Open full notification
                 </button>
-              </div>
+              </AlertDialogFooter>
             </div>
           ) : null}
         </AlertDialogContent>

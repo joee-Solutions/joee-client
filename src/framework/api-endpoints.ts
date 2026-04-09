@@ -21,9 +21,10 @@ export const API_ENDPOINTS = {
   GET_APPOINTMENTS: "/tenant/appointment",
   DELETE_APPOINTMENT: (_tenantId: number, appointmentId: number | string) => `/tenant/appointment/${appointmentId}`,
   UPDATE_APPOINTMENT: (_tenantId: number, appointmentId: number | string) => `/tenant/appointment/${appointmentId}`,
-  // Backend route for creating an appointment.
+  // Backend route for creating an appointment (path params required).
   // GET list remains at /tenant/appointment.
-  CREATE_APPOINTMENT: (_tenantId: number) => `/tenant/appointment/create`,
+  CREATE_APPOINTMENT: (patientId: number | string, employeeId: number | string) =>
+    `/tenant/appointment/${patientId}/${employeeId}`,
   GET_EMPLOYEE: "/tenant/employee",
 
   // Schedule endpoints

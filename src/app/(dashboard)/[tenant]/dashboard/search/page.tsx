@@ -399,7 +399,7 @@ export default function SearchPage() {
     <div className="min-h-screen w-full p-6">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold text-[#003465] mb-6">Search</h1>
-
+        
         <form onSubmit={handleSearch} className="mb-8">
           <div className="relative flex items-center">
             <input

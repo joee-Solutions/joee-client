@@ -15,7 +15,7 @@ import SectionHeader from "@/components/shared/SectionHeader";
 import AdminProfilePage from "./AdminProfile";
 import ChangeAdminPasswordPage from "./ChangeAdminPassword";
 import Settings from "./Settings";
-import { useRouter, useParams, usePathname } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { isTenantAdmin, getRolesFromUser } from "@/utils/permissions";
@@ -49,17 +49,18 @@ export default function SettingsPage() {
   const [currTab, setCurrTab] = useState<number>(1);
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  const userJson = typeof window !== "undefined" ? Cookies.get("user") : null;
-  const user = useMemo(() => {
+  useEffect(() => {
     try {
-      return userJson ? JSON.parse(userJson) : null;
+      const userJson = Cookies.get("user");
+      const user = userJson ? JSON.parse(userJson) : null;
+      const roles = getRolesFromUser(user);
+      setIsAdmin(isTenantAdmin(roles));
     } catch {
-      return null;
+      setIsAdmin(false);
     }
-  }, [userJson]);
-  const roles = getRolesFromUser(user);
-  const isAdmin = isTenantAdmin(roles);
+  }, []);
   const tabBtns = useMemo(
     () =>
       isAdmin
@@ -92,6 +93,15 @@ export default function SettingsPage() {
   const displayName = profile?.name ?? "—";
   const displayEmail = profile?.email ?? "—";
   const displayPhone = profile?.phone_number ?? "—";
+  const safeLogoSrc = useMemo(() => {
+    const raw = String(profile?.logo ?? "").trim();
+    if (!raw) return null;
+    // next/image throws on malformed src values; only pass safe URL/path-like inputs.
+    if (raw.startsWith("/") || raw.startsWith("http://") || raw.startsWith("https://") || raw.startsWith("data:")) {
+      return raw;
+    }
+    return null;
+  }, [profile?.logo]);
 
   // When using subdomain (e.g. doe.localhost:3000), use /dashboard/settings/backup. When using path-based tenant (e.g. localhost:3000/doe/...), use /{tenant}/dashboard/settings/backup.
   const [backupHref, setBackupHref] = useState("/dashboard/settings/backup");
@@ -124,9 +134,9 @@ export default function SettingsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-[398px_1fr] gap-5">
             <aside className="pb-10 px-[54px] pt-[34px] pt shadow-[0px_0px_4px_1px_#0000004D] h-max rounded-md">
               <div className="flex flex-col gap-[15px] items-center mb-[30px]">
-                {profile?.logo ? (
+                {safeLogoSrc ? (
                   <Image
-                    src={profile.logo}
+                    src={safeLogoSrc}
                     alt="Organization logo"
                     width={180}
                     height={180}

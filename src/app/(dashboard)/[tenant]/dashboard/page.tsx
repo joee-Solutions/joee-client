@@ -600,39 +600,39 @@ const DashboardPage: NextPage = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-6 mb-6 md:grid-cols-2 lg:grid-cols-4">
-            <StatCard
-              title="Departments"
-              value={stats.departments.count}
-              growth={stats.departments.growth}
-              color="blue"
-              icon={stats.departments.icon}
-              href="/dashboard/departments"
-            />
-            <StatCard
-              title="Employees"
-              value={stats.employees.count}
-              growth={stats.employees.growth}
-              color="green"
-              icon={stats.employees.icon}
-              href="/dashboard/employees"
-            />
-            <StatCard
-              title="Patients"
-              value={stats.patients.count}
-              growth={stats.patients.growth}
-              color="yellow"
-              icon={stats.patients.icon}
-              href="/dashboard/patients"
-            />
-            <StatCard
-              title="Appointments"
-              value={stats.appointments.count}
-              growth={stats.appointments.growth}
-              color="red"
-              icon={stats.appointments.icon}
-              href="/dashboard/appointments"
-            />
-          </div>
+          <StatCard
+            title="Departments"
+            value={stats.departments.count}
+            growth={stats.departments.growth}
+            color="blue"
+            icon={stats.departments.icon}
+            href="/dashboard/departments"
+          />
+          <StatCard
+            title="Employees"
+            value={stats.employees.count}
+            growth={stats.employees.growth}
+            color="green"
+            icon={stats.employees.icon}
+            href="/dashboard/employees"
+          />
+          <StatCard
+            title="Patients"
+            value={stats.patients.count}
+            growth={stats.patients.growth}
+            color="yellow"
+            icon={stats.patients.icon}
+            href="/dashboard/patients"
+          />
+          <StatCard
+            title="Appointments"
+            value={stats.appointments.count}
+            growth={stats.appointments.growth}
+            color="red"
+            icon={stats.appointments.icon}
+            href="/dashboard/appointments"
+          />
+        </div>
         )}
 
         {/* Tenant_User: 2 panels top (equal), Departments Status below same width as one panel; Admin: charts + Employees */}
@@ -657,21 +657,21 @@ const DashboardPage: NextPage = () => {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <div className="flex flex-col space-y-4">
-              <PatientsDonut data={getPatientsDonutData()} />
-              <AppointmentsChart data={getAppointmentsChartData()} />
-            </div>
-            <EmployeeSection employees={getEmployeesForSection()} />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <div className="flex flex-col space-y-4">
+            <PatientsDonut data={getPatientsDonutData()} />
+            <AppointmentsChart data={getAppointmentsChartData()} />
           </div>
+          <EmployeeSection employees={getEmployeesForSection()} />
+        </div>
         )}
 
         {/* Bottom: Admin — Departments + Schedule List (Tenant_User Departments is in grid above) */}
         {isTenantUser ? null : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <DepartmentsStatus data={getDepartmentsStatusData()} colors={colors} />
-            <ScheduleList schedules={schedulesData} />
-          </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <DepartmentsStatus data={getDepartmentsStatusData()} colors={colors} />
+          <ScheduleList schedules={schedulesData} />
+        </div>
         )}
       </main>
     </div>

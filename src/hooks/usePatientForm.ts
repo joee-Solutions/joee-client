@@ -199,6 +199,19 @@ export function usePatientForm({
               autoClose: 7000,
               position: "top-right",
             });
+          } else if (
+            lower.includes("request entity too large") ||
+            lower.includes("payload too large") ||
+            String(error?.response?.status) === "413"
+          ) {
+            toast.error(
+              "Image size too large for Upload Patient Image. Please upload a smaller image.",
+              {
+                toastId: "save-api-error-image-too-large",
+                autoClose: 7000,
+                position: "top-right",
+              }
+            );
           } else if (hasContactValidationError) {
             toast.error(
               "Contact info is invalid. Enter a valid email and mobile phone (e.g. +12345678901), or clear those fields.",

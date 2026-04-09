@@ -48,7 +48,7 @@ export default function PersonalInfo() {
         <p className="mt-2 text-sm text-[#1f2937]">
           {String(employee?.about ?? employee?.bio ?? employee?.biography ?? "") || "—"}
         </p>
-      </div>
+          </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <InfoItem label="Full Name" value={fullName} />
         <InfoItem label="Email" value={String(employee?.email ?? "")} />
@@ -62,7 +62,7 @@ export default function PersonalInfo() {
         <InfoItem label="Date of Birth" value={String(employee?.date_of_birth ?? employee?.dob ?? "")} />
         <InfoItem label="Hire Date" value={String(employee?.hire_date ?? employee?.hireDate ?? "")} />
         <InfoItem label="Status" value={String(employee?.status ?? (employee?.is_active === false ? "inactive" : "active"))} />
-      </div>
-    </div>
+          </div>
+        </div>
   );
 }
