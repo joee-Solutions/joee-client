@@ -14,6 +14,7 @@ import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { toast } from "react-toastify";
 import type { ProfileData } from "./page";
+import { parseTenantProfileResponse, tenantLogoToImageSrc } from "@/utils/profile-api";
 
 const SettingSchema = z.object({
   systemLogo: z
@@ -28,11 +29,22 @@ const SettingSchema = z.object({
   email: z.string({ required_error: "This field is required" }),
   phoneNumber: z.string().optional(),
   organization: z.string().optional(),
+  organizationType: z.string().optional(),
+  website: z.string().optional(),
+  faxNumber: z.string().optional(),
 });
 
 type SettingSchemaType = z.infer<typeof SettingSchema>;
 
-export default function Settings({ initialData }: { initialData?: ProfileData | null }) {
+export default function Settings({
+  initialData,
+  onProfileUpdated,
+  onLogoPreviewChange,
+}: {
+  initialData?: ProfileData | null;
+  onProfileUpdated?: (next: ProfileData | null) => void;
+  onLogoPreviewChange?: (nextLogo: string | null) => void;
+}) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [logoPreview, setLogoPreview] = useState("");
   const [isDropZoneHover, setIsDropZoneHover] = useState(false);
@@ -49,6 +61,9 @@ export default function Settings({ initialData }: { initialData?: ProfileData | 
       email: "",
       phoneNumber: "",
       organization: "",
+      organizationType: "",
+      website: "",
+      faxNumber: "",
     },
   });
 
@@ -64,12 +79,21 @@ export default function Settings({ initialData }: { initialData?: ProfileData | 
         email: source.email ?? "",
         phoneNumber: source.phone_number ?? "",
         organization: source.domain ?? source.name ?? "",
+        organizationType: source.organization_type ?? "",
+        website: source.website ?? "",
+        faxNumber: source.fax_number ?? "",
       });
-      if (source.logo && typeof source.logo === "string") setLogoPreview(source.logo);
+      const logoUrl = tenantLogoToImageSrc(source.logo);
+      setLogoPreview(logoUrl ?? "");
+      onLogoPreviewChange?.(logoUrl ?? null);
+    } else {
+      setLogoPreview("");
+      onLogoPreviewChange?.(null);
     }
-  }, [initialData, form]);
+  }, [initialData, form, onLogoPreviewChange]);
 
   const triggerFileUpload = () => {
+    if (isDisabled) return;
     fileInputRef.current?.click();
   };
 
@@ -79,16 +103,19 @@ export default function Settings({ initialData }: { initialData?: ProfileData | 
 
   const handleFileDragHover = (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
+    if (isDisabled) return;
     setIsDropZoneHover(true);
   };
 
   const handleFileDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
+    if (isDisabled) return;
     setIsDropZoneHover(false);
   };
 
   const handleFileDragEnter = (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
+    if (isDisabled) return;
 
     setIsDropZoneHover(false);
     form.clearErrors("systemLogo");
@@ -110,13 +137,14 @@ export default function Settings({ initialData }: { initialData?: ProfileData | 
     const file =
       event.dataTransfer.files.item(0) || form.getValues("systemLogo");
 
-    console.log(file, ".......");
     form.setValue("systemLogo", file);
 
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setLogoPreview(reader.result as string);
+        const nextLogo = reader.result as string;
+        setLogoPreview(nextLogo);
+        onLogoPreviewChange?.(nextLogo);
       };
 
       reader.readAsDataURL(file);
@@ -125,24 +153,34 @@ export default function Settings({ initialData }: { initialData?: ProfileData | 
 
   const onSubmitHandler = async (payload: SettingSchemaType) => {
     try {
-      const body: any = {
+      const body: Record<string, unknown> = {
         name: payload.systemName,
         email: payload.email,
         phone_number: payload.phoneNumber,
         address: payload.address,
         domain: payload.organization,
         status: payload.title,
+        organization_type: payload.organizationType || undefined,
+        website: payload.website?.trim() ? payload.website : null,
+        fax_number: payload.faxNumber?.trim() ? payload.faxNumber : null,
       };
       if (payload.systemLogo && payload.systemLogo instanceof File) {
         const formData = new FormData();
         formData.append("logo", payload.systemLogo);
-        Object.entries(body).forEach(([k, v]) => v != null && formData.append(k, String(v)));
+        Object.entries(body).forEach(([k, v]) => {
+          if (v !== undefined && v !== null && v !== "") formData.append(k, String(v));
+        });
         await processRequestOfflineAuth("patch", API_ENDPOINTS.UPDATE_PROFILE, formData);
       } else {
         await processRequestOfflineAuth("patch", API_ENDPOINTS.UPDATE_PROFILE, body);
       }
       toast.success("Settings saved successfully", { toastId: "settings-save" });
       setIsDisabled(true);
+      const refreshed = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_PROFILE);
+      const { profile: tenantProfile } = parseTenantProfileResponse(refreshed);
+      const persistedLogo = tenantLogoToImageSrc((tenantProfile as ProfileData | null)?.logo);
+      onLogoPreviewChange?.(persistedLogo ?? null);
+      onProfileUpdated?.((tenantProfile as ProfileData) ?? null);
     } catch (e: any) {
       toast.error((e?.response?.data?.message as string) ?? "Failed to save settings", { toastId: "settings-save-error" });
     }
@@ -161,7 +199,11 @@ export default function Settings({ initialData }: { initialData?: ProfileData | 
               onDragOver={handleFileDragHover}
               onDragLeave={handleFileDragLeave}
               onDrop={handleFileDragEnter}
-              className="flex items-center justify-center flex-col relative overflow-hidden bg-[#F7FAFF] hover:bg-[#ecf2fc] border-2 border-dashed border-separate border-[#61b5ff] text-[#016BB5] rounded-[8px] w-full h-[240px] py-[27px] max-w-[600px]"
+              className={`flex items-center justify-center flex-col relative overflow-hidden border-2 border-dashed border-separate border-[#61b5ff] text-[#016BB5] rounded-[8px] w-full h-[240px] py-[27px] max-w-[600px] ${
+                isDisabled
+                  ? "bg-[#EEF3FA] opacity-80"
+                  : "bg-[#F7FAFF] hover:bg-[#ecf2fc]"
+              }`}
             >
               {!logoPreview && (
                 <div className="flex flex-col justify-center items-center gap-2">
@@ -182,6 +224,7 @@ export default function Settings({ initialData }: { initialData?: ProfileData | 
                       <Button
                         type="button"
                         onClick={triggerFileUpload}
+                        disabled={isDisabled}
                         className="font-medium text-sm text-white rounded-[4px] p-[10px] bg-[#003465]"
                       >
                         Upload document
@@ -212,6 +255,7 @@ export default function Settings({ initialData }: { initialData?: ProfileData | 
                 <Button
                   type="button"
                   onClick={triggerFileUpload}
+                  disabled={isDisabled}
                   className="font-medium text-sm text-white rounded-[4px] p-[10px] bg-[#288be1] absolute bottom-4 z-30 shadow-2xl"
                 >
                   Change document
@@ -226,9 +270,18 @@ export default function Settings({ initialData }: { initialData?: ProfileData | 
             bgInputClass="bg-[#D9EDFF] border-[#D9EDFF]"
             name="systemName"
             control={form.control}
-            labelText="System Name"
+            labelText="Organization Name"
             type="text"
             placeholder="Enter here"
+            disabled={isDisabled}
+          />
+          <FieldBox
+            bgInputClass="bg-[#D9EDFF] border-[#D9EDFF]"
+            name="organizationType"
+            control={form.control}
+            labelText="Organization Type"
+            type="text"
+            placeholder="e.g. Laboratory"
             disabled={isDisabled}
           />
           <FieldBox
@@ -273,11 +326,31 @@ export default function Settings({ initialData }: { initialData?: ProfileData | 
           <FieldBox
             bgInputClass="bg-[#D9EDFF] border-[#D9EDFF]"
             type="text"
-            name="organization"
+            name="website"
             control={form.control}
-            labelText="Organization"
+            labelText="Website"
+            placeholder="https://"
+            disabled
+          />
+
+          <FieldBox
+            bgInputClass="bg-[#D9EDFF] border-[#D9EDFF]"
+            type="text"
+            name="faxNumber"
+            control={form.control}
+            labelText="Fax number"
             placeholder="Enter here"
             disabled={isDisabled}
+          />
+
+          <FieldBox
+            bgInputClass="bg-[#D9EDFF] border-[#D9EDFF]"
+            type="text"
+            name="organization"
+            control={form.control}
+            labelText="Domain"
+            placeholder="Tenant subdomain / domain"
+            disabled
           />
 
           <div className="flex items-center gap-7">

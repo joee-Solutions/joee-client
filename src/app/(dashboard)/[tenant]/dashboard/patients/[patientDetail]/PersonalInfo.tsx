@@ -1,6 +1,6 @@
 import useSWR from "swr";
 import { useMemo } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 
@@ -41,7 +41,14 @@ function InfoItem({ label, value }: { label: string; value: string }) {
 
 export default function PersonalInfo() {
   const params = useParams();
-  const patientId = Number(params?.patientDetail ?? "");
+  const searchParams = useSearchParams();
+  const patientDetail = String(params?.patientDetail ?? "");
+  const patientIdFromQuery = Number(searchParams.get("pid") ?? "");
+  const patientIdFromPath = /^\d+$/.test(patientDetail) ? Number(patientDetail) : NaN;
+  const patientId =
+    Number.isFinite(patientIdFromQuery) && patientIdFromQuery > 0
+      ? patientIdFromQuery
+      : patientIdFromPath;
 
   const { data: patientResponse, isLoading } = useSWR(
     patientId ? API_ENDPOINTS.GET_PATIENT(patientId) : null,
@@ -74,9 +81,22 @@ export default function PersonalInfo() {
 
   const gender = String(patient?.sex ?? patient?.gender ?? "").trim() || "—";
   const dob = formatDate(patient?.date_of_birth ?? patient?.dob ?? "");
-  const status = String(patient?.status ?? patient?.patientStatus ?? "").trim() || "—";
+  const rawStatus = patient?.status ?? patient?.patientStatus;
+  const status =
+    typeof rawStatus === "string"
+      ? rawStatus.trim() || "—"
+      : rawStatus && typeof rawStatus === "object"
+        ? String(
+            (rawStatus as Record<string, unknown>).name ??
+              (rawStatus as Record<string, unknown>).label ??
+              (rawStatus as Record<string, unknown>).status ??
+              ""
+          ).trim() || "—"
+        : "—";
 
-  const imageSrc = (patient?.image ?? patient?.patient_image ?? "") as string;
+  const imageSrc = String(
+    patient?.profile_picture ?? patient?.image ?? patient?.patient_image ?? ""
+  ).trim();
 
   return (
     <div>

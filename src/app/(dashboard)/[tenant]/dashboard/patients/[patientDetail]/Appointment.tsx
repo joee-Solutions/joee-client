@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import useSWR from "swr";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import DataTable, { Column } from "@/components/shared/table/DataTable";
 import { SearchInput } from "@/components/ui/search";
 import { processRequestOfflineAuth } from "@/framework/offline-https";
@@ -53,7 +53,16 @@ function formatTime(t: string): string {
 
 export default function Appointment() {
   const params = useParams();
-  const patientId = params?.patientDetail ? String(params.patientDetail) : "";
+  const searchParams = useSearchParams();
+  const patientDetail = String(params?.patientDetail ?? "");
+  const patientIdFromQuery = Number(searchParams.get("pid") ?? "");
+  const patientIdFromPath = /^\d+$/.test(patientDetail) ? Number(patientDetail) : NaN;
+  const patientId =
+    Number.isFinite(patientIdFromQuery) && patientIdFromQuery > 0
+      ? String(patientIdFromQuery)
+      : Number.isFinite(patientIdFromPath) && patientIdFromPath > 0
+        ? String(patientIdFromPath)
+        : "";
 
   const { data: appointmentsResponse } = useSWR(
     API_ENDPOINTS.GET_APPOINTMENTS,

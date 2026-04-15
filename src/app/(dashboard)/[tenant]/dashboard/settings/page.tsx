@@ -2,17 +2,15 @@
 
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import userProfileImage from "./../../../../../../public/assets/orgProfileImage.png";
+import userProfileImage from "./../../../../../../public/assets/profile.png";
 import { useState, useEffect, useMemo } from "react";
 import Cookies from "js-cookie";
 import {
   CloudBackupIcon,
   PasswordLockIcon,
   SettingsIcon,
-  UserIcon,
 } from "@/components/icons/icon";
 import SectionHeader from "@/components/shared/SectionHeader";
-import AdminProfilePage from "./AdminProfile";
 import ChangeAdminPasswordPage from "./ChangeAdminPassword";
 import Settings from "./Settings";
 import { useRouter, useParams } from "next/navigation";
@@ -21,11 +19,14 @@ import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { isTenantAdmin, getRolesFromUser } from "@/utils/permissions";
 import { parseTenantProfileResponse } from "@/utils/profile-api";
 
-const allTabBtns = [
-  { icon: UserIcon, label: "Personal Information", currTab: 1 },
+const adminTabBtns = [
+  { icon: SettingsIcon, label: "System Configuration", currTab: 1 },
   { icon: PasswordLockIcon, label: "Change Password", currTab: 2 },
   { icon: CloudBackupIcon, label: "Backup Restore", currTab: 3 },
-  { icon: SettingsIcon, label: "Settings", currTab: 4 },
+];
+
+const userTabBtns = [
+  { icon: PasswordLockIcon, label: "Change Password", currTab: 1 },
 ];
 
 export type ProfileData = {
@@ -39,6 +40,8 @@ export type ProfileData = {
   domain?: string;
   logo?: string | null;
   status?: string;
+  organization_type?: string;
+  fax_number?: string | null;
   [key: string]: any;
 };
 
@@ -61,16 +64,10 @@ export default function SettingsPage() {
       setIsAdmin(false);
     }
   }, []);
-  const tabBtns = useMemo(
-    () =>
-      isAdmin
-        ? allTabBtns
-        : allTabBtns.filter((t) => t.currTab === 1 || t.currTab === 2),
-    [isAdmin]
-  );
+  const tabBtns = useMemo(() => (isAdmin ? adminTabBtns : userTabBtns), [isAdmin]);
 
   useEffect(() => {
-    if (!isAdmin && (currTab === 3 || currTab === 4)) setCurrTab(1);
+    if (!isAdmin && currTab !== 1) setCurrTab(1);
   }, [isAdmin, currTab]);
 
   useEffect(() => {
@@ -93,16 +90,6 @@ export default function SettingsPage() {
   const displayName = profile?.name ?? "—";
   const displayEmail = profile?.email ?? "—";
   const displayPhone = profile?.phone_number ?? "—";
-  const safeLogoSrc = useMemo(() => {
-    const raw = String(profile?.logo ?? "").trim();
-    if (!raw) return null;
-    // next/image throws on malformed src values; only pass safe URL/path-like inputs.
-    if (raw.startsWith("/") || raw.startsWith("http://") || raw.startsWith("https://") || raw.startsWith("data:")) {
-      return raw;
-    }
-    return null;
-  }, [profile?.logo]);
-
   // When using subdomain (e.g. doe.localhost:3000), use /dashboard/settings/backup. When using path-based tenant (e.g. localhost:3000/doe/...), use /{tenant}/dashboard/settings/backup.
   const [backupHref, setBackupHref] = useState("/dashboard/settings/backup");
   useEffect(() => {
@@ -134,23 +121,13 @@ export default function SettingsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-[398px_1fr] gap-5">
             <aside className="pb-10 px-[54px] pt-[34px] pt shadow-[0px_0px_4px_1px_#0000004D] h-max rounded-md">
               <div className="flex flex-col gap-[15px] items-center mb-[30px]">
-                {safeLogoSrc ? (
-                  <Image
-                    src={safeLogoSrc}
-                    alt="Organization logo"
-                    width={180}
-                    height={180}
-                    className="rounded-full object-cover"
-                  />
-                ) : (
-                  <Image
-                    src={userProfileImage}
-                    alt="user profile picture"
-                    width={180}
-                    height={180}
-                    className="rounded-full object-cover"
-                  />
-                )}
+                <Image
+                  src={userProfileImage}
+                  alt="user profile picture"
+                  width={180}
+                  height={180}
+                  className="rounded-full object-cover"
+                />
                 <div className="text-center">
                   <p className="font-semibold text-2xl text-black">
                     {profileLoading ? "Loading..." : displayName}
@@ -207,12 +184,17 @@ export default function SettingsPage() {
               </div>
             </aside>
             <div className="px-[25px] pt-[32px] pb-[56px] shadow-[0px_0px_4px_1px_#0000004D] rounded-md overflow-hidden">
-              {currTab === 1 ? (
-                <AdminProfilePage initialData={profile} />
-              ) : currTab === 2 ? (
-                <ChangeAdminPasswordPage />
+              {isAdmin ? (
+                currTab === 1 ? (
+                  <Settings
+                    initialData={profile}
+                    onProfileUpdated={setProfile}
+                  />
+                ) : currTab === 2 ? (
+                  <ChangeAdminPasswordPage />
+                ) : null
               ) : (
-                <Settings initialData={profile} />
+                <ChangeAdminPasswordPage />
               )}
             </div>
           </div>

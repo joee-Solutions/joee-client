@@ -8,6 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 import { useMemo } from "react";
 
 type Primitives = string | number | boolean;
@@ -30,6 +31,8 @@ interface DataTableProps<T extends Record<string, Primitives>> {
   children?: React.ReactNode;
   tableDataObj?: any;
   showAction?: boolean;
+  /** When set, clicking a row (except where propagation is stopped) runs this handler. */
+  onRowClick?: (row: T, index: number) => void;
 }
 
 export default function DataTable<T extends Record<string, Primitives>>({
@@ -42,6 +45,7 @@ export default function DataTable<T extends Record<string, Primitives>>({
   children,
   tableDataObj,
   showAction,
+  onRowClick,
 }: DataTableProps<T>) {
   // If children are provided, render them instead of auto-generated rows
   if (children) {
@@ -111,9 +115,24 @@ export default function DataTable<T extends Record<string, Primitives>>({
         {filteredRows.map((tr, idx) => (
           <TableRow
             key={idx}
-            className={`border-b border-[#D9D9D9] h-[90px] ${
-              rowSelectionIds.includes(idx) ? "bg-[#EDF0F6]" : ""
-            }`}
+            role={onRowClick ? "button" : undefined}
+            tabIndex={onRowClick ? 0 : undefined}
+            onClick={onRowClick ? () => onRowClick(tr, idx) : undefined}
+            onKeyDown={
+              onRowClick
+                ? (e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onRowClick(tr, idx);
+                    }
+                  }
+                : undefined
+            }
+            className={cn(
+              "border-b border-[#D9D9D9] h-[90px]",
+              rowSelectionIds.includes(idx) && "bg-[#EDF0F6]",
+              onRowClick && "cursor-pointer hover:bg-[#F7FAFF]/90"
+            )}
           >
             {columns?.map((col, colIndex) => (
               <TableCell

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Search, Edit, Trash2, MoreVertical } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { usePathname, useParams } from "next/navigation";
+import { usePathname, useParams, useRouter } from "next/navigation";
 import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { toast } from "react-toastify";
@@ -283,6 +283,11 @@ const createColumns = (
     header: "Action",
     render(row) {
       return (
+        <div
+          className="flex justify-end"
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <button 
@@ -312,14 +317,48 @@ const createColumns = (
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        </div>
       );
     },
   },
 ];
 
+function slugifyPatientName(patient: Pick<PatientDTO, "firstName" | "lastName" | "id">) {
+  const name = `${patient.firstName ?? ""} ${patient.lastName ?? ""}`
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  return name || `patient-${patient.id}`;
+}
+
+function patientDetailHref(tenant: string | undefined, patient: PatientDTO) {
+  const slug = slugifyPatientName(patient);
+  let isSubdomainTenant = false;
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    if (host.includes("localhost")) {
+      const parts = host.split(".");
+      isSubdomainTenant = parts.length >= 2 && parts[0] !== "localhost";
+    } else {
+      const parts = host.split(".");
+      isSubdomainTenant = parts.length >= 3 && parts[0] !== "www";
+    }
+  }
+  const path = isSubdomainTenant
+    ? `/dashboard/patients/${slug}`
+    : tenant
+      ? `/${tenant}/dashboard/patients/${slug}`
+      : `/dashboard/patients/${slug}`;
+  return `${path}?pid=${patient.id}`;
+}
+
 export default function PatientPage() {
   const pathname = usePathname();
   const params = useParams();
+  const router = useRouter();
   const org = params?.tenant as string || pathname?.split('/organization/')[1]?.split('/')[0] || '';
   const [showForm, setShowForm] = useState(false);
   /** When set, we're editing this patient in the stepper; when null and showForm true, we're creating. */
@@ -332,7 +371,6 @@ export default function PatientPage() {
   const [fullPatientData, setFullPatientData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPatient, setSelectedPatient] = useState<PatientDTO | null>(null);
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [patientSuccessModal, setPatientSuccessModal] = useState<{ open: boolean; message: string }>({
     open: false,
@@ -345,7 +383,7 @@ export default function PatientPage() {
 
   // Ensure body scroll is restored when modals close
   useEffect(() => {
-    if (!isDeleteModalOpen && !isViewModalOpen) {
+    if (!isDeleteModalOpen) {
       const timer = setTimeout(() => {
         document.body.style.overflow = '';
         document.body.style.paddingRight = '';
@@ -359,7 +397,7 @@ export default function PatientPage() {
       }, 200);
       return () => clearTimeout(timer);
     }
-  }, [isDeleteModalOpen, isViewModalOpen]);
+  }, [isDeleteModalOpen]);
 
   const loadPatients = async () => {
     try {
@@ -438,24 +476,14 @@ export default function PatientPage() {
     );
   });
 
-  // Handle view (opens view modal, which can then open edit stepper)
-  const handleView = (patient: PatientDTO) => {
-    setSelectedPatient(patient);
-    setIsViewModalOpen(true);
+  const goToPatientDetail = (patient: PatientDTO) => {
+    router.push(patientDetailHref(org || undefined, patient));
   };
 
   // Handle edit: show the same stepper form used for create, with patient data loaded
   const handleEdit = (patient: PatientDTO) => {
     setSelectedPatient(patient);
     setEditingPatientId(patient.id);
-    setShowForm(true);
-  };
-
-  // Open edit stepper from view modal
-  const handleEditFromView = () => {
-    if (!selectedPatient) return;
-    setIsViewModalOpen(false);
-    setEditingPatientId(selectedPatient.id);
     setShowForm(true);
   };
 
@@ -585,11 +613,10 @@ export default function PatientPage() {
                 </p>
                 {/* Removed ailment/description text from card as requested */}
                     <button
+                      type="button"
                       onClick={() => {
                         const patient = patientsTableData.find(p => p.id === patientCard.id);
-                        if (patient) {
-                          handleView(patient);
-                        }
+                        if (patient) goToPatientDetail(patient);
                       }}
                       className="rounded-[4px] px-5 py-1 text-white font-medium text-xs bg-[#003465] hover:bg-[#003465]/90"
                 >
@@ -628,7 +655,11 @@ export default function PatientPage() {
                 <p className="text-lg">Loading patients...</p>
               </div>
             ) : filteredPatients.length > 0 ? (
-              <DataTable columns={columns as any} data={filteredPatients as any} />
+              <DataTable
+                columns={columns as any}
+                data={filteredPatients as any}
+                onRowClick={(row) => goToPatientDetail(row as PatientDTO)}
+              />
             ) : (
               <div className="flex items-center justify-center py-20 text-gray-500">
                 <p className="text-lg">No patients found</p>
@@ -647,69 +678,6 @@ export default function PatientPage() {
           </>
         )}
       </div>
-
-      {/* View Modal */}
-      <AlertDialog 
-        open={isViewModalOpen} 
-        onOpenChange={(open) => {
-          setIsViewModalOpen(open);
-          if (!open) {
-            setTimeout(() => setSelectedPatient(null), 150);
-          }
-        }}
-      >
-        <AlertDialogContent className="bg-white max-w-2xl max-h-[90vh] overflow-y-auto !z-[110]">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl font-semibold text-black">
-              Patient Details
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-sm text-[#737373] pt-2">
-              View patient information for{" "}
-              <span className="font-semibold">
-                {selectedPatient?.firstName} {selectedPatient?.lastName}
-              </span>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="py-4 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-black mb-1">First Name</label>
-                <p className="text-sm text-[#737373]">{selectedPatient?.firstName || 'N/A'}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-black mb-1">Last Name</label>
-                <p className="text-sm text-[#737373]">{selectedPatient?.lastName || 'N/A'}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-black mb-1">Email</label>
-                <p className="text-sm text-[#737373]">{selectedPatient?.email || 'N/A'}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-black mb-1">Phone Number</label>
-                <p className="text-sm text-[#737373]">{selectedPatient?.phoneNumber || 'N/A'}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-black mb-1">Address</label>
-                <p className="text-sm text-[#737373]">{selectedPatient?.address || 'N/A'}</p>
-              </div>
-            </div>
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              onClick={() => setIsViewModalOpen(false)}
-              className="border border-[#D9D9D9] text-[#737373] hover:bg-gray-50"
-            >
-              Close
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleEditFromView}
-              className="bg-[#003465] hover:bg-[#002147] text-white"
-            >
-              Edit
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Delete Warning Modal */}
       <AlertDialog 
