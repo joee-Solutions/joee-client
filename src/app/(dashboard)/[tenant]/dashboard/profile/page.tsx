@@ -1,10 +1,9 @@
 "use client";
 import { CloudIcon, WebIcon } from "@/components/icons/icon";
 import { BookUser, CircleUserRound, Hospital, Lock, Users } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import EditOrg from "../organization/EditOrg";
 import Image from "next/image";
-import orgProfileImage from "@public/assets/orgProfileImage.png";
 import profileImage from "@public/assets/profile.png";
 import Link from "next/link";
 import ProfileForm from "@/components/admin/ProfileForm";
@@ -13,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import ChangePasswordComponent from "@/components/admin/ChangePasswordComponent";
 import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
-import { parseTenantProfileResponse } from "@/utils/profile-api";
+import { parseTenantProfileResponse, tenantLogoToImageSrc } from "@/utils/profile-api";
 import Cookies from "js-cookie";
 import { toast } from "react-toastify";
 
@@ -34,6 +33,7 @@ interface UserProfile {
   company?: string;
   organization?: string;
   domain?: string;
+  logo?: string | null;
   [key: string]: any;
 }
 
@@ -100,7 +100,23 @@ const ProfilePage = () => {
       "User"
     : "Loading...";
   
-  const profilePicture = profileData?.profile_picture || profileData?.profilePicture || profileImage;
+  const profilePicture = useMemo(() => {
+    const fromTenantLogo = tenantLogoToImageSrc(profileData?.logo);
+    if (fromTenantLogo) return fromTenantLogo;
+    const pic = profileData?.profile_picture || profileData?.profilePicture;
+    if (typeof pic === "string" && pic.trim()) {
+      const t = pic.trim();
+      if (t.startsWith("/") || t.startsWith("http://") || t.startsWith("https://") || t.startsWith("data:")) {
+        return t;
+      }
+    }
+    return profileImage;
+  }, [profileData?.logo, profileData?.profile_picture, profileData?.profilePicture]);
+
+  const profileImageUnoptimized =
+    typeof profilePicture === "string" &&
+    (profilePicture.startsWith("http") || profilePicture.startsWith("data:"));
+
   const organization = profileData?.domain || profileData?.company || profileData?.organization || "Joee Solutions";
 
   return (
@@ -112,6 +128,7 @@ const ProfilePage = () => {
             alt="Profile image"
             width={180}
             height={180}
+            unoptimized={profileImageUnoptimized}
             className="rounded-full object-cover"
           />
           <div className="text-center">

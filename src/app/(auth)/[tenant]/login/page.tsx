@@ -15,6 +15,14 @@ import Cookies from "js-cookie";
 import { useRouter, useParams } from "next/navigation";
 import { toast } from "react-toastify";
 import { saveLastSession, getLastSession, restoreLastSessionToCookies } from "@/lib/auth-store";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type LoginProps = z.infer<typeof schema>;
 
@@ -34,10 +42,16 @@ const schema = z.object({
     // ),
 });
 
+/** Public support / contact form URL (override in env). */
+const SUPPORT_FORM_URL =
+  (typeof process !== "undefined" && process.env.NEXT_PUBLIC_SUPPORT_FORM_URL?.trim()) ||
+  "mailto:support@joee.com.ng";
+
 const TenantLoginPage = () => {
   const router = useRouter();
   const params = useParams();
   const tenant = params?.tenant as string;
+  const [privacyOpen, setPrivacyOpen] = useState(false);
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [errMessage, setErrMessage] = useState<string>("");
   const [offlineSession, setOfflineSession] = useState<{ name: string } | null>(null);
@@ -276,8 +290,8 @@ const TenantLoginPage = () => {
         <div className="line border-2 border-white w-40"></div>
         <div className="line border-3 border-white"></div>
         <span className="welcom md:w-3/4 text-lg leading-8">
-          Welcome to LociCare by Joee Solutions. Sign in to access your tenant
-          dashboard and manage your healthcare operations efficiently...
+        Empowering Missions. Strengthening Communities.
+        Together, we connect people, data, and care—driving innovation, compassion, and operational excellence to advance community well-being.
         </span>
       </div>
       <div className="col-span-1 shadow-lg rounded-2xl  border border-blue-500 text-white z-40 w-full max-w-[350px] md:max-w-[550px] md:px-8 px-8 py-20 [linear-gradient:rgb()] bg-[#5882C147]">
@@ -374,6 +388,66 @@ const TenantLoginPage = () => {
               {isSubmitting ? <Spinner /> : "Login"}
             </Button>
           </form>
+
+          <p className="mt-4 w-full text-center text-[11px] sm:text-xs text-white/90 leading-relaxed px-1">
+            By logging into LociCare, you confirm the statements in{" "}
+            <button
+              type="button"
+              onClick={() => setPrivacyOpen(true)}
+              className="text-[#FAD900] underline font-medium hover:text-[#ffe433] bg-transparent border-0 p-0 cursor-pointer inline"
+            >
+              Privacy and security
+            </button>
+            .
+          </p>
+
+          <AlertDialog open={privacyOpen} onOpenChange={setPrivacyOpen}>
+            <AlertDialogContent className="max-w-lg sm:max-w-xl max-h-[min(88vh,640px)] overflow-y-auto bg-white text-gray-900 border-gray-200 !z-[120]">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="text-lg font-semibold text-[#003465] pr-6">
+                  Privacy and security
+                </AlertDialogTitle>
+              </AlertDialogHeader>
+              <div className="text-sm text-gray-700 leading-relaxed space-y-3">
+                <p className="font-semibold text-gray-900">
+                  LociCare by JOEE stores sensitive health data, and it is our shared duty to protect it.
+                </p>
+                <p>By logging into LociCare, I confirm that:</p>
+                <ul className="list-disc pl-5 space-y-2">
+                  <li>I have been granted authorized access to LociCare for my work-related tasks.</li>
+                  <li>I am signing in with my own email address and credentials, not using someone else&apos;s.</li>
+                  <li>I will not use the software for any actions that are infringing, or unlawful.</li>
+                  <li>
+                    My access is for a lawful purpose in accordance with data privacy, security, confidentiality
+                    regulations and all other relevant laws.
+                  </li>
+                  <li>I will only retrieve the minimum necessary information required for my duties.</li>
+                </ul>
+                <p>
+                  Any unauthorized use of this system is strictly forbidden and may result in criminal or civil
+                  penalties.
+                </p>
+                <p>
+                  Please contact us{" "}
+                  <Link
+                    href={SUPPORT_FORM_URL}
+                    {...(SUPPORT_FORM_URL.startsWith("mailto:")
+                      ? {}
+                      : { target: "_blank", rel: "noopener noreferrer" })}
+                    className="text-[#003465] underline font-medium hover:text-[#002147]"
+                  >
+                    here
+                  </Link>{" "}
+                  for support.
+                </p>
+              </div>
+              <AlertDialogFooter>
+                <AlertDialogCancel className="bg-[#003465] text-white hover:bg-[#003465]/90 border-0 sm:mt-0">
+                  Close
+                </AlertDialogCancel>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
     </div>

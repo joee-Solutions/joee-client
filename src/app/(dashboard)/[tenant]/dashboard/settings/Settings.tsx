@@ -165,12 +165,25 @@ export default function Settings({
         fax_number: payload.faxNumber?.trim() ? payload.faxNumber : null,
       };
       if (payload.systemLogo && payload.systemLogo instanceof File) {
-        const formData = new FormData();
-        formData.append("logo", payload.systemLogo);
-        Object.entries(body).forEach(([k, v]) => {
-          if (v !== undefined && v !== null && v !== "") formData.append(k, String(v));
-        });
-        await processRequestOfflineAuth("patch", API_ENDPOINTS.UPDATE_PROFILE, formData);
+        // Backend multipart usually whitelists only the file field (e.g. multer .single("logo")).
+        // Mixing text fields in the same FormData triggers "Unexpected field".
+        await processRequestOfflineAuth("patch", API_ENDPOINTS.UPDATE_PROFILE, body);
+        const tryLogoUpload = async (field: "logo" | "file") => {
+          const fd = new FormData();
+          fd.append(field, payload.systemLogo as File, (payload.systemLogo as File).name);
+          await processRequestOfflineAuth("patch", API_ENDPOINTS.UPDATE_PROFILE, fd);
+        };
+        try {
+          await tryLogoUpload("logo");
+        } catch (e: any) {
+          const msg = String(e?.response?.data?.error || e?.response?.data?.message || "");
+          if (e?.response?.status === 400 && msg.toLowerCase().includes("unexpected")) {
+            await tryLogoUpload("file");
+          } else {
+            throw e;
+          }
+        }
+        form.setValue("systemLogo", undefined);
       } else {
         await processRequestOfflineAuth("patch", API_ENDPOINTS.UPDATE_PROFILE, body);
       }

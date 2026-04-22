@@ -2,17 +2,11 @@
  * Offline-aware API layer: when online uses processRequestAuth and caches GETs;
  * when offline reads from IndexedDB and queues mutations.
  */
-import { processRequestAuth } from "@/framework/https";
+import { processRequestAuth, getTenantId } from "@/framework/https";
 import { getToken } from "@/framework/get-token";
 import { offlineDB, type JoeeOfflineDB } from "@/lib/offline-db";
 
 const getBaseURL = () => (typeof window === "undefined" ? "" : "/api");
-
-const getTenantFromPath = (): string | undefined => {
-  if (typeof window === "undefined" || !window.location?.pathname) return undefined;
-  const segments = window.location.pathname.split("/").filter(Boolean);
-  return segments[0] || undefined;
-};
 
 /** Path prefix to IndexedDB store name for cacheable GETs (used in getStoreForPath). */
 const PATH_TO_STORE: Record<string, keyof JoeeOfflineDB> = {
@@ -135,7 +129,7 @@ export async function processRequestOfflineAuth(
     throw new Error("processRequestOfflineAuth can only be called on the client");
   }
 
-  const tenant = getTenantFromPath();
+  const tenant = getTenantId();
   const storeName = getStoreForPath(path);
 
   if (isOnline()) {

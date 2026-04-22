@@ -103,7 +103,7 @@ const getTenantFromHost = (): string | undefined => {
 };
 
 // Prefer subdomain tenant (doe.localhost) so we don't send "dashboard" as tenant when path is /dashboard/...
-const getTenantId = (): string | undefined => getTenantFromHost() || getTenantFromPath();
+export const getTenantId = (): string | undefined => getTenantFromHost() || getTenantFromPath();
 
 const baseURL = getBaseURL();
 console.log("baseURL -->", baseURL);
@@ -126,6 +126,10 @@ if (typeof window !== "undefined") {
         ...config.headers,
         ...(tenantId ? { "x-tenant-id": tenantId } : {}),
       };
+      if (config.data instanceof FormData) {
+        delete config.headers["Content-Type"];
+        delete config.headers["content-type"];
+      }
       return config;
     },
     (error: any) => {
@@ -226,6 +230,12 @@ if (typeof window !== "undefined") {
         ...config.headers,
         authorization,
       };
+      // Instance default is application/json; FormData must omit Content-Type so the browser sets
+      // multipart boundary. Otherwise PATCH/POST uploads corrupt and backends may persist empty logo.
+      if (config.data instanceof FormData) {
+        delete config.headers["Content-Type"];
+        delete config.headers["content-type"];
+      }
       return config;
     },
     (error: any) => {
@@ -350,7 +360,6 @@ const processRequestNoAuth = async (
   let rt;
   if (files) {
     data = convertToFormData(data, files);
-    httpNoAuth.defaults.headers["Content-Type"] = "multipart/form-data";
     method = "post";
   }
   try {
@@ -404,7 +413,6 @@ const processRequestAuth = async (
   let rt;
   if (files) {
     data = convertToFormData(data, files);
-    httpAuth.defaults.headers["Content-Type"] = "multipart/form-data";
     method = "post";
   }
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { offlineDB, type JoeeOfflineDB } from '@/lib/offline-db';
-import { processRequestAuth } from '@/framework/https';
+import { processRequestAuth, getTenantId } from '@/framework/https';
 
 export interface OfflineStatus {
   isOnline: boolean;
@@ -16,6 +16,53 @@ export interface OfflineData<T> {
   error: string | null;
   isOffline: boolean;
   lastUpdated: Date | null;
+}
+
+function extractPatientIdFromCreateResponse(res: any): number | null {
+  if (!res) return null;
+  const candidates = [
+    res?.data?.data?.id,
+    res?.data?.id,
+    res?.data?.patient?.id,
+    res?.patient?.id,
+    res?.id,
+  ];
+  for (const id of candidates) {
+    if (typeof id === "number" && Number.isFinite(id)) return id;
+    if (typeof id === "string" && /^\d+$/.test(id)) return Number(id);
+  }
+  return null;
+}
+
+function repairPatientDraftLocalStorage(serverId: number, createBody: Record<string, unknown>) {
+  if (typeof window === "undefined" || !window.localStorage) return;
+  const emailFromBody = String(
+    (createBody?.contact_info as { email?: string } | undefined)?.email ??
+      (createBody as { email?: string }).email ??
+      ""
+  ).toLowerCase();
+  for (let i = 0; i < window.localStorage.length; i++) {
+    const key = window.localStorage.key(i);
+    if (!key || !key.startsWith("patient-")) continue;
+    try {
+      const raw = window.localStorage.getItem(key);
+      if (!raw) continue;
+      const parsed = JSON.parse(raw) as { patientId?: unknown; data?: { addDemographic?: { email?: string } } };
+      const draftEmail = String(parsed?.data?.addDemographic?.email ?? "").toLowerCase();
+      const pid = parsed?.patientId;
+      const looksTemp =
+        (typeof pid === "string" && pid.startsWith("offline-")) ||
+        pid === null ||
+        pid === undefined ||
+        pid === "";
+      if (looksTemp && emailFromBody && draftEmail === emailFromBody) {
+        parsed.patientId = serverId;
+        window.localStorage.setItem(key, JSON.stringify(parsed));
+      }
+    } catch {
+      /* ignore */
+    }
+  }
 }
 
 export const useOffline = () => {
@@ -82,7 +129,31 @@ export const useOffline = () => {
               body = undefined;
             }
           }
-          await processRequestAuth(method, path, body);
+          const result = await processRequestAuth(method, path, body);
+          const normPath = String(path || "").replace(/^\/+/, "");
+          if (
+            method === "post" &&
+            normPath === "tenant/patient" &&
+            body &&
+            typeof body === "object" &&
+            !Array.isArray(body)
+          ) {
+            const serverId = extractPatientIdFromCreateResponse(result);
+            const tenantId = getTenantId();
+            if (tenantId) {
+              try {
+                await offlineDB.removeOfflineTempPatientsForTenant(tenantId);
+                if (tenantId !== "dashboard") {
+                  await offlineDB.removeOfflineTempPatientsForTenant("dashboard");
+                }
+                if (serverId != null) {
+                  repairPatientDraftLocalStorage(serverId, body as Record<string, unknown>);
+                }
+              } catch (e) {
+                console.warn("Post patient sync cache cleanup failed:", e);
+              }
+            }
+          }
           await offlineDB.removeQueuedRequest(request.id);
         } catch (error) {
           console.error('Failed to sync request:', request, error);

@@ -296,6 +296,18 @@ class OfflineDatabase {
     return this.getAll(storeName, 'by-tenant', tenantId);
   }
 
+  /** Drop optimistic rows created while offline (id like `offline-…`) so they do not duplicate server patients after sync. */
+  async removeOfflineTempPatientsForTenant(tenantId: string): Promise<void> {
+    await this.init();
+    const rows = await this.getCachedData("patients", tenantId);
+    for (const row of rows) {
+      const id = (row as { id?: unknown })?.id;
+      if (typeof id === "string" && id.startsWith("offline-")) {
+        await this.delete("patients", id);
+      }
+    }
+  }
+
   async isDataStale(storeName: keyof JoeeOfflineDB, tenantId: string, maxAge: number = 24 * 60 * 60 * 1000): Promise<boolean> {
     const data = await this.getCachedData(storeName, tenantId);
     if (data.length === 0) return true;

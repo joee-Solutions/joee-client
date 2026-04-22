@@ -13,7 +13,7 @@ import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { useOffline } from "@/hooks/useOffline";
 import { isTenantAdmin } from "@/utils/permissions";
-import { parseTenantProfileResponse } from "@/utils/profile-api";
+import { parseTenantProfileResponse, tenantLogoToImageSrc } from "@/utils/profile-api";
 import { BellIcon } from "@/components/icons/icon";
 import useSWR from "swr";
 import {
@@ -35,6 +35,7 @@ interface UserData {
   first_name?: string;
   last_name?: string;
   profile_picture?: string;
+  logo?: string | null;
   [key: string]: any;
 }
 
@@ -141,7 +142,22 @@ const MainHeaderContent = ({ onToggleMobileMenu }: MainHeaderProps) => {
     ? (userData?.name ?? userData?.domain ?? userData?.organization_name ?? "Organization")
     : fullName;
   const profileRoleLabel = isAdmin ? "ADMIN" : "USER";
-  const profilePicture = userData?.profile_picture || userData?.profilePicture || profileImage;
+  const profilePicture = useMemo(() => {
+    const fromTenantLogo = tenantLogoToImageSrc(userData?.logo);
+    if (fromTenantLogo) return fromTenantLogo;
+    const pic = userData?.profile_picture || userData?.profilePicture;
+    if (typeof pic === "string" && pic.trim()) {
+      const t = pic.trim();
+      if (t.startsWith("/") || t.startsWith("http://") || t.startsWith("https://") || t.startsWith("data:")) {
+        return t;
+      }
+    }
+    return profileImage;
+  }, [userData?.logo, userData?.profile_picture, userData?.profilePicture]);
+
+  const profileImageUnoptimized =
+    typeof profilePicture === "string" &&
+    (profilePicture.startsWith("http") || profilePicture.startsWith("data:"));
 
   const { data: unreadResponse } = useSWR(
     isAdmin ? API_ENDPOINTS.GET_NOTIFICATION_UNREAD : null,
@@ -449,6 +465,7 @@ const MainHeaderContent = ({ onToggleMobileMenu }: MainHeaderProps) => {
               alt="profile image"
                   width={40}
                   height={40}
+                  unoptimized={profileImageUnoptimized}
               className="aspect-square w-full h-full object-cover"
             />
           </span>

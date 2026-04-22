@@ -155,14 +155,23 @@ export function usePatientForm({
               payload
             );
             
-            // Store the created patient ID
-            if (response?.data?.id) {
-              setPatientId(response.data.id);
-              // Update localStorage with patient ID
+            // Store the created patient ID (ignore offline optimistic temp ids like "offline-…")
+            const rawNewId =
+              response?.data?.id ??
+              response?.data?.data?.id ??
+              (Array.isArray(response?.data?.data) ? response.data.data[0]?.id : undefined);
+            const numericId =
+              typeof rawNewId === "number" && Number.isFinite(rawNewId)
+                ? rawNewId
+                : typeof rawNewId === "string" && /^\d+$/.test(rawNewId)
+                  ? Number(rawNewId)
+                  : null;
+            if (numericId != null) {
+              setPatientId(numericId);
               const savedData = localStorage.getItem(`patient-${slug}`);
               if (savedData) {
                 const parsed = JSON.parse(savedData);
-                parsed.patientId = response.data.id;
+                parsed.patientId = numericId;
                 localStorage.setItem(`patient-${slug}`, JSON.stringify(parsed));
               }
             }
