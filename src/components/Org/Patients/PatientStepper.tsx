@@ -470,6 +470,7 @@ export default function PatientStepper({ slug, patientId: propPatientId, onSaveC
   
   // Detect if this is a new patient page (not edit mode)
   const isNewPatient = pathname?.includes('/patients/new') || pathname?.endsWith('/new');
+  const isCreateMode = isNewPatient || !patientId;
   
   // Extract patient ID from URL if editing (e.g., /patients/[patientId]/edit)
   // Or use propPatientId if provided (for modal edit)
@@ -1038,7 +1039,7 @@ export default function PatientStepper({ slug, patientId: propPatientId, onSaveC
                         disabled={loading}
                         className="font-normal text-base text-white bg-green-600 hover:bg-green-700 h-[60px] px-6 flex items-center"
                       >
-                        {loading ? (!isNewPatient ? "Updating..." : "Creating...") : (!isNewPatient ? "Update" : "Create")}
+                        {loading ? (isCreateMode ? "Creating..." : "Updating...") : (isCreateMode ? "Create" : "Update")}
                       </Button>
                     <Button
                       type="button"
@@ -1057,7 +1058,7 @@ export default function PatientStepper({ slug, patientId: propPatientId, onSaveC
                         disabled={loading}
                         className="font-normal text-base text-white bg-green-600 hover:bg-green-700 h-[60px] px-6 flex items-center"
                       >
-                        {loading ? (!isNewPatient ? "Updating..." : "Creating...") : (!isNewPatient ? "Update" : "Create")}
+                        {loading ? (isCreateMode ? "Creating..." : "Updating...") : (isCreateMode ? "Create" : "Update")}
                       </Button>
                       <p className="text-xs text-gray-500">Draft is auto-saved locally as you enter information</p>
                     </div>
@@ -1076,13 +1077,14 @@ export default function PatientStepper({ slug, patientId: propPatientId, onSaveC
                 </AlertDialogTitle>
                 <AlertDialogDescription className="text-base text-gray-600 mt-2">
                   <p className="mb-3">
-                    You have unsaved changes. Please click the <strong>{isNewPatient ? '"Create"' : '"Update"'}</strong> button to save your data to the server before leaving. Your data is auto-saved locally, but it will not be saved to the server until you click that button.
+                    You have unsaved changes. Please click the <strong>{isCreateMode ? '"Create"' : '"Update"'}</strong> button to save your data to the server before leaving. Your data is auto-saved locally, but it will not be saved to the server until you click that button.
                   </p>
                   <div className="bg-yellow-50 border border-yellow-200 rounded p-3 mt-3">
                     <p className="text-sm font-semibold text-yellow-800 mb-1">⚠️ Required fields before saving:</p>
                     <ul className="text-sm text-yellow-700 list-disc list-inside space-y-1">
                       <li>First Name (Patient Demographics)</li>
                       <li>Last Name (Patient Demographics)</li>
+                      <li>Date of Birth (Patient Demographics)</li>
                     </ul>
                   </div>
                 </AlertDialogDescription>

@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { SearchIcon, CalendarClock, Users, Building2 } from "lucide-react";
 import Link from "next/link";
 import Cookies from "js-cookie";
 import useSWR from "swr";
-import { sideNavigation } from "@/utils/navigation";
+import { sideNavigation, withPathTenant } from "@/utils/navigation";
 import { getRolesFromUser, isTenantAdmin } from "@/utils/permissions";
 import { OrgIcon } from "@/components/icons/icon";
 import { processRequestOfflineAuth } from "@/framework/offline-https";
@@ -72,14 +72,17 @@ const swrOpts = {
 function SearchResultCard({
   result,
   organizationName,
+  pathname,
 }: {
   result: SearchResultItem;
   organizationName: string;
+  pathname: string;
 }) {
   const trail = `${organizationName} > ${result.entityLabel} > ${result.breadcrumbItem}`;
+  const href = withPathTenant(pathname, result.href);
   return (
     <Link
-      href={result.href}
+      href={href}
       className="block rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm transition-shadow hover:border-[#003465]/25 hover:shadow-md"
     >
       <p className="text-base font-semibold text-[#003465]">{result.title}</p>
@@ -90,6 +93,7 @@ function SearchResultCard({
 
 export default function SearchPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -379,9 +383,9 @@ export default function SearchPage() {
     e.preventDefault();
     const query = searchQuery.trim();
     if (query) {
-      router.push(`/dashboard/search?q=${encodeURIComponent(query)}`);
+      router.push(withPathTenant(pathname, `/dashboard/search?q=${encodeURIComponent(query)}`));
     } else {
-      router.push("/dashboard/search");
+      router.push(withPathTenant(pathname, "/dashboard/search"));
     }
   };
 
@@ -503,6 +507,7 @@ export default function SearchPage() {
                             key={`${tab}-${result.href}-${result.title}-${index}`}
                             result={result}
                             organizationName={organizationName}
+                            pathname={pathname}
                           />
                         ))}
                       </div>
@@ -521,6 +526,7 @@ export default function SearchPage() {
                         key={`${activeTab}-${result.href}-${result.title}-${index}`}
                         result={result}
                         organizationName={organizationName}
+                        pathname={pathname}
                       />
                     ))}
                   </div>
