@@ -338,7 +338,7 @@ const TenantLoginPage = () => {
   return (
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 gap-6 px-4 sm:px-8 lg:px-24 py-10 items-center justify-center font-poppins place-items-center">
       <div className="content col-span-1 text-white hidden md:flex flex-col justify-center space-y-8 w-full max-w-3xl">
-        <h1 className="header font-bold text-4xl md:text-6xl lg:text-6xl leading-tight">Welcome to LoCi Care!</h1>
+        <h1 className="header font-bold text-3xl md:text-4xl lg:text-5xl leading-tight whitespace-nowrap">Welcome to LoCi Care!</h1>
         <div className="line border-2 border-white w-40"></div>
         <div className="line border-3 border-white"></div>
         <span className="welcom md:w-3/4 text-lg leading-8">
