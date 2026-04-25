@@ -1,5 +1,5 @@
 "use client";
-import { sideNavigation } from "@/utils/navigation";
+import { sideNavigation, withPathTenant } from "@/utils/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
@@ -96,6 +96,7 @@ const SideNavigation = ({ onClose }: SideNavigationProps) => {
           size?: number;
           className?: string;
         }> | null;
+        const itemHref = item.href ? withPathTenant(pathName, item.href) : "";
         return (
         <div key={item.name} className="w-full">
           <div className={cn("flex flex-col items-start gap-4 w-full")}>
@@ -103,17 +104,17 @@ const SideNavigation = ({ onClose }: SideNavigationProps) => {
               <div
                 className={cn(
                   "w-full",
-                  isPathNameMatch(item.href) ? "pl-8" : "pl-16"
+                  isPathNameMatch(itemHref) ? "pl-8" : "pl-16"
                 )}
               >
                 <Link
                   className={cn(
                     "text-white flex gap-3 uppercase w-full py-4 items-center",
-                    isPathNameMatch(item.href)
+                    isPathNameMatch(itemHref)
                       ? "text-black bg-white rounded-l-full pl-8"
                       : ""
                   )}
-                  href={item.href}
+                  href={itemHref}
                   onClick={handleLinkClick}
                 >
                   {NavIcon ? (
@@ -121,14 +122,14 @@ const SideNavigation = ({ onClose }: SideNavigationProps) => {
                       size={20}
                       className={cn(
                         "text-inherit",
-                        isPathNameMatch(item.href)
+                        isPathNameMatch(itemHref)
                           ? "fill-[#0085FF] text-[#0085FF]"
                           : ""
                       )}
                     />
                   ) : null}
                   {item.name}
-                  {isPathNameMatch(item.href) && (
+                  {isPathNameMatch(itemHref) && (
                     <span className="bg-black h-1.5 w-1.5 rounded-full"></span>
                   )}
                 </Link>

@@ -22,7 +22,13 @@ export const addionalDemoSchema = z.object({
   city: z.string().optional(),
   postal: z.string().optional(),
   email: z.string().optional().refine((val) => !val || val === "" || z.string().email().safeParse(val).success, "Invalid email address"),
-  workEmail: z.string().email("Invalid work email address").optional(),
+  workEmail: z
+    .string()
+    .optional()
+    .refine(
+      (val) => !val || val === "" || z.string().email().safeParse(val).success,
+      "Invalid work email address"
+    ),
   homePhone: z.string().optional().refine(
     (val) => !val || /^[\d\s\-\+\(\)]+$/.test(val),
     { message: "Invalid phone number format" }

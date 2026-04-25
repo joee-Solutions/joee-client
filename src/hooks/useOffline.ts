@@ -156,8 +156,15 @@ export const useOffline = () => {
           }
           await offlineDB.removeQueuedRequest(request.id);
         } catch (error) {
-          console.error('Failed to sync request:', request, error);
-          await offlineDB.incrementRetryCount(request.id);
+          const status = (error as any)?.response?.status;
+          // Drop permanently invalid queued requests (wrong route/method/payload) to avoid noisy retry loops.
+          if ([400, 404, 405, 422].includes(Number(status))) {
+            console.warn("Dropping non-retriable queued request:", request, error);
+            await offlineDB.removeQueuedRequest(request.id);
+          } else {
+            console.error('Failed to sync request:', request, error);
+            await offlineDB.incrementRetryCount(request.id);
+          }
         }
       }
 

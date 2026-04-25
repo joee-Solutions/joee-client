@@ -19,7 +19,13 @@ export const emergencySchema = z.object({
     (val) => !val || /^[\d\s\-\+\(\)]+$/.test(val),
     { message: "Invalid phone number format" }
   ),
-  email: z.string().email("Invalid email address").optional(),
+  email: z
+    .string()
+    .optional()
+    .refine(
+      (val) => !val || val === "" || z.string().email().safeParse(val).success,
+      "Invalid email address"
+    ),
   relationship: z.string().optional(),
   permission: z.enum(["Yes", "No"]).optional(),
 });

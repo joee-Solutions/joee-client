@@ -2,10 +2,20 @@
 import MainHeader from "@/components/shared/MainHeader";
 import SideNavigation from "@/components/shared/SideNavigation";
 import RoleGuard from "@/components/auth/RoleGuard";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import Cookies from "js-cookie";
+import { saveLastSession } from "@/lib/auth-store";
+import { getTenantId } from "@/framework/https";
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Keep IndexedDB backup in sync whenever the user is in the dashboard with a cookie session
+  // (repairs missed persistence from navigating away before saveLastSession finished).
+  useEffect(() => {
+    if (!Cookies.get("auth_token")) return;
+    saveLastSession(getTenantId()).catch(() => {});
+  }, []);
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen((prev) => !prev);

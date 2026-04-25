@@ -10,18 +10,15 @@ export function isContactEmailValid(val: unknown): boolean {
 }
 
 /**
- * True if the string is plausible E.164 and matches at least one `validator` mobile locale.
- * This avoids sending values that pass a naive `+digits` regex but fail backend phone validation.
+ * True if the string is plausible E.164 and passes `validator.isMobilePhone` with a global locale list.
+ * (Previously en-NG-only, which rejected valid numbers from `formatPhoneNumber` and caused PATCH 400s.)
  */
 export function isContactMobileE164Valid(val: unknown): boolean {
   if (val == null) return false;
   const s = String(val).trim();
   if (!E164.test(s)) return false;
   try {
-    // Backend phone validation appears to be Nigeria-focused.
-    // Tighten to en-NG so we don't send values that pass generic E.164
-    // but fail backend's stricter phone rules.
-    return validator.isMobilePhone(s, "en-NG");
+    return validator.isMobilePhone(s, "any");
   } catch {
     return false;
   }

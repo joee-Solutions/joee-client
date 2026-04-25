@@ -2,7 +2,7 @@ import { FormDataStepper } from "@/components/Org/Patients/PatientStepper";
 
 /**
  * Validate required fields before saving to API.
- * Requires: first name, last name, date of birth (patient demographics).
+ * Requires: first name, last name, date of birth (patient demographics) only.
  */
 export function validateRequiredFields(formData: FormDataStepper): { isValid: boolean; errors: string[] } {
   const errors: string[] = [];
@@ -15,13 +15,6 @@ export function validateRequiredFields(formData: FormDataStepper): { isValid: bo
   }
   if (!formData.demographic?.dateOfBirth || formData.demographic.dateOfBirth.trim() === '') {
     errors.push('Date of birth is required');
-  }
-
-  // Email is optional; if provided, validate format
-  if (formData.addDemographic?.email && formData.addDemographic.email.trim() !== '') {
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.addDemographic.email)) {
-      errors.push('Please enter a valid email address');
-    }
   }
 
   return {

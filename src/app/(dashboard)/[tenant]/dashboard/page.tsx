@@ -13,6 +13,8 @@ import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import Cookies from "js-cookie";
 import { colors } from "@/utils/dashboard";
 import { isTenantAdmin, getRolesFromUser } from "@/utils/permissions";
+import { usePathname } from "next/navigation";
+import { withPathTenant } from "@/utils/navigation";
 
 interface DashboardStats {
   departments: { count: number; growth: number | null; icon: React.ReactElement };
@@ -22,6 +24,8 @@ interface DashboardStats {
 }
 
 const DashboardPage: NextPage = () => {
+  const pathname = usePathname();
+  const dashHref = (path: string) => withPathTenant(pathname, path);
   const [stats, setStats] = useState<DashboardStats>({
     departments: { 
       count: 0, 
@@ -552,7 +556,9 @@ const DashboardPage: NextPage = () => {
       completionPercentage,
     };
   };
-  
+
+  const dash = (path: string) => withPathTenant(pathname, path);
+
   return (
     <div className="min-h-screen w-full mb-10">
       <main className="w-full py-6 px-4 md:px-6 lg:px-8">
@@ -579,7 +585,7 @@ const DashboardPage: NextPage = () => {
               growth={stats.departments.growth}
               color="blue"
               icon={stats.departments.icon}
-              href="/dashboard/departments"
+              href={dash("/dashboard/departments")}
             />
             <StatCard
               title="Patients"
@@ -587,7 +593,7 @@ const DashboardPage: NextPage = () => {
               growth={stats.patients.growth}
               color="yellow"
               icon={stats.patients.icon}
-              href="/dashboard/patients"
+              href={dash("/dashboard/patients")}
             />
             <StatCard
               title="Appointments"
@@ -595,7 +601,7 @@ const DashboardPage: NextPage = () => {
               growth={stats.appointments.growth}
               color="red"
               icon={stats.appointments.icon}
-              href="/dashboard/appointments"
+              href={dash("/dashboard/appointments")}
             />
           </div>
         ) : (
@@ -606,7 +612,7 @@ const DashboardPage: NextPage = () => {
             growth={stats.departments.growth}
             color="blue"
             icon={stats.departments.icon}
-            href="/dashboard/departments"
+            href={dash("/dashboard/departments")}
           />
           <StatCard
             title="Employees"
@@ -614,7 +620,7 @@ const DashboardPage: NextPage = () => {
             growth={stats.employees.growth}
             color="green"
             icon={stats.employees.icon}
-            href="/dashboard/employees"
+            href={dash("/dashboard/employees")}
           />
           <StatCard
             title="Patients"
@@ -622,7 +628,7 @@ const DashboardPage: NextPage = () => {
             growth={stats.patients.growth}
             color="yellow"
             icon={stats.patients.icon}
-            href="/dashboard/patients"
+            href={dash("/dashboard/patients")}
           />
           <StatCard
             title="Appointments"
@@ -630,7 +636,7 @@ const DashboardPage: NextPage = () => {
             growth={stats.appointments.growth}
             color="red"
             icon={stats.appointments.icon}
-            href="/dashboard/appointments"
+            href={dash("/dashboard/appointments")}
           />
         </div>
         )}

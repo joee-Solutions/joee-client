@@ -274,7 +274,7 @@ export function usePatientForm({
     const validation = validateRequiredFields(formData);
     
     if (!validation.isValid) {
-      const errorMessage = `Cannot save: Please fill in required fields:\n\n${validation.errors.map((err, idx) => `${idx + 1}. ${err}`).join('\n')}\n\nRequired: First Name and Last Name (Patient Demographics).`;
+      const errorMessage = `Cannot save: Please fill in required fields:\n\n${validation.errors.map((err, idx) => `${idx + 1}. ${err}`).join('\n')}\n\nRequired: First Name, Last Name, and Date of Birth (Patient Demographics).`;
       toast.error(errorMessage, { 
         toastId: "save-validation-error",
         autoClose: 7000,

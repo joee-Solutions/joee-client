@@ -3,7 +3,9 @@
 import { FC } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { withPathTenant } from "@/utils/navigation";
 
 interface AgeGroup {
   range: string;
@@ -19,6 +21,8 @@ interface PatientsDonutProps {
   className?: string;
 }
 const PatientsDonut: FC<PatientsDonutProps> = ({ data, className }) => {
+  const pathname = usePathname();
+  const patientsListHref = withPathTenant(pathname, "/dashboard/patients");
   return (
     <div
       className={cn(
@@ -28,7 +32,7 @@ const PatientsDonut: FC<PatientsDonutProps> = ({ data, className }) => {
     >
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-lg md:text-xl font-medium text-black">Patients</h2>
-        <Link href="/dashboard/patients" className="text-blue-800 text-sm flex items-center">
+        <Link href={patientsListHref} className="text-blue-800 text-sm flex items-center">
           View all
           <svg
             className="h-4 w-4 ml-1"

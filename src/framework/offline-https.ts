@@ -25,13 +25,18 @@ function getStoreForPath(path: string): keyof JoeeOfflineDB | null {
   return null;
 }
 
-/** Normalize API response to array of items (for caching). */
+/** Normalize API response to array of items (for caching and UI after offline reads). */
 function toItemsArray(res: any): any[] {
   if (!res) return [];
   if (Array.isArray(res?.data?.data)) return res.data.data;
   if (Array.isArray(res?.data)) return res.data;
   if (Array.isArray(res)) return res;
   return [];
+}
+
+/** Use this when reading `processRequestOfflineAuth` GET results so online + offline shapes match. */
+export function extractApiListItems(res: any): any[] {
+  return toItemsArray(res);
 }
 
 /** Build response shape that matches what pages expect (e.g. { data: { data: [...] } }). */
@@ -46,8 +51,7 @@ function isOnline(): boolean {
 function isBackendUnreachableError(error: any): boolean {
   const msg = String(error?.message || "").toLowerCase();
   const code = String(error?.code || "").toUpperCase();
-  const status = error?.response?.status;
-  const apiError = String(error?.response?.data?.error || "").toLowerCase();
+  const status = Number(error?.response?.status ?? 0);
   return (
     code === "ENOTFOUND" ||
     code === "ERR_NETWORK" ||
@@ -55,7 +59,9 @@ function isBackendUnreachableError(error: any): boolean {
     code === "ETIMEDOUT" ||
     msg.includes("getaddrinfo") ||
     msg.includes("network error") ||
-    (status === 503 && apiError === "backend_unreachable")
+    status === 502 ||
+    status === 503 ||
+    status === 504
   );
 }
 

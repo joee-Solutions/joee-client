@@ -2,6 +2,15 @@ import { FormDataStepper } from "@/components/Org/Patients/PatientStepper";
 import { formatPhoneNumber } from "@/utils/phoneFormatter";
 import { isContactEmailValid, isContactMobileE164Valid } from "@/utils/patientContactValidation";
 
+function readContactFieldCaseInsensitive(src: Record<string, unknown>, fieldLower: string): string {
+  for (const [key, value] of Object.entries(src)) {
+    if (key.toLowerCase() !== fieldLower) continue;
+    if (value == null) return "";
+    return String(value).trim();
+  }
+  return "";
+}
+
 /**
  * Returns a payload safe for POST/PATCH: contact_info is rebuilt so email/phone are only
  * included when valid (backend rejects empty or invalid values).
@@ -34,25 +43,26 @@ export function sanitizePatientPayloadForApi<T extends { contact_info?: any; eme
     const src = out.contact_info as Record<string, unknown>;
     // Rebuild contact_info: copy all keys except email/phone, then add those only when valid
     const ci: Record<string, unknown> = {};
+    const skipCopy = new Set(["email", "email_work", "phone_number_mobile", "phone_number_home"]);
     for (const key of Object.keys(src)) {
-      if (key === "email" || key === "email_work" || key === "phone_number_mobile" || key === "phone_number_home") continue;
+      if (skipCopy.has(key.toLowerCase())) continue;
       ci[key] = src[key];
     }
-    const email = src.email != null ? String(src.email).trim() : "";
+    const email = readContactFieldCaseInsensitive(src, "email");
     if (email && isContactEmailValid(email)) ci.email = email;
-    const emailWork = src.email_work != null ? String(src.email_work).trim() : "";
+    const emailWork = readContactFieldCaseInsensitive(src, "email_work");
     if (emailWork && isContactEmailValid(emailWork)) ci.email_work = emailWork;
-    const mobileStr = (src.phone_number_mobile != null && String(src.phone_number_mobile).trim() !== "") ? String(src.phone_number_mobile).trim() : "";
+    const mobileStr = readContactFieldCaseInsensitive(src, "phone_number_mobile");
     if (mobileStr) {
       const formatted = formatPhoneNumber(mobileStr);
       if (formatted && isContactMobileE164Valid(formatted)) ci.phone_number_mobile = formatted;
     }
-    const homeStr = (src.phone_number_home != null && String(src.phone_number_home).trim() !== "") ? String(src.phone_number_home).trim() : "";
+    const homeStr = readContactFieldCaseInsensitive(src, "phone_number_home");
     if (homeStr) {
       const formatted = formatPhoneNumber(homeStr);
       if (formatted && isContactMobileE164Valid(formatted)) ci.phone_number_home = formatted;
     }
-    // Final guard: never leave invalid values (backend validates if key is present)
+    // Final guard: never leave invalid values (Nest validates these if the keys exist on PATCH)
     if (ci.email !== undefined && !isContactEmailValid(ci.email)) delete ci.email;
     if (ci.email_work !== undefined && !isContactEmailValid(ci.email_work)) delete ci.email_work;
     if (ci.phone_number_mobile !== undefined && !isContactMobileE164Valid(ci.phone_number_mobile)) delete ci.phone_number_mobile;

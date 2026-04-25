@@ -6,7 +6,7 @@ import {
   HeartPulse,
 } from "lucide-react";
 import Image from "next/image";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import userProfileImage from "./../../../../../../../public/assets/doctorMale.png";
 import { useMemo, useState } from "react";
 import PersonalInfo from "./PersonalInfo";
@@ -15,6 +15,7 @@ import Appointment from "./Appointment";
 import useSWR from "swr";
 import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
+import { patientsListHrefFromLocation } from "@/utils/navigation";
 
 const tabBtns = [
   {
@@ -29,13 +30,10 @@ const tabBtns = [
   },
 ];
 
-function patientListHref(tenant: string) {
-  return tenant ? `/${tenant}/dashboard/patients` : `/dashboard/patients`;
-}
-
 export default function MedicalInformationPage() {
   const [currTab, setCurrTab] = useState<number>(1);
   const params = useParams();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
   const tenant = String(params?.tenant ?? "");
@@ -83,7 +81,7 @@ export default function MedicalInformationPage() {
       ? rawImg
       : "";
 
-  const backHref = patientListHref(tenant);
+  const backHref = patientsListHrefFromLocation(pathname, tenant);
 
   if (!Number.isFinite(patientId) || patientId <= 0) {
     return (

@@ -147,15 +147,20 @@ const VerifyOtpLoginClient = ({ token, tenant }: { token: string; tenant?: strin
           path: '/'
         });
         
-        // Persist session for offline restore
-        saveLastSession(tenant).catch(() => {});
-        
+        // Persist session for offline restore (await so IndexedDB finishes before navigation)
+        try {
+          await saveLastSession(tenant);
+        } catch {
+          /* non-fatal */
+        }
+
         toast.success("Login successful!", {
           toastId: "success",
           delay: 1000,
         });
 
         router.push(getDashboardPath(tenant));
+        return;
       } else {
         toast.error("Invalid OTP. Please try again.", {
           toastId: "invalid-otp",
@@ -184,7 +189,6 @@ const VerifyOtpLoginClient = ({ token, tenant }: { token: string; tenant?: strin
         delay: 2000,
       });
     }
-    router.push(getLoginPath(tenant));
   };
   const timer = 60 * 5;
 

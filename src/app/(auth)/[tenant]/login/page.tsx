@@ -47,6 +47,32 @@ const SUPPORT_FORM_URL =
   (typeof process !== "undefined" && process.env.NEXT_PUBLIC_SUPPORT_FORM_URL?.trim()) ||
   "mailto:support@joee.com.ng";
 
+function dashboardHrefForTenant(tenantSlug?: string): string {
+  const isSubdomain =
+    typeof window !== "undefined" &&
+    window.location.hostname.split(".").length > 1 &&
+    window.location.hostname.split(".")[0] !== "www";
+  return isSubdomain ? "/dashboard" : tenantSlug ? `/${tenantSlug}/dashboard` : "/dashboard";
+}
+
+/** IndexedDB session is valid for offline restore if we have a token (user object may be minimal). */
+function displayNameFromSavedSession(session: Awaited<ReturnType<typeof getLastSession>>): string | null {
+  if (!session?.auth_token) return null;
+  const u = session.user;
+  if (u && typeof u === "object") {
+    const name =
+      (u as { name?: string }).name ||
+      (u as { email?: string }).email ||
+      (u as { first_name?: string }).first_name ||
+      [(u as { first_name?: string }).first_name, (u as { last_name?: string }).last_name]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+    if (name) return String(name);
+  }
+  return "Saved account";
+}
+
 const TenantLoginPage = () => {
   const router = useRouter();
   const params = useParams();
@@ -66,36 +92,37 @@ const TenantLoginPage = () => {
     // reValidateMode: "onChange",
   });
 
-  // Check for saved session when offline (for "Continue as [user]")
+  // Keep offline state in sync with browser connectivity and show saved-session CTA only when offline.
   useEffect(() => {
-    const check = async () => {
+    const syncConnectivity = async () => {
       const offline = typeof navigator !== "undefined" && !navigator.onLine;
       setIsOffline(offline);
-      if (offline) {
-        const session = await getLastSession();
-        if (session?.user) {
-          const name =
-            session.user?.name ||
-            session.user?.email ||
-            session.user?.first_name ||
-            [session.user?.first_name, session.user?.last_name].filter(Boolean).join(" ") ||
-            "Saved account";
-          setOfflineSession({ name: String(name) });
-        } else {
-          setOfflineSession(null);
-        }
-      } else {
+      if (!offline) {
         setOfflineSession(null);
+        return;
       }
+      const session = await getLastSession();
+      const name = displayNameFromSavedSession(session);
+      setOfflineSession(name ? { name } : null);
     };
-    check();
+
+    syncConnectivity();
+    window.addEventListener("online", syncConnectivity);
+    window.addEventListener("offline", syncConnectivity);
+    return () => {
+      window.removeEventListener("online", syncConnectivity);
+      window.removeEventListener("offline", syncConnectivity);
+    };
   }, []);
 
   const handleContinueOffline = async () => {
-    const restored = await restoreLastSessionToCookies();
+    let restored = await restoreLastSessionToCookies();
+    if (!restored && Cookies.get("auth_token")) {
+      restored = true;
+    }
     if (restored) {
       toast.success("Restored your session. You're viewing cached data.", { toastId: "offline-restore" });
-      router.push(tenant ? `/${tenant}/dashboard` : "/dashboard");
+      router.push(dashboardHrefForTenant(tenant));
     } else {
       toast.error("No saved session found. Connect to the internet to sign in.", { toastId: "offline-no-session" });
     }
@@ -113,11 +140,10 @@ const TenantLoginPage = () => {
     setShowPassword((prev) => !prev);
   };
   const handleFormSubmit = async (data: LoginProps) => {
-    if (isOffline) {
-      toast.error("You're offline. Connect to the internet to sign in, or use \"Continue with saved account\".", {
-        toastId: "login-offline",
-      });
-      return;
+    // Do not hard-block login on navigator.onLine (it can be wrong in some environments).
+    // We still attempt the request and only treat it as offline if the request fails for network reasons.
+    if (isOffline && typeof navigator !== "undefined" && navigator.onLine) {
+      setIsOffline(false);
     }
     try {
       setErrMessage("");
@@ -224,22 +250,18 @@ const TenantLoginPage = () => {
             path: "/",
           });
 
-          saveLastSession(tenant).catch(() => {});
+          try {
+            await saveLastSession(tenant);
+          } catch {
+            /* non-fatal */
+          }
 
           toast.success("Login successful!", {
             toastId: "login-success",
             autoClose: 3000,
           });
 
-          router.push(
-            typeof window !== "undefined" &&
-              window.location.hostname.split(".").length > 1 &&
-              window.location.hostname.split(".")[0] !== "www"
-              ? "/dashboard"
-              : tenant
-                ? `/${tenant}/dashboard`
-                : "/dashboard"
-          );
+          router.push(dashboardHrefForTenant(tenant));
           return;
         }
 
@@ -250,20 +272,50 @@ const TenantLoginPage = () => {
         });
       }
     } catch (error: any) {
+      const status = Number(error?.response?.status ?? 0);
+      const backendUnreachable =
+        status === 503 ||
+        String(error?.response?.data?.error || "").toLowerCase().includes("backend_unreachable");
+      const isLikelyNetworkOffline =
+        !navigator.onLine ||
+        backendUnreachable ||
+        error?.code === "ERR_NETWORK" ||
+        error?.message?.includes?.("Network Error") ||
+        error?.response == null;
+
+      if (isLikelyNetworkOffline) {
+        // Avoid console.error here — Next dev overlay treats it as an app error even though we handle it.
+        if (process.env.NODE_ENV === "development") {
+          console.warn("[login] unreachable or offline", { status, code: error?.code });
+        }
+        setIsOffline(true);
+        const session = await getLastSession();
+        const offlineName = displayNameFromSavedSession(session);
+        setOfflineSession(offlineName ? { name: offlineName } : null);
+        const online = typeof navigator !== "undefined" && navigator.onLine;
+        toast.error(
+          backendUnreachable && online
+            ? "The server is temporarily unavailable. Try again in a moment, or continue with your saved session."
+            : "You're offline. Connect to the internet to sign in, or continue with your saved session.",
+          { toastId: "login-offline", autoClose: 6000 }
+        );
+        return;
+      }
+
       console.error("Login error:", error);
-      
+
       // Extract error message
-      const errorMessage = 
-        error?.response?.data?.error || 
-        error?.response?.data?.message || 
-        error?.message || 
+      const errorMessage =
+        error?.response?.data?.error ||
+        error?.response?.data?.message ||
+        error?.message ||
         "Login failed. Please check your credentials and try again.";
-      
+
       toast.error(errorMessage, {
         toastId: "login-error",
         autoClose: 5000,
       });
-      
+
       if (error?.response?.status === 401) {
         setErrMessage(errorMessage);
       }
@@ -286,7 +338,7 @@ const TenantLoginPage = () => {
   return (
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 gap-6 px-4 sm:px-8 lg:px-24 py-10 items-center justify-center font-poppins place-items-center">
       <div className="content col-span-1 text-white hidden md:flex flex-col justify-center space-y-8 w-full max-w-3xl">
-        <h1 className="header font-bold text-4xl md:text-6xl lg:text-6xl leading-tight">Welcome!</h1>
+        <h1 className="header font-bold text-4xl md:text-6xl lg:text-6xl leading-tight">Welcome to LoCi Care!</h1>
         <div className="line border-2 border-white w-40"></div>
         <div className="line border-3 border-white"></div>
         <span className="welcom md:w-3/4 text-lg leading-8">

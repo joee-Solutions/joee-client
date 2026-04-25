@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import userProfileImage from "./../../../../../../public/assets/profile.png";
 import { useState, useEffect, useMemo } from "react";
 import Cookies from "js-cookie";
 import {
@@ -17,7 +16,7 @@ import { useRouter, useParams } from "next/navigation";
 import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { isTenantAdmin, getRolesFromUser } from "@/utils/permissions";
-import { parseTenantProfileResponse } from "@/utils/profile-api";
+import { parseTenantProfileResponse, tenantLogoToImageSrc } from "@/utils/profile-api";
 
 const adminTabBtns = [
   { icon: SettingsIcon, label: "System Configuration", currTab: 1 },
@@ -90,6 +89,7 @@ export default function SettingsPage() {
   const displayName = profile?.name ?? "—";
   const displayEmail = profile?.email ?? "—";
   const displayPhone = profile?.phone_number ?? "—";
+  const profileImageSrc = tenantLogoToImageSrc(profile?.logo);
   // When using subdomain (e.g. doe.localhost:3000), use /dashboard/settings/backup. When using path-based tenant (e.g. localhost:3000/doe/...), use /{tenant}/dashboard/settings/backup.
   const [backupHref, setBackupHref] = useState("/dashboard/settings/backup");
   useEffect(() => {
@@ -121,13 +121,19 @@ export default function SettingsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-[398px_1fr] gap-5">
             <aside className="pb-10 px-[54px] pt-[34px] pt shadow-[0px_0px_4px_1px_#0000004D] h-max rounded-md">
               <div className="flex flex-col gap-[15px] items-center mb-[30px]">
-                <Image
-                  src={userProfileImage}
-                  alt="user profile picture"
-                  width={180}
-                  height={180}
-                  className="rounded-full object-cover"
-                />
+                {profileImageSrc ? (
+                  <Image
+                    src={profileImageSrc}
+                    alt="user profile picture"
+                    width={180}
+                    height={180}
+                    className="rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-[180px] h-[180px] rounded-full bg-[#D9EDFF] text-[#003465] flex items-center justify-center font-semibold text-5xl">
+                    {(displayName?.trim()?.[0] || "U").toUpperCase()}
+                  </div>
+                )}
                 <div className="text-center">
                   <p className="font-semibold text-2xl text-black">
                     {profileLoading ? "Loading..." : displayName}

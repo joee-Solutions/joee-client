@@ -20,12 +20,12 @@ import { toast } from "react-toastify";
 
 export const PatientDemoSchema = z.object({
   suffix: z.string().optional(),
-  firstName: z.string().min(1, "First name is required"),
+  firstName: z.string().trim().min(1, "First name is required"),
   middleName: z.string().optional(),
-  lastName: z.string().min(1, "Last name is required"),
+  lastName: z.string().trim().min(1, "Last name is required"),
   preferredName: z.string().optional(),
   sex: z.string().optional(),
-  dateOfBirth: z.string().min(1, "Date of birth is required"),
+  dateOfBirth: z.string().trim().min(1, "Date of birth is required"),
   maritalStatus: z.string().optional(),
   race: z.string().optional(),
   ethnicity: z.string().optional(),

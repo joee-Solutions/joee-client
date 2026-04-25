@@ -81,8 +81,7 @@ export default function LifestyleForm() {
                   type="text"
                   placeholder="Quantity (Packs per day)"
                   className="w-full h-14 p-3 border border-[#737373] rounded"
-                  {...register("lifeStyle.tobaccoQuantity", { required: true })
-                  }
+                  {...register("lifeStyle.tobaccoQuantity")}
                 />
                 {
                   errors.lifeStyle?.tobaccoQuantity && (
@@ -98,7 +97,7 @@ export default function LifestyleForm() {
                   type="text"
                   placeholder="Duration (Years)"
                   className="w-full h-14 p-3 border border-[#737373] rounded"
-                  {...register("lifeStyle.tobaccoDuration", { required: true })}
+                  {...register("lifeStyle.tobaccoDuration")}
                 />
                 {
                   errors.lifeStyle?.tobaccoDuration && (

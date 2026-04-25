@@ -4,7 +4,6 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { IoSettingsSharp } from "react-icons/io5";
 import { SearchIcon, Menu, CheckCircle2, Circle } from "lucide-react";
 import Image from "next/image";
-import profileImage from "./../../../public/assets/profile.png";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import Cookies from "js-cookie";
 import { toast } from "react-toastify";
@@ -112,6 +111,22 @@ const MainHeaderContent = ({ onToggleMobileMenu }: MainHeaderProps) => {
     loadUserData();
   }, []);
 
+  useEffect(() => {
+    const handleProfileUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<{ profile?: UserData | null }>;
+      const nextProfile = customEvent?.detail?.profile;
+      if (!nextProfile) return;
+      setUserData(nextProfile);
+      Cookies.set("user", JSON.stringify(nextProfile), {
+        expires: 7,
+        sameSite: "lax",
+        path: "/",
+      });
+    };
+    window.addEventListener("profile-updated", handleProfileUpdated as EventListener);
+    return () => window.removeEventListener("profile-updated", handleProfileUpdated as EventListener);
+  }, []);
+
   // Sync search query with URL params
   useEffect(() => {
     if (pathname?.includes("/organization")) {
@@ -142,7 +157,7 @@ const MainHeaderContent = ({ onToggleMobileMenu }: MainHeaderProps) => {
     ? (userData?.name ?? userData?.domain ?? userData?.organization_name ?? "Organization")
     : fullName;
   const profileRoleLabel = isAdmin ? "ADMIN" : "USER";
-  const profilePicture = useMemo(() => {
+  const profilePicture = useMemo<string | null>(() => {
     const fromTenantLogo = tenantLogoToImageSrc(userData?.logo);
     if (fromTenantLogo) return fromTenantLogo;
     const pic = userData?.profile_picture || userData?.profilePicture;
@@ -152,12 +167,13 @@ const MainHeaderContent = ({ onToggleMobileMenu }: MainHeaderProps) => {
         return t;
       }
     }
-    return profileImage;
+    return null;
   }, [userData?.logo, userData?.profile_picture, userData?.profilePicture]);
 
-  const profileImageUnoptimized =
-    typeof profilePicture === "string" &&
-    (profilePicture.startsWith("http") || profilePicture.startsWith("data:"));
+  const profileImageUnoptimized = Boolean(
+    profilePicture &&
+      (profilePicture.startsWith("http") || profilePicture.startsWith("data:"))
+  );
 
   const { data: unreadResponse } = useSWR(
     isAdmin ? API_ENDPOINTS.GET_NOTIFICATION_UNREAD : null,
@@ -460,15 +476,21 @@ const MainHeaderContent = ({ onToggleMobileMenu }: MainHeaderProps) => {
           <PopoverTrigger asChild>
             <div className="flex items-center gap-[10.32px] cursor-pointer hover:opacity-80 transition-opacity">
               <span className="block w-[40px] h-[40px] rounded-full overflow-hidden">
-            <Image
-                  src={profilePicture}
-              alt="profile image"
-                  width={40}
-                  height={40}
-                  unoptimized={profileImageUnoptimized}
-              className="aspect-square w-full h-full object-cover"
-            />
-          </span>
+                {profilePicture ? (
+                  <Image
+                    src={profilePicture}
+                    alt="profile image"
+                    width={40}
+                    height={40}
+                    unoptimized={profileImageUnoptimized}
+                    className="aspect-square w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="w-full h-full bg-[#D9EDFF] text-[#003465] flex items-center justify-center text-sm font-semibold">
+                    {(profileDisplayName?.trim()?.[0] || "U").toUpperCase()}
+                  </span>
+                )}
+              </span>
               <div className="hidden md:flex flex-col">
                 <p className="text-sm font-semibold text-[#003465] mb-1">
                   {profileDisplayName || "-"}

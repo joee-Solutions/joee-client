@@ -153,6 +153,14 @@ export default function Settings({
 
   const onSubmitHandler = async (payload: SettingSchemaType) => {
     try {
+      const getErrorText = (err: any): string => {
+        const data = err?.response?.data;
+        if (Array.isArray(data?.message)) return data.message.join(", ");
+        if (Array.isArray(data?.errors)) return data.errors.join(", ");
+        if (Array.isArray(data?.validationErrors)) return data.validationErrors.join(", ");
+        return String(data?.message || data?.error || err?.message || "");
+      };
+
       const body: Record<string, unknown> = {
         name: payload.systemName,
         email: payload.email,
@@ -168,21 +176,59 @@ export default function Settings({
         // Backend multipart usually whitelists only the file field (e.g. multer .single("logo")).
         // Mixing text fields in the same FormData triggers "Unexpected field".
         await processRequestOfflineAuth("patch", API_ENDPOINTS.UPDATE_PROFILE, body);
-        const tryLogoUpload = async (field: "logo" | "file") => {
+        const tryLogoUpload = async (
+          method: "patch" | "put",
+          field: "logo" | "file" | "systemLogo"
+        ) => {
           const fd = new FormData();
           fd.append(field, payload.systemLogo as File, (payload.systemLogo as File).name);
-          await processRequestOfflineAuth("patch", API_ENDPOINTS.UPDATE_PROFILE, fd);
+          await processRequestOfflineAuth(method, API_ENDPOINTS.UPDATE_PROFILE, fd);
         };
-        try {
-          await tryLogoUpload("logo");
-        } catch (e: any) {
-          const msg = String(e?.response?.data?.error || e?.response?.data?.message || "");
-          if (e?.response?.status === 400 && msg.toLowerCase().includes("unexpected")) {
-            await tryLogoUpload("file");
-          } else {
-            throw e;
+        let uploaded = false;
+        let lastErr: any = null;
+        for (const method of ["patch", "put"] as const) {
+          for (const field of ["logo", "file", "systemLogo"] as const) {
+          try {
+              await tryLogoUpload(method, field);
+            uploaded = true;
+            break;
+          } catch (e: any) {
+            lastErr = e;
+            const status = Number(e?.response?.status || 0);
+            const msg = getErrorText(e).toLowerCase();
+            const canTryAnotherField =
+              status === 400 ||
+              status === 415 ||
+              status === 422 ||
+              msg.includes("unexpected field") ||
+              msg.includes("must be a") ||
+              msg.includes("validation");
+            if (!canTryAnotherField) {
+              throw e;
+            }
           }
         }
+          if (uploaded) break;
+        }
+        // Fallback: some backends accept logo as base64/json field instead of multipart.
+        if (!uploaded) {
+          const dataUrlLogo = logoPreview?.startsWith("data:") ? logoPreview : "";
+          if (dataUrlLogo) {
+            for (const key of ["logo", "image", "profile_picture"] as const) {
+              try {
+                await processRequestOfflineAuth("patch", API_ENDPOINTS.UPDATE_PROFILE, {
+                  ...body,
+                  [key]: dataUrlLogo,
+                });
+                uploaded = true;
+                break;
+              } catch (e) {
+                lastErr = e;
+              }
+            }
+          }
+        }
+        if (!uploaded && lastErr) throw lastErr;
         form.setValue("systemLogo", undefined);
       } else {
         await processRequestOfflineAuth("patch", API_ENDPOINTS.UPDATE_PROFILE, body);
@@ -192,10 +238,23 @@ export default function Settings({
       const refreshed = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_PROFILE);
       const { profile: tenantProfile } = parseTenantProfileResponse(refreshed);
       const persistedLogo = tenantLogoToImageSrc((tenantProfile as ProfileData | null)?.logo);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("profile-updated", {
+            detail: { profile: (tenantProfile as ProfileData | null) ?? null },
+          })
+        );
+      }
       onLogoPreviewChange?.(persistedLogo ?? null);
       onProfileUpdated?.((tenantProfile as ProfileData) ?? null);
     } catch (e: any) {
-      toast.error((e?.response?.data?.message as string) ?? "Failed to save settings", { toastId: "settings-save-error" });
+      const data = e?.response?.data;
+      const msg = Array.isArray(data?.message)
+        ? data.message.join(", ")
+        : Array.isArray(data?.validationErrors)
+        ? data.validationErrors.join(", ")
+        : (data?.message as string) ?? "Failed to save settings";
+      toast.error(msg, { toastId: "settings-save-error" });
     }
   };
 
@@ -304,7 +363,7 @@ export default function Settings({
             labelText="Status"
             type="text"
             placeholder="e.g. active"
-            disabled={isDisabled}
+            disabled
           />
           <FieldBox
             bgInputClass="bg-[#D9EDFF] border-[#D9EDFF]"

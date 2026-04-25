@@ -9,8 +9,10 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import { ChevronRight, Ellipsis, Plus, Search, Edit, Trash2, MoreVertical, UserRound } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
-import { processRequestOfflineAuth } from "@/framework/offline-https";
+import { processRequestOfflineAuth, extractApiListItems } from "@/framework/offline-https";
+import { getTenantId } from "@/framework/https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
+import { offlineDB } from "@/lib/offline-db";
 import { getApiErrorMessagesString } from "@/utils/api-error";
 import { toast } from "react-toastify";
 import { useForm, Controller } from "react-hook-form";
@@ -364,13 +366,8 @@ export default function EmployeePage() {
     try {
       setIsLoading(true);
       const response = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_EMPLOYEE);
-      
-      // Handle different response structures
-      const users = Array.isArray(response?.data) 
-        ? response.data 
-        : Array.isArray(response) 
-        ? response 
-        : [];
+
+      const users = extractApiListItems(response);
 
       if (users.length > 0) {
         // Store full user data for edit modal
@@ -975,17 +972,65 @@ export default function EmployeePage() {
   const [departments, setDepartments] = useState<any[]>([]);
   
   useEffect(() => {
+    const departmentsFromCachedEmployees = async (tenantId: string): Promise<any[]> => {
+      await offlineDB.init();
+      const emps = await offlineDB.getCachedData("employees", tenantId);
+      const byId = new Map<string, any>();
+      for (const e of emps) {
+        const dep = e?.department;
+        if (dep && typeof dep === "object") {
+          const id = String((dep as { id?: unknown; _id?: unknown }).id ?? (dep as { _id?: unknown })._id ?? "");
+          if (id && id !== "undefined" && !byId.has(id)) {
+            byId.set(id, {
+              id,
+              name:
+                (dep as { name?: string }).name ??
+                (dep as { department_name?: string }).department_name ??
+                `Department ${id}`,
+              department_name: (dep as { department_name?: string }).department_name,
+            });
+          }
+        }
+        const deptId = e?.department_id ?? e?.departmentId;
+        if (deptId != null && String(deptId)) {
+          const id = String(deptId);
+          if (!byId.has(id)) {
+            byId.set(id, {
+              id,
+              name: e.department_name ?? e.departmentName ?? `Department ${id}`,
+              department_name: e.department_name,
+            });
+          }
+        }
+      }
+      return [...byId.values()];
+    };
+
     const loadDepartments = async () => {
       try {
         const response = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_DEPARTMENTS);
-        const depts = Array.isArray(response?.data) 
-          ? response.data 
-          : Array.isArray(response) 
-          ? response 
-          : [];
+        let depts = extractApiListItems(response);
+        if (depts.length === 0) {
+          const tenantId = getTenantId();
+          if (tenantId) {
+            const fallback = await departmentsFromCachedEmployees(tenantId);
+            if (fallback.length) depts = fallback;
+          }
+        }
         setDepartments(depts);
       } catch (error) {
         console.error("Failed to load departments:", error);
+        try {
+          const tenantId = getTenantId();
+          if (tenantId) {
+            const fallback = await departmentsFromCachedEmployees(tenantId);
+            setDepartments(fallback);
+            return;
+          }
+        } catch {
+          /* ignore */
+        }
+        setDepartments([]);
       }
     };
     loadDepartments();
