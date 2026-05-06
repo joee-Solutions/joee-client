@@ -207,6 +207,9 @@ const DashboardPage: NextPage = () => {
 
   // Load all dashboard data for components
   const loadDashboardData = async () => {
+    const isServer500 = (error: any): boolean =>
+      Number(error?.response?.status ?? 0) === 500;
+
     // Load patients
     try {
       const patientsRes = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_PATIENTS);
@@ -220,7 +223,11 @@ const DashboardPage: NextPage = () => {
         : [];
       setPatientsData(patients);
     } catch (error: any) {
-      console.error("Failed to load patients:", error);
+      if (isServer500(error)) {
+        console.warn("Patients endpoint returned 500; showing empty state.");
+      } else {
+        console.error("Failed to load patients:", error);
+      }
       setPatientsData([]);
     }
 
@@ -237,7 +244,11 @@ const DashboardPage: NextPage = () => {
         : [];
       setEmployeesData(employees.slice(0, 5)); // Limit to 5
     } catch (error: any) {
-      console.error("Failed to load employees:", error);
+      if (isServer500(error)) {
+        console.warn("Employees endpoint returned 500; showing empty state.");
+      } else {
+        console.error("Failed to load employees:", error);
+      }
       setEmployeesData([]);
     }
 
@@ -254,7 +265,11 @@ const DashboardPage: NextPage = () => {
         : [];
       setAppointmentsData(appointments);
     } catch (error: any) {
-      console.error("Failed to load appointments:", error);
+      if (isServer500(error)) {
+        console.warn("Appointments endpoint returned 500; showing empty state.");
+      } else {
+        console.error("Failed to load appointments:", error);
+      }
       setAppointmentsData([]);
     }
 
@@ -271,7 +286,11 @@ const DashboardPage: NextPage = () => {
         : [];
       setDepartmentsData(departments);
     } catch (error: any) {
-      console.error("Failed to load departments:", error);
+      if (isServer500(error)) {
+        console.warn("Departments endpoint returned 500; showing empty state.");
+      } else {
+        console.error("Failed to load departments:", error);
+      }
       setDepartmentsData([]);
     }
 

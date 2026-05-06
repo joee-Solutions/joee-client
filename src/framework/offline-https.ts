@@ -14,6 +14,7 @@ const PATH_TO_STORE: Record<string, keyof JoeeOfflineDB> = {
   "tenant/appointment": "appointments",
   "tenant/schedule": "schedules",
   "tenant/employee": "employees",
+  "tenant/user": "employees",
   "tenant/department": "departments",
 };
 
@@ -59,10 +60,21 @@ function isBackendUnreachableError(error: any): boolean {
     code === "ETIMEDOUT" ||
     msg.includes("getaddrinfo") ||
     msg.includes("network error") ||
+    status === 500 ||
     status === 502 ||
     status === 503 ||
     status === 504
   );
+}
+
+function extractIdFromPath(path: string): string | null {
+  const parts = path.split("?")[0].split("/").filter(Boolean);
+  if (!parts.length) return null;
+  const last = parts[parts.length - 1];
+  if (["create", "update", "delete", "read"].includes(last)) {
+    return parts.length > 1 ? parts[parts.length - 2] : null;
+  }
+  return last ?? null;
 }
 
 async function queueOfflineMutation(
@@ -97,14 +109,42 @@ async function queueOfflineMutation(
 
   if (storeName && tenant && (method === "post" || method === "put" || method === "patch")) {
     const payload = data && typeof data === "object" ? data : {};
-    const tempId = payload.id ?? `offline-${Date.now()}`;
+    const idFromPath = extractIdFromPath(path);
+    const optimisticId =
+      method === "post"
+        ? payload.id ?? `offline-${Date.now()}`
+        : payload.id ?? idFromPath ?? `offline-${Date.now()}`;
     try {
-      await offlineDB.cacheData(storeName, [{ ...payload, id: tempId }], tenant);
+      let optimisticRow: any = { ...payload, id: optimisticId };
+      if (method === "put" || method === "patch") {
+        // Merge PATCH/PUT payload into existing cached row so partial updates don't wipe fields.
+        const existingRows = await offlineDB.getCachedData(storeName, tenant);
+        const existing = existingRows.find(
+          (item: any) => String(item?.id) === String(optimisticId)
+        );
+        if (existing) {
+          optimisticRow = { ...existing, ...payload, id: optimisticId };
+        }
+      }
+      await offlineDB.cacheData(storeName, [optimisticRow], tenant, "merge");
+    } catch (_) {}
+  } else if (storeName && tenant && method === "delete") {
+    // Apply optimistic delete to local cache immediately so offline tables update without waiting for sync.
+    try {
+      const cached = await offlineDB.getCachedData(storeName, tenant);
+      const deleteId = extractIdFromPath(path);
+      const remaining = deleteId
+        ? cached.filter((item: any) => String(item?.id) !== String(deleteId))
+        : cached;
+      await offlineDB.cacheData(storeName, remaining, tenant, "replace");
     } catch (_) {}
   }
 
   const payloadObj = data && typeof data === "object" ? data : {};
-  const optimisticId = payloadObj.id ?? `offline-${Date.now()}`;
+  const optimisticId =
+    method === "post"
+      ? payloadObj.id ?? `offline-${Date.now()}`
+      : payloadObj.id ?? extractIdFromPath(path) ?? `offline-${Date.now()}`;
   const optimistic = toResponseShape([{ ...payloadObj, id: optimisticId }]);
   if (method === "post" && optimistic.data?.data?.[0]) {
     (optimistic.data as any).id = optimisticId;
@@ -160,7 +200,7 @@ export async function processRequestOfflineAuth(
         if (items.length >= 0) {
           try {
             await offlineDB.init();
-            await offlineDB.cacheData(storeName, items, tenant);
+            await offlineDB.cacheData(storeName, items, tenant, "replace");
           } catch (e) {
             console.warn("Offline cache write failed:", e);
           }

@@ -263,8 +263,10 @@ export default function DepartmentPage() {
     title: "Success",
     message: "",
   });
+  const [canMutateDepartments, setCanMutateDepartments] = useState(false);
+  const [isRoleResolved, setIsRoleResolved] = useState(false);
 
-  const canMutateDepartments = (() => {
+  useEffect(() => {
     const userJson = Cookies.get("user");
     let user: { roles?: string[]; role?: string } | null = null;
     try {
@@ -273,8 +275,9 @@ export default function DepartmentPage() {
       user = null;
     }
     const roles = getRolesFromUser(user);
-    return isTenantAdmin(roles);
-  })();
+    setCanMutateDepartments(isTenantAdmin(roles));
+    setIsRoleResolved(true);
+  }, []);
 
   const denyMutation = () => {
     toast.error("Access denied. You don't have permission to modify departments.", {
@@ -580,7 +583,7 @@ export default function DepartmentPage() {
             <section className="w-full py-4 p-4 md:p-6 shadow-[0px_0px_4px_1px_#0000004D] rounded-md mx-2 md:mx-4 relative z-0">
               <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-5 border-b border-[#D9D9D9] h-auto sm:h-[90px] py-4 sm:py-0">
                 <h2 className="text-xl font-semibold text-black">Department List</h2>
-                {canMutateDepartments && (
+                {isRoleResolved && canMutateDepartments && (
                   <Button
                     onClick={handleCreateDepartment}
                     className="px-4 py-2 bg-[#003465] text-white rounded hover:bg-[#003465]/90 w-full sm:w-auto font-medium"

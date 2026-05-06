@@ -42,6 +42,7 @@ interface BackupTableProps<T extends Record<string, Primitives>> {
   loading?: boolean;
   onRestore?: (backupId: string | number) => void;
   onDelete?: (backupId: string | number) => void;
+  disableRestoreActions?: boolean;
 }
 
 export default function BackupTable<T extends Record<string, Primitives>>({
@@ -51,6 +52,7 @@ export default function BackupTable<T extends Record<string, Primitives>>({
   loading = false,
   onRestore,
   onDelete,
+  disableRestoreActions = false,
 }: BackupTableProps<T>) {
   const [columnSort, setColumnSort] = useState<
     `${string} ASC` | `${string} DESC`
@@ -172,6 +174,7 @@ export default function BackupTable<T extends Record<string, Primitives>>({
                           type="button"
                           variant="outline"
                           size="sm"
+                          disabled={disableRestoreActions}
                           onClick={() => onRestore((tr as any).id)}
                           className="h-[36px] text-[#003465] border-[#003465] hover:bg-[#003465] hover:text-white"
                         >

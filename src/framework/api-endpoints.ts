@@ -63,4 +63,12 @@ export const API_ENDPOINTS = {
   CREATE_BACKUP: "/tenant/backup",
   DELETE_BACKUP: (backupId: number | string) => `/tenant/backup/${backupId}`,
   RESTORE_BACKUP: (backupId: number | string) => `/tenant/backup/restore/${backupId}`,
+
+  // Reports
+  REPORT_PATIENTS: "/tenant/reports/patients",
+  REPORT_PATIENTS_EXPORT: "/tenant/reports/patients/export",
+  REPORT_VISITS: "/tenant/reports/visits",
+  REPORT_PRESCRIPTIONS: "/tenant/reports/prescriptions",
+  REPORT_DIAGNOSIS_ALLERGIES: "/tenant/reports/diagnosis-allergies",
+  REPORT_USERS: "/tenant/reports/users",
 };

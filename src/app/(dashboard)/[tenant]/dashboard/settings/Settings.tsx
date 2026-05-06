@@ -382,7 +382,7 @@ export default function Settings({
             control={form.control}
             labelText="Email"
             placeholder="Enter here"
-            disabled={isDisabled}
+            disabled
           />
 
           <FieldBox

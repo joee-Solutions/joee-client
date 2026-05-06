@@ -70,12 +70,26 @@ interface JoeeOfflineDB extends DBSchema {
     };
     indexes: { 'by-tenant': string };
   };
+  offlineCredentials: {
+    key: string;
+    value: {
+      email: string;
+      passwordHash: string;
+      encryptedToken: string;
+      encryptedUserData: string;
+      tokenIv: string;
+      userIv: string;
+      expiresAt: number;
+      updatedAt: number;
+    };
+    indexes: { 'by-expires': number };
+  };
 }
 
 class OfflineDatabase {
   private db: IDBPDatabase<JoeeOfflineDB> | null = null;
   private readonly DB_NAME = 'joee-offline';
-  private readonly DB_VERSION = 2;
+  private readonly DB_VERSION = 3;
 
   async init(): Promise<void> {
     if (this.db) return;
@@ -124,6 +138,11 @@ class OfflineDatabase {
           const authSessionStore = db.createObjectStore('authSession', { keyPath: 'id' });
           authSessionStore.createIndex('by-tenant', 'tenant');
         }
+        // v3: offline credentials for email/password offline login
+        if (oldVersion < 3) {
+          const offlineCredentialsStore = db.createObjectStore('offlineCredentials', { keyPath: 'email' });
+          offlineCredentialsStore.createIndex('by-expires', 'expiresAt');
+        }
       },
     });
   }
@@ -147,7 +166,7 @@ class OfflineDatabase {
     return String(this.db!.put(storeName as any, value));
   }
 
-  async delete(storeName: keyof JoeeOfflineDB, key: string): Promise<void> {
+  async delete(storeName: keyof JoeeOfflineDB, key: string | number): Promise<void> {
     await this.init();
     await this.db!.delete(storeName as any, key);
   }
@@ -226,6 +245,42 @@ class OfflineDatabase {
     await this.delete('authSession', this.AUTH_SESSION_KEY);
   }
 
+  // Offline credentials (email/password login when network is unavailable)
+  async saveOfflineCredentials(row: {
+    email: string;
+    passwordHash: string;
+    encryptedToken: string;
+    encryptedUserData: string;
+    tokenIv: string;
+    userIv: string;
+    expiresAt: number;
+  }): Promise<void> {
+    await this.put("offlineCredentials", {
+      ...row,
+      email: row.email.toLowerCase().trim(),
+      updatedAt: Date.now(),
+    });
+  }
+
+  async getOfflineCredentials(email: string): Promise<{
+    email: string;
+    passwordHash: string;
+    encryptedToken: string;
+    encryptedUserData: string;
+    tokenIv: string;
+    userIv: string;
+    expiresAt: number;
+    updatedAt: number;
+  } | null> {
+    await this.init();
+    const row = await this.db!.get("offlineCredentials", email.toLowerCase().trim());
+    return row ?? null;
+  }
+
+  async clearOfflineCredentials(email: string): Promise<void> {
+    await this.delete("offlineCredentials", email.toLowerCase().trim());
+  }
+
   // Queue operations
   async queueRequest(request: {
     url: string;
@@ -280,7 +335,24 @@ class OfflineDatabase {
   }
 
   // Cache management
-  async cacheData(storeName: keyof JoeeOfflineDB, data: any[], tenantId: string): Promise<void> {
+  async cacheData(
+    storeName: keyof JoeeOfflineDB,
+    data: any[],
+    tenantId: string,
+    mode: "merge" | "replace" = "merge"
+  ): Promise<void> {
+    if (mode === "replace") {
+      // Replace cache snapshot for this tenant so deletes made online
+      // are reflected when reading offline later.
+      const existing = await this.getCachedData(storeName, tenantId);
+      for (const row of existing) {
+        const rowId = (row as { id?: string | number }).id;
+        if (rowId != null) {
+          await this.delete(storeName, rowId);
+        }
+      }
+    }
+
     for (const item of data) {
       const itemWithMetadata = {
         ...item,

@@ -296,6 +296,10 @@ const createColumns = (
 ];
 
 export default function EmployeePage() {
+  const isOfflineNow = () => typeof navigator !== "undefined" && !navigator.onLine;
+  const normalizeEmail = (value: string | undefined | null) =>
+    String(value || "").trim().toLowerCase();
+
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
@@ -408,6 +412,41 @@ export default function EmployeePage() {
       setFullEmployeeData([]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const hasExistingEmployeeEmail = async (
+    email: string,
+    excludeEmployeeId?: string | number
+  ): Promise<boolean> => {
+    const incomingEmail = normalizeEmail(email);
+    if (!incomingEmail) return false;
+
+    const fromMemory = fullEmployeeData.some((emp: any) => {
+      const empId = emp?.id ?? emp?._id;
+      if (excludeEmployeeId != null && String(empId) === String(excludeEmployeeId)) {
+        return false;
+      }
+      const existing = normalizeEmail(emp?.email || emp?.email_address);
+      return existing === incomingEmail;
+    });
+    if (fromMemory) return true;
+
+    const tenantId = getTenantId();
+    if (!tenantId) return false;
+    try {
+      await offlineDB.init();
+      const cached = await offlineDB.getCachedData("employees", tenantId);
+      return cached.some((emp: any) => {
+        const empId = emp?.id ?? emp?._id;
+        if (excludeEmployeeId != null && String(empId) === String(excludeEmployeeId)) {
+          return false;
+        }
+        const existing = normalizeEmail(emp?.email || emp?.email_address);
+        return existing === incomingEmail;
+      });
+    } catch {
+      return false;
     }
   };
 
@@ -718,6 +757,18 @@ export default function EmployeePage() {
         transformedData.state = regionValue;
       }
       if (updatedData.department) transformedData.department_id = updatedData.department;
+      const selectedDept = departments.find(
+        (dept) => String(dept.id || dept._id) === String(updatedData.department || "")
+      );
+      if (selectedDept) {
+        transformedData.department_name =
+          selectedDept.name ||
+          selectedDept.department_name ||
+          updatedData.departmentName ||
+          "";
+      } else if (updatedData.departmentName) {
+        transformedData.department_name = updatedData.departmentName;
+      }
       if (updatedData.dob) transformedData.date_of_birth = updatedData.dob;
       if (updatedData.specialty !== undefined) transformedData.specialty = updatedData.specialty || "";
       if (updatedData.designation) transformedData.designation = updatedData.designation;
@@ -734,6 +785,21 @@ export default function EmployeePage() {
       // Only send status as string, not is_active
       transformedData.status = isActiveValue ? "active" : "inactive";
       console.log("Setting status to:", transformedData.status, "(from form is_active:", updatedData.is_active, ", employee status:", selectedEmployee?.status, ")");
+
+      // Offline duplicate-email check to mirror server unique constraint behavior.
+      if (isOfflineNow()) {
+        const exists = await hasExistingEmployeeEmail(
+          transformedData.email,
+          selectedEmployee?.id
+        );
+        if (exists) {
+          toast.error("Email already exists. Please use a different email address.", {
+            toastId: "employee-update-duplicate-email-offline",
+            autoClose: 7000,
+          });
+          return;
+        }
+      }
       
       console.log("Transformed data being sent to API:", transformedData);
       
@@ -768,7 +834,11 @@ export default function EmployeePage() {
       // Reload employees to get updated data
       await loadEmployees();
     } catch (error: any) {
-      console.error("Failed to update employee:", error);
+      if (Number(error?.response?.status ?? 0) === 500) {
+        console.warn("Employee update returned 500; request may be queued for retry.", error);
+      } else {
+        console.error("Failed to update employee:", error);
+      }
       const msg =
         error?.response?.data?.validationErrors ||
         error?.response?.data?.message ||
@@ -898,6 +968,30 @@ export default function EmployeePage() {
         });
         return;
       }
+      const selectedDept = departments.find(
+        (dept) => String(dept.id || dept._id) === String(deptId)
+      );
+      transformedData.department_id = deptId;
+      if (selectedDept) {
+        transformedData.department_name =
+          selectedDept.name ||
+          selectedDept.department_name ||
+          transformedData.department_name ||
+          "";
+      }
+
+      // Offline duplicate-email check to mirror server unique constraint behavior.
+      if (isOfflineNow()) {
+        const exists = await hasExistingEmployeeEmail(transformedData.email);
+        if (exists) {
+          toast.error("Email already exists. Please use a different email address.", {
+            toastId: "employee-create-duplicate-email-offline",
+            autoClose: 7000,
+          });
+          return;
+        }
+      }
+
       await processRequestOfflineAuth(
         "post",
         `${API_ENDPOINTS.GET_EMPLOYEE}/${deptId}`,

@@ -14,6 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useOffline } from "@/hooks/useOffline";
 
 const tableColumnNames = [
   "Date",
@@ -59,6 +60,8 @@ export default function RecentBackup({ showRestoreOnly = false }: RecentBackupPr
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | number | null>(null);
+  const { status: offlineStatus } = useOffline();
+  const isOffline = offlineStatus.isOffline;
 
   const fetchBackups = useCallback(async () => {
     try {
@@ -93,6 +96,12 @@ export default function RecentBackup({ showRestoreOnly = false }: RecentBackupPr
   }, [fetchBackups]);
 
   const handleCreateBackup = async () => {
+    if (isOffline) {
+      toast.info("Backup is unavailable while offline. Reconnect to continue.", {
+        toastId: "backup-offline-disabled",
+      });
+      return;
+    }
     try {
       setCreating(true);
       await processRequestOfflineAuth("post", API_ENDPOINTS.CREATE_BACKUP);
@@ -106,6 +115,12 @@ export default function RecentBackup({ showRestoreOnly = false }: RecentBackupPr
   };
 
   const handleRestore = async (backupId: string | number) => {
+    if (isOffline) {
+      toast.info("Restore is unavailable while offline. Reconnect to continue.", {
+        toastId: "restore-offline-disabled",
+      });
+      return;
+    }
     try {
       await processRequestOfflineAuth("post", API_ENDPOINTS.RESTORE_BACKUP(backupId));
       toast.success("Backup restored successfully", { toastId: "backup-restore" });
@@ -135,10 +150,10 @@ export default function RecentBackup({ showRestoreOnly = false }: RecentBackupPr
           <Button
             type="button"
             onClick={handleCreateBackup}
-            disabled={creating}
+            disabled={creating || isOffline}
             className="h-[50px] bg-[#003465] text-white font-medium text-base rounded-[8px] px-6 hover:bg-[#003465]/90"
           >
-            {creating ? "Creating…" : "Backup"}
+            {creating ? "Creating…" : isOffline ? "Backup (Offline)" : "Backup"}
           </Button>
         )}
       </div>
@@ -151,6 +166,7 @@ export default function RecentBackup({ showRestoreOnly = false }: RecentBackupPr
           loading={loading}
           onRestore={handleRestore}
           onDelete={(id) => setPendingDeleteId(id)}
+          disableRestoreActions={isOffline}
         />
       </div>
 
@@ -166,7 +182,7 @@ export default function RecentBackup({ showRestoreOnly = false }: RecentBackupPr
             <AlertDialogCancel onClick={() => setPendingDeleteId(null)}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => pendingDeleteId != null && handleDelete(pendingDeleteId)}
-              className="bg-[#EC0909] hover:bg-[#EC0909]/90"
+              className="bg-[#EC0909] hover:bg-[#EC0909]/90 text-white"
             >
               Delete
             </AlertDialogAction>

@@ -82,28 +82,28 @@ const MainHeaderContent = ({ onToggleMobileMenu }: MainHeaderProps) => {
           });
         }
       } catch (error: any) {
-        console.error("Failed to fetch profile from API:", error);
-        
+        const status = Number(error?.response?.status ?? 0);
+        const isAuthError = status === 401 || status === 403;
+        // Do not console.error 401/403 — Next dev overlay treats it as an app error even though we fall back to cookies.
+        if (!isAuthError) {
+          console.error("Failed to fetch profile from API:", error);
+        } else if (process.env.NODE_ENV === "development") {
+          console.warn("[MainHeader] profile GET returned", status, "(using cookie/local user if present)");
+        }
+
         // Fallback to cookie data if API fails
         const userCookie = Cookies.get("user");
         if (userCookie) {
           try {
             const parsedUser = JSON.parse(userCookie);
-            console.log("Using fallback user data from cookie:", parsedUser);
             setUserData(parsedUser);
           } catch (parseError) {
             console.error("Failed to parse user data from cookies:", parseError);
           }
         }
-        
-        // Only show error toast if we don't have cookie fallback
-        if (!userCookie) {
-          if (error?.response?.status === 403 || error?.response?.status === 401) {
-            // Don't show error for auth issues, just use fallback
-            console.warn("Auth error loading profile, using cookie fallback if available");
-          } else {
-            toast.error("Failed to load profile data", { toastId: "profile-load-error" });
-          }
+
+        if (!userCookie && !isAuthError) {
+          toast.error("Failed to load profile data", { toastId: "profile-load-error" });
         }
       }
     };

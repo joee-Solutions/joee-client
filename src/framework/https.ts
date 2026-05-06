@@ -449,6 +449,19 @@ const processRequestAuth = async (
       // Suppress console.error for 403 "No token" errors - these are expected when token is missing
       // Components should handle this gracefully
       console.warn(`403 Forbidden (No token) for ${path} - request will fail gracefully`);
+    } else if ([400, 404, 405, 422].includes(Number(error?.response?.status))) {
+      // Expected non-retriable client errors can occur during offline queue replay.
+      // Use warn (not error) to avoid noisy Next dev error overlays.
+      console.warn(`Non-retriable request error for ${path}:`, {
+        status: error?.response?.status,
+        message: error?.response?.data?.message || error?.message,
+      });
+    } else if (Number(error?.response?.status) === 500) {
+      // Backend/server fault. Keep as warning to avoid dev overlay noise while callers handle retry/fallback.
+      console.warn(`Server error for ${path}:`, {
+        status: error?.response?.status,
+        message: error?.response?.data?.message || error?.message,
+      });
     } else if (error?.response?.status !== 401 && error?.response?.status !== 403) {
       // Only log non-auth errors (401/403 are handled by interceptor)
       console.error(error);

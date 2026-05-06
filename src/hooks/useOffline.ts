@@ -161,6 +161,10 @@ export const useOffline = () => {
           if ([400, 404, 405, 422].includes(Number(status))) {
             console.warn("Dropping non-retriable queued request:", request, error);
             await offlineDB.removeQueuedRequest(request.id);
+          } else if (Number(status) === 500) {
+            // Server-side failure: keep queued item and retry later without noisy error overlay.
+            console.warn("Server 500 while syncing queued request; will retry:", request);
+            await offlineDB.incrementRetryCount(request.id);
           } else {
             console.error('Failed to sync request:', request, error);
             await offlineDB.incrementRetryCount(request.id);
@@ -239,7 +243,7 @@ export const useOffline = () => {
       if (status.isOnline && fetchFromAPI) {
         try {
           const freshData = await fetchFromAPI();
-          await offlineDB.cacheData(storeName, freshData, tenantId);
+          await offlineDB.cacheData(storeName, freshData, tenantId, "replace");
           result.data = freshData;
           result.lastUpdated = new Date();
           result.isOffline = false;

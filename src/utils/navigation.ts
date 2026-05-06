@@ -3,6 +3,7 @@ import { CalendarClock, icons } from "lucide-react";
 import { FaUserNurse, FaUsers } from "react-icons/fa";
 import { IoIosListBox, IoMdSettings } from "react-icons/io";
 import { BsFillSendFill } from "react-icons/bs";
+import { HiOutlineDocumentReport } from "react-icons/hi";
 
 /** Path roots that are never tenant slugs (path is /{tenant}/dashboard/...). */
 const NON_TENANT_FIRST_SEGMENTS = new Set([
@@ -102,6 +103,12 @@ export const sideNavigation: NavItem[] = [
     icon: IoIosListBox,
     href: "/dashboard/schedules",
     tenantUserAllowed: true,
+  },
+  {
+    name: "Reports",
+    icon: HiOutlineDocumentReport,
+    href: "/dashboard/reports",
+    tenantUserAllowed: false,
   },
   {
     name: "Notifications",
