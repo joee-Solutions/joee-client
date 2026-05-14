@@ -353,6 +353,7 @@ const MainHeaderContent = ({ onToggleMobileMenu }: MainHeaderProps) => {
       {/* Mobile Menu Toggle */}
       <button
         onClick={onToggleMobileMenu}
+        data-dashboard-tour="mobile-menu"
         className="lg:hidden flex items-center justify-center bg-white hover:bg-gray-50 transition-colors w-[40px] h-[40px] rounded-[10px] shadow-[0px_4px_25px_0px_#0000001A] cursor-pointer"
         aria-label="Toggle menu"
       >
@@ -362,6 +363,7 @@ const MainHeaderContent = ({ onToggleMobileMenu }: MainHeaderProps) => {
       {/* Search Bar - Made longer */}
       <form
         onSubmit={handleSearch}
+        data-dashboard-tour="global-search"
         className="relative flex items-center justify-center px-2 py-[10px] rounded-[60px] bg-white shadow-[4px_4px_4px_0px_#B7B5B566] flex-1 min-w-0 max-w-xl"
       >
         <input
@@ -390,6 +392,7 @@ const MainHeaderContent = ({ onToggleMobileMenu }: MainHeaderProps) => {
           <Popover open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
             <PopoverTrigger asChild>
               <button
+                data-dashboard-tour="notifications"
                 className="relative flex items-center justify-center bg-white hover:bg-gray-50 transition-colors w-[40px] h-[40px] rounded-[10px] shadow-[0px_4px_25px_0px_#0000001A] cursor-pointer"
                 aria-label="Notifications"
               >
@@ -466,6 +469,7 @@ const MainHeaderContent = ({ onToggleMobileMenu }: MainHeaderProps) => {
         {/* Settings Button */}
         <button
           onClick={handleSettings}
+          data-dashboard-tour="header-settings"
           className="flex items-center justify-center bg-white hover:bg-gray-50 transition-colors w-[40px] h-[40px] rounded-[10px] shadow-[0px_4px_25px_0px_#0000001A] cursor-pointer"
         >
           <IoSettingsSharp className="w-[24px] h-[24px] text-[#EC0909]" />
@@ -474,7 +478,10 @@ const MainHeaderContent = ({ onToggleMobileMenu }: MainHeaderProps) => {
         {/* User Profile */}
         <Popover open={isProfileOpen} onOpenChange={setIsProfileOpen}>
           <PopoverTrigger asChild>
-            <div className="flex items-center gap-[10.32px] cursor-pointer hover:opacity-80 transition-opacity">
+            <div
+              data-dashboard-tour="user-profile"
+              className="flex items-center gap-[10.32px] cursor-pointer hover:opacity-80 transition-opacity"
+            >
               <span className="block w-[40px] h-[40px] rounded-full overflow-hidden">
                 {profilePicture ? (
                   <Image
@@ -499,7 +506,7 @@ const MainHeaderContent = ({ onToggleMobileMenu }: MainHeaderProps) => {
                   {profileRoleLabel}
                 </p>
               </div>
-        </div>
+            </div>
           </PopoverTrigger>
           <PopoverContent className="w-48 p-0 bg-white border border-gray-200 shadow-lg" align="end">
             <div className="p-2">

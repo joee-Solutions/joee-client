@@ -1,6 +1,7 @@
 "use client";
 import MainHeader from "@/components/shared/MainHeader";
 import SideNavigation from "@/components/shared/SideNavigation";
+import DashboardTour from "@/components/shared/DashboardTour";
 import RoleGuard from "@/components/auth/RoleGuard";
 import React, { useEffect, useState } from "react";
 import Cookies from "js-cookie";
@@ -28,8 +29,9 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <RoleGuard>
       <div className="flex w-full relative">
+        <DashboardTour openMobileMenu={() => setIsMobileMenuOpen(true)} />
         {/* Desktop Sidebar - Hidden on mobile */}
-        <div className="hidden lg:!block">
+        <div className="hidden lg:!block" data-dashboard-tour="sidebar-desktop">
           <SideNavigation onClose={closeMobileMenu} />
         </div>
 
@@ -46,14 +48,17 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           className={`fixed inset-y-0 left-0 z-50 lg:hidden transform transition-transform duration-300 ease-in-out ${
             isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
           }`}
+          data-dashboard-tour="sidebar-mobile-drawer"
         >
           <SideNavigation onClose={closeMobileMenu} />
         </div>
 
         {/* Main Content */}
-        <div className="flex flex-col lg:pl-72 w-full">
+        <div className="flex flex-col lg:pl-72 w-full min-w-0">
           <MainHeader onToggleMobileMenu={toggleMobileMenu} />
-          {children}
+          <div className="flex-1 min-h-0 min-w-0" data-dashboard-tour="main-content">
+            {children}
+          </div>
         </div>
       </div>
     </RoleGuard>

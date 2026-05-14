@@ -185,6 +185,12 @@ class OfflineDatabase {
     return this.getAll('employees', 'by-tenant', tenantId);
   }
 
+  /** Every row in the employees object store (all tenantId values). Used for conflict cleanup across scopes. */
+  async getAllEmployeeCacheRows(): Promise<any[]> {
+    await this.init();
+    return this.getAll("employees");
+  }
+
   async getDepartments(tenantId: string): Promise<any[]> {
     return this.getAll('departments', 'by-tenant', tenantId);
   }

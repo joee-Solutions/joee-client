@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { offlineDB, type JoeeOfflineDB } from '@/lib/offline-db';
 import { processRequestAuth, getTenantId } from '@/framework/https';
+import {
+  findPendingEmployeeNumericIdsByEmail,
+  purgePendingEmployeesByEmailFromCache,
+  storePendingEmployeeEmailConflict,
+} from '@/lib/offline-employee-conflict';
 
 export interface OfflineStatus {
   isOnline: boolean;
@@ -63,6 +68,68 @@ function repairPatientDraftLocalStorage(serverId: number, createBody: Record<str
       /* ignore */
     }
   }
+}
+
+function isEmployeeCreatePath(path: string): boolean {
+  const norm = String(path || "").replace(/^\/+/, "").split("?")[0].toLowerCase();
+  return norm.startsWith("tenant/employee/");
+}
+
+function extractRequestMessage(error: any): string {
+  return String(
+    error?.response?.data?.validationErrors ||
+      error?.response?.data?.message ||
+      error?.response?.data?.error ||
+      error?.message ||
+      ""
+  ).toLowerCase();
+}
+
+function isDuplicateEmailError(error: any): boolean {
+  const status = Number(error?.response?.status ?? 0);
+  if (status === 409) return true;
+  const msg = extractRequestMessage(error);
+  const blob = JSON.stringify(error?.response?.data ?? {}).toLowerCase();
+  return (
+    msg.includes("duplicate key value violates unique constraint") ||
+    (msg.includes("email") && msg.includes("already exists")) ||
+    msg.includes("email already exists") ||
+    (blob.includes("email") && (blob.includes("unique") || blob.includes("duplicate")))
+  );
+}
+
+function sanitizeQueuedEmployeePayload(
+  method: string,
+  path: string,
+  body: any
+): any {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return body;
+  const normPath = String(path || "").replace(/^\/+/, "").split("?")[0].toLowerCase();
+  const isEmployeeUpdate = (method === "patch" || method === "put") && normPath.startsWith("tenant/user/");
+  const isEmployeeCreate = method === "post" && normPath.startsWith("tenant/employee/");
+  if (!isEmployeeUpdate && !isEmployeeCreate) return body;
+
+  const out: any = { ...body };
+  const dep = out.department;
+
+  // Legacy queued payloads may contain department object; backend expects integer department_id.
+  if (dep && typeof dep === "object") {
+    const depId = (dep as { id?: unknown; _id?: unknown }).id ?? (dep as { _id?: unknown })._id;
+    if (depId != null && out.department_id == null) {
+      out.department_id = depId;
+    }
+    delete out.department;
+  }
+
+  // If department_id is accidentally object-like, normalize to scalar id.
+  if (out.department_id && typeof out.department_id === "object") {
+    const depId =
+      (out.department_id as { id?: unknown; _id?: unknown }).id ??
+      (out.department_id as { _id?: unknown })._id;
+    out.department_id = depId ?? out.department_id;
+  }
+
+  return out;
 }
 
 export const useOffline = () => {
@@ -129,6 +196,7 @@ export const useOffline = () => {
               body = undefined;
             }
           }
+          body = sanitizeQueuedEmployeePayload(method, path, body);
           const result = await processRequestAuth(method, path, body);
           const normPath = String(path || "").replace(/^\/+/, "");
           if (
@@ -157,13 +225,71 @@ export const useOffline = () => {
           await offlineDB.removeQueuedRequest(request.id);
         } catch (error) {
           const status = (error as any)?.response?.status;
+          const path = request.url.replace(/^\/api/, '') || request.url;
+          const method = (request.method?.toLowerCase() || 'get');
+          const employeeCreateDuplicate =
+            method === "post" && isEmployeeCreatePath(path) && isDuplicateEmailError(error);
+
+          if (employeeCreateDuplicate) {
+            let conflictedEmail = "";
+            try {
+              let body: any = request.body;
+              if (typeof body === "string" && body) {
+                try {
+                  body = JSON.parse(body);
+                } catch {
+                  body = undefined;
+                }
+              }
+              conflictedEmail = String(
+                body?.email || body?.Email || (body as any)?.user?.email || ""
+              )
+                .trim()
+                .toLowerCase();
+              if (conflictedEmail) {
+                const numericIds = await findPendingEmployeeNumericIdsByEmail(conflictedEmail);
+                for (const empId of numericIds) {
+                  try {
+                    await processRequestAuth("delete", `/tenant/employee/${empId}`);
+                  } catch (e) {
+                    console.warn(
+                      "Delete employee after duplicate-email conflict (ignored):",
+                      empId,
+                      e
+                    );
+                  }
+                }
+                await purgePendingEmployeesByEmailFromCache(conflictedEmail);
+              }
+            } catch {
+              /* ignore cleanup failures */
+            }
+            await offlineDB.removeQueuedRequest(request.id);
+            if (typeof window !== "undefined") {
+              if (conflictedEmail) {
+                storePendingEmployeeEmailConflict(conflictedEmail);
+              }
+              window.dispatchEvent(
+                new CustomEvent("offline-sync-email-conflict", {
+                  detail: {
+                    entity: "employee",
+                    email: conflictedEmail,
+                    message:
+                      "A pending offline employee could not sync because the email already exists. Please recreate with a different email.",
+                  },
+                })
+              );
+            }
+            continue;
+          }
+
           // Drop permanently invalid queued requests (wrong route/method/payload) to avoid noisy retry loops.
           if ([400, 404, 405, 422].includes(Number(status))) {
             console.warn("Dropping non-retriable queued request:", request, error);
             await offlineDB.removeQueuedRequest(request.id);
-          } else if (Number(status) === 500) {
-            // Server-side failure: keep queued item and retry later without noisy error overlay.
-            console.warn("Server 500 while syncing queued request; will retry:", request);
+          } else if ([500, 502, 503, 504].includes(Number(status))) {
+            // Server-side failure / backend unavailable: keep queued item and retry later without noisy error overlay.
+            console.warn(`Server ${status} while syncing queued request; will retry:`, request);
             await offlineDB.incrementRetryCount(request.id);
           } else {
             console.error('Failed to sync request:', request, error);

@@ -456,8 +456,9 @@ const processRequestAuth = async (
         status: error?.response?.status,
         message: error?.response?.data?.message || error?.message,
       });
-    } else if (Number(error?.response?.status) === 500) {
-      // Backend/server fault. Keep as warning to avoid dev overlay noise while callers handle retry/fallback.
+    } else if ([500, 502, 503, 504].includes(Number(error?.response?.status))) {
+      // Backend/server fault or temporarily unavailable. Keep as warning to avoid dev overlay noise
+      // while callers handle retry/fallback (offline queue replay).
       console.warn(`Server error for ${path}:`, {
         status: error?.response?.status,
         message: error?.response?.data?.message || error?.message,

@@ -77,6 +77,14 @@ function extractIdFromPath(path: string): string | null {
   return last ?? null;
 }
 
+function normalizeOptimisticId(id: unknown): string | number | undefined {
+  if (id == null) return undefined;
+  if (typeof id === "number") return id;
+  const asString = String(id).trim();
+  if (/^\d+$/.test(asString)) return Number(asString);
+  return asString;
+}
+
 async function queueOfflineMutation(
   method: "post" | "put" | "patch" | "delete",
   path: string,
@@ -110,10 +118,11 @@ async function queueOfflineMutation(
   if (storeName && tenant && (method === "post" || method === "put" || method === "patch")) {
     const payload = data && typeof data === "object" ? data : {};
     const idFromPath = extractIdFromPath(path);
-    const optimisticId =
+    const optimisticIdRaw =
       method === "post"
         ? payload.id ?? `offline-${Date.now()}`
         : payload.id ?? idFromPath ?? `offline-${Date.now()}`;
+    const optimisticId = normalizeOptimisticId(optimisticIdRaw);
     try {
       let optimisticRow: any = { ...payload, id: optimisticId };
       if (method === "put" || method === "patch") {
@@ -125,6 +134,12 @@ async function queueOfflineMutation(
         if (existing) {
           optimisticRow = { ...existing, ...payload, id: optimisticId };
         }
+      } else if (method === "post") {
+        optimisticRow = {
+          ...optimisticRow,
+          _offline: true,
+          _pending: true,
+        };
       }
       await offlineDB.cacheData(storeName, [optimisticRow], tenant, "merge");
     } catch (_) {}
@@ -141,10 +156,11 @@ async function queueOfflineMutation(
   }
 
   const payloadObj = data && typeof data === "object" ? data : {};
-  const optimisticId =
+  const optimisticIdRaw =
     method === "post"
       ? payloadObj.id ?? `offline-${Date.now()}`
       : payloadObj.id ?? extractIdFromPath(path) ?? `offline-${Date.now()}`;
+  const optimisticId = normalizeOptimisticId(optimisticIdRaw);
   const optimistic = toResponseShape([{ ...payloadObj, id: optimisticId }]);
   if (method === "post" && optimistic.data?.data?.[0]) {
     (optimistic.data as any).id = optimisticId;

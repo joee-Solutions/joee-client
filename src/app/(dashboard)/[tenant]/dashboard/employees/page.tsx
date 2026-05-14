@@ -13,6 +13,12 @@ import { processRequestOfflineAuth, extractApiListItems } from "@/framework/offl
 import { getTenantId } from "@/framework/https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { offlineDB } from "@/lib/offline-db";
+import {
+  filterOutPendingEmployeeByEmail,
+  isPendingOfflineEmployeeRow,
+  purgePendingEmployeesByEmailFromCache,
+  peekPendingEmployeeEmailConflict,
+} from "@/lib/offline-employee-conflict";
 import { getApiErrorMessagesString } from "@/utils/api-error";
 import { toast } from "react-toastify";
 import { useForm, Controller } from "react-hook-form";
@@ -43,22 +49,26 @@ import {
 import SuccessModal from "@/components/shared/SuccessModal";
 
 type EmployeeCard = {
-  id: number;
+  id: number | string;
   name: string;
   role: string;
   description: string;
   picture: string;
   rgbColorCode: string;
+  email?: string;
+  _pending?: boolean;
 };
 
 type EmployeeDTO = {
-  id: number;
+  id: number | string;
   profilePicture: string;
   firstName: string;
   lastName: string;
   departmentName: string;
   designation: string;
   status: string;
+  email?: string;
+  _pending?: boolean;
 };
 
 // Helper function to map API user data to EmployeeDTO
@@ -70,7 +80,9 @@ const mapUserToEmployeeDTO = (user: any, index: number): EmployeeDTO => {
   
   // Determine status - check various possible fields
   let status = "Active";
-  if (user.status) {
+  if (isPendingOfflineEmployeeRow(user)) {
+    status = "Pending";
+  } else if (user.status) {
     status = typeof user.status === "string" ? user.status : (user.status ? "Active" : "Inactive");
   } else if (user.is_active !== undefined) {
     status = user.is_active ? "Active" : "Inactive";
@@ -86,6 +98,8 @@ const mapUserToEmployeeDTO = (user: any, index: number): EmployeeDTO => {
     user.profilePicture ||
     "";
 
+  const pendingFlag = isPendingOfflineEmployeeRow(user);
+
   return {
     id: user.id || user._id || index + 1,
     profilePicture,
@@ -94,6 +108,8 @@ const mapUserToEmployeeDTO = (user: any, index: number): EmployeeDTO => {
     departmentName,
     designation: Array.isArray(designation) ? designation[0] : String(designation),
     status: status.charAt(0).toUpperCase() + status.slice(1).toLowerCase(),
+    email: user.email || user.email_address || "",
+    _pending: pendingFlag,
   };
 };
 
@@ -127,6 +143,8 @@ const mapUserToEmployeeCard = (user: any, index: number): EmployeeCard => {
     description: name, // Use employee name (first and last) as description
     picture,
     rgbColorCode,
+    email: user.email || user.email_address || "",
+    _pending: isPendingOfflineEmployeeRow(user),
   };
 };
 
@@ -249,6 +267,8 @@ const createColumns = (
           className={`font-semibold text-xs ${
             row.status.toLowerCase() === "active"
               ? "text-[#3FA907]"
+              : row.status.toLowerCase() === "pending"
+                ? "text-amber-600"
               : "text-[#EC0909]"
           }`}
         >
@@ -337,7 +357,62 @@ export default function EmployeePage() {
   });
 
   useEffect(() => {
-    loadEmployees();
+    const pending = peekPendingEmployeeEmailConflict();
+    if (pending) {
+      void loadEmployees({ conflictEmail: pending });
+    } else {
+      void loadEmployees();
+    }
+  }, []);
+
+  useEffect(() => {
+    const onOfflineSyncEmailConflict = (evt: Event) => {
+      const detail = (evt as CustomEvent<{ entity?: string; email?: string; message?: string }>).detail;
+      if (detail?.entity !== "employee") return;
+
+      toast.warning(
+        detail?.message ||
+          "A pending offline employee could not sync because the email already exists. Please recreate it with another email.",
+        { toastId: "employee-offline-sync-email-conflict", autoClose: 9000 }
+      );
+
+      const conflictedEmail = normalizeEmail(detail?.email);
+
+      const matchByEmail = (rowEmail: string): boolean =>
+        conflictedEmail ? rowEmail === conflictedEmail : true;
+
+      setFullEmployeeData((prev) =>
+        prev.filter((emp: any) => {
+          if (!isPendingOfflineEmployeeRow(emp)) return true;
+          const rowEmail = normalizeEmail(emp?.email || emp?.email_address);
+          return !matchByEmail(rowEmail);
+        })
+      );
+      setEmployeesTableData((prev) =>
+        prev.filter((row: any) => {
+          if (!isPendingOfflineEmployeeRow(row)) return true;
+          const rowEmail = normalizeEmail((row as any)?.email || (row as any)?.email_address);
+          return !matchByEmail(rowEmail);
+        })
+      );
+      setEmployeeCards((prev) =>
+        prev.filter((card: any) => {
+          if (!isPendingOfflineEmployeeRow(card)) return true;
+          const rowEmail = normalizeEmail((card as any)?.email);
+          return !matchByEmail(rowEmail);
+        })
+      );
+
+      void loadEmployees({ conflictEmail: conflictedEmail || undefined });
+    };
+    if (typeof window !== "undefined") {
+      window.addEventListener("offline-sync-email-conflict", onOfflineSyncEmailConflict as EventListener);
+    }
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("offline-sync-email-conflict", onOfflineSyncEmailConflict as EventListener);
+      }
+    };
   }, []);
 
   // Ensure body scroll is restored when modals close
@@ -366,12 +441,20 @@ export default function EmployeePage() {
     setEditProfileImageFailed(false);
   }, [isEditModalOpen, editFormData.employeeImage, editImagePreviewUrl]);
 
-  const loadEmployees = async () => {
+  const loadEmployees = async (opts?: { conflictEmail?: string }) => {
     try {
       setIsLoading(true);
+      const conflictEmail = String(opts?.conflictEmail || "").trim().toLowerCase();
+      if (conflictEmail) {
+        await purgePendingEmployeesByEmailFromCache(conflictEmail);
+      }
+
       const response = await processRequestOfflineAuth("get", API_ENDPOINTS.GET_EMPLOYEE);
 
-      const users = extractApiListItems(response);
+      let users = extractApiListItems(response);
+      if (conflictEmail) {
+        users = filterOutPendingEmployeeByEmail(users, conflictEmail);
+      }
 
       if (users.length > 0) {
         // Store full user data for edit modal
@@ -1149,9 +1232,9 @@ export default function EmployeePage() {
         {/* Employee Cards - horizontal scroll */}
         {!showForm && (
           <div className="flex gap-[19px] overflow-x-auto pb-2 mb-10 scroll-smooth snap-x snap-mandatory [scrollbar-width:thin]">
-          {employeeCards.map((empCard) => (
+          {employeeCards.map((empCard, index) => (
             <div
-              key={empCard.id}
+              key={`${empCard.id}-${empCard.name}-${index}`}
               className="flex-shrink-0 w-[260px] snap-start rounded-[10px] shadow-[0px_4px_4px_0px_#00000040] bg-white flex flex-col overflow-hidden"
             >
               <div
