@@ -21,6 +21,12 @@ import {
 import { toast } from "react-toastify";
 import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
+import { offlineDB } from "@/lib/offline-db";
+import {
+  buildPatientStub,
+  buildUserStub,
+  offlineRowSortKey,
+} from "@/lib/offline-optimistic-display";
 
 type ViewMode = "month" | "week" | "day" | "list";
 type ModalMode = "add" | "view" | "edit" | null;
@@ -94,8 +100,11 @@ export default function AppointmentsPage() {
           : Array.isArray(response)
             ? response
             : [];
+      const sorted = [...(raw as Record<string, unknown>[])].sort(
+        (a, b) => offlineRowSortKey(b) - offlineRowSortKey(a)
+      );
       setAppointments(
-        (raw as Record<string, unknown>[]).map((a) => {
+        sorted.map((a) => {
           const rec = a as Record<string, unknown>;
           const dateStr = rec.date ?? rec.appointmentDate ?? rec.scheduledAt ?? rec.createdAt;
           const d = dateStr ? parseApiDateToLocalDate(dateStr) : new Date();
@@ -170,6 +179,15 @@ export default function AppointmentsPage() {
 
   useEffect(() => {
     loadAppointments();
+    const refresh = () => {
+      void loadAppointments();
+    };
+    window.addEventListener("offline-sync-complete", refresh);
+    window.addEventListener("online", refresh);
+    return () => {
+      window.removeEventListener("offline-sync-complete", refresh);
+      window.removeEventListener("online", refresh);
+    };
   }, [loadAppointments]);
 
   const handleAddAppointment = () => {
@@ -198,12 +216,22 @@ export default function AppointmentsPage() {
         : new Date(appointmentData.appointmentDate as unknown as string);
     const iso = !isNaN(date.getTime()) ? date.toISOString() : new Date().toISOString();
 
+    const patientName = String(appointmentData.patientName ?? "").trim();
+    const doctorName = String(appointmentData.doctorName ?? "").trim();
+    const patient = buildPatientStub(appointmentData.patientId, patientName);
+    const user = buildUserStub(appointmentData.doctorId, doctorName);
+
     const payload: Record<string, unknown> = {
       patient_id: appointmentData.patientId,
       user_id: appointmentData.doctorId,
       patientId: appointmentData.patientId,
       userId: appointmentData.doctorId,
+      patientName,
+      doctorName,
+      patient,
+      user,
       date: iso,
+      appointmentDate: iso,
       start_time: appointmentData.startTime,
       end_time: appointmentData.endTime || undefined,
       startTime: appointmentData.startTime,
@@ -263,13 +291,34 @@ export default function AppointmentsPage() {
   const confirmDelete = async () => {
     if (!appointmentToDelete) return;
     const id = appointmentToDelete.id;
+    const isOfflineOnly = String(id).startsWith("offline-");
+
+    setAppointments((prev) => prev.filter((a) => String(a.id) !== String(id)));
+    setIsDeleteModalOpen(false);
+    setAppointmentToDelete(null);
+
     try {
-      await processRequestOfflineAuth(
-        "delete",
-        API_ENDPOINTS.DELETE_APPOINTMENT(0, id)
-      );
-      setIsDeleteModalOpen(false);
-      setAppointmentToDelete(null);
+      if (isOfflineOnly) {
+        await offlineDB.init();
+        await offlineDB.removeCachedItemByIdEverywhere("appointments", id);
+        await offlineDB.removeQueuedRequestsWhere((req) => {
+          const path = req.url.replace(/^\/api/, "").toLowerCase();
+          if (!path.includes("tenant/appointment")) return false;
+          if (req.method.toUpperCase() === "DELETE") {
+            return path.endsWith(`/${String(id).toLowerCase()}`);
+          }
+          if (req.method.toUpperCase() === "POST" && req.body && typeof req.body === "object") {
+            const body = req.body as Record<string, unknown>;
+            return String(body.id ?? "") === String(id);
+          }
+          return false;
+        });
+      } else {
+        await processRequestOfflineAuth(
+          "delete",
+          API_ENDPOINTS.DELETE_APPOINTMENT(0, id)
+        );
+      }
       await loadAppointments();
       setSuccessModal({
         open: true,
@@ -277,6 +326,7 @@ export default function AppointmentsPage() {
         message: "Appointment deleted successfully.",
       });
     } catch (e: unknown) {
+      await loadAppointments();
       const msg =
         (e as { response?: { data?: { message?: string } } })?.response?.data?.message ??
         "Failed to delete appointment";

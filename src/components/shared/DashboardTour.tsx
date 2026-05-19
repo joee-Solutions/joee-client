@@ -242,7 +242,9 @@ export default function DashboardTour({ openMobileMenu }: DashboardTourProps) {
   const step = steps[stepIndex];
   if (!step) return null;
 
+  const isFirst = stepIndex <= 0;
   const isLast = stepIndex >= steps.length - 1;
+  const goPrevious = () => setStepIndex((i) => Math.max(0, i - 1));
   const goNext = () => {
     if (isLast) {
       finishTour();
@@ -289,21 +291,31 @@ export default function DashboardTour({ openMobileMenu }: DashboardTourProps) {
           {step.title}
         </h2>
         <p className="text-sm text-[#595959] leading-relaxed mb-5">{step.body}</p>
-        <div className="flex flex-wrap gap-2 justify-end">
+        <div className="flex flex-wrap items-center gap-2 justify-between">
           <button
             type="button"
-            className="px-4 py-2 text-sm font-medium text-[#595959] hover:bg-gray-100 rounded-lg transition-colors"
-            onClick={finishTour}
+            disabled={isFirst}
+            className="px-4 py-2 text-sm font-medium text-[#003465] hover:bg-[#003465]/10 rounded-lg transition-colors disabled:opacity-40 disabled:pointer-events-none disabled:hover:bg-transparent"
+            onClick={goPrevious}
           >
-            Dismiss
+            Previous
           </button>
-          <button
-            type="button"
-            className="px-4 py-2 text-sm font-semibold text-white bg-[#003465] hover:bg-[#003465]/90 rounded-lg transition-colors"
-            onClick={goNext}
-          >
-            {isLast ? "Done" : "Next"}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="px-4 py-2 text-sm font-medium text-[#595959] hover:bg-gray-100 rounded-lg transition-colors"
+              onClick={finishTour}
+            >
+              Dismiss
+            </button>
+            <button
+              type="button"
+              className="px-4 py-2 text-sm font-semibold text-white bg-[#003465] hover:bg-[#003465]/90 rounded-lg transition-colors"
+              onClick={goNext}
+            >
+              {isLast ? "Done" : "Next"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

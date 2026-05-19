@@ -375,6 +375,57 @@ class OfflineDatabase {
   }
 
   /** Drop optimistic rows created while offline (id like `offline-…`) so they do not duplicate server patients after sync. */
+  /** Remove one cached row by id across every tenant scope in a store. */
+  async removeCachedItemByIdEverywhere(
+    storeName: keyof JoeeOfflineDB,
+    id: string | number
+  ): Promise<void> {
+    await this.init();
+    const all = await this.getAll(storeName);
+    const target = String(id);
+    const byTenant = new Map<string, typeof all>();
+    for (const row of all) {
+      if (String((row as { id?: unknown }).id) === target) {
+        await this.delete(storeName, (row as { id: string | number }).id);
+        continue;
+      }
+      const tid = (row as { tenantId?: string }).tenantId;
+      if (tid == null || tid === "") continue;
+      const k = String(tid);
+      if (!byTenant.has(k)) byTenant.set(k, []);
+      byTenant.get(k)!.push(row);
+    }
+    for (const [tenantId, rows] of byTenant) {
+      const remaining = rows.filter((r) => String((r as { id?: unknown }).id) !== target);
+      if (remaining.length !== rows.length) {
+        await this.cacheData(storeName, remaining, tenantId, "replace");
+      }
+    }
+  }
+
+  async removeQueuedRequestsWhere(
+    predicate: (req: {
+      url: string;
+      method: string;
+      body?: unknown;
+    }) => boolean
+  ): Promise<void> {
+    const queued = await this.getQueuedRequests();
+    for (const req of queued) {
+      let body: unknown = req.body;
+      if (typeof body === "string" && body) {
+        try {
+          body = JSON.parse(body);
+        } catch {
+          /* keep string */
+        }
+      }
+      if (predicate({ url: req.url, method: req.method, body })) {
+        await this.removeQueuedRequest(req.id);
+      }
+    }
+  }
+
   async removeOfflineTempPatientsForTenant(tenantId: string): Promise<void> {
     await this.init();
     const rows = await this.getCachedData("patients", tenantId);

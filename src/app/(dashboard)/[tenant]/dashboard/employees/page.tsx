@@ -14,9 +14,11 @@ import { getTenantId } from "@/framework/https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { offlineDB } from "@/lib/offline-db";
 import {
+  dedupeEmployeesUsersList,
   filterOutPendingEmployeeByEmail,
   isPendingOfflineEmployeeRow,
   purgePendingEmployeesByEmailFromCache,
+  purgeStalePendingEmployeesFromCache,
   peekPendingEmployeeEmailConflict,
 } from "@/lib/offline-employee-conflict";
 import { getApiErrorMessagesString } from "@/utils/api-error";
@@ -363,6 +365,18 @@ export default function EmployeePage() {
     } else {
       void loadEmployees();
     }
+    const onOnline = () => {
+      void loadEmployees();
+    };
+    const onSyncComplete = () => {
+      void loadEmployees();
+    };
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline-sync-complete", onSyncComplete);
+    return () => {
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline-sync-complete", onSyncComplete);
+    };
   }, []);
 
   useEffect(() => {
@@ -377,31 +391,6 @@ export default function EmployeePage() {
       );
 
       const conflictedEmail = normalizeEmail(detail?.email);
-
-      const matchByEmail = (rowEmail: string): boolean =>
-        conflictedEmail ? rowEmail === conflictedEmail : true;
-
-      setFullEmployeeData((prev) =>
-        prev.filter((emp: any) => {
-          if (!isPendingOfflineEmployeeRow(emp)) return true;
-          const rowEmail = normalizeEmail(emp?.email || emp?.email_address);
-          return !matchByEmail(rowEmail);
-        })
-      );
-      setEmployeesTableData((prev) =>
-        prev.filter((row: any) => {
-          if (!isPendingOfflineEmployeeRow(row)) return true;
-          const rowEmail = normalizeEmail((row as any)?.email || (row as any)?.email_address);
-          return !matchByEmail(rowEmail);
-        })
-      );
-      setEmployeeCards((prev) =>
-        prev.filter((card: any) => {
-          if (!isPendingOfflineEmployeeRow(card)) return true;
-          const rowEmail = normalizeEmail((card as any)?.email);
-          return !matchByEmail(rowEmail);
-        })
-      );
 
       void loadEmployees({ conflictEmail: conflictedEmail || undefined });
     };
@@ -455,6 +444,8 @@ export default function EmployeePage() {
       if (conflictEmail) {
         users = filterOutPendingEmployeeByEmail(users, conflictEmail);
       }
+      await purgeStalePendingEmployeesFromCache(users);
+      users = dedupeEmployeesUsersList(users);
 
       if (users.length > 0) {
         // Store full user data for edit modal
@@ -1001,6 +992,7 @@ export default function EmployeePage() {
   // Handle create employee form submission
   const handleCreateEmployee = async (data: EmployeeSchemaType) => {
     setIsSubmitting(true);
+    let createEmail = "";
     try {
       // Extract department ID from department string
       const departmentId = data.department; // This should be the department ID
@@ -1011,6 +1003,7 @@ export default function EmployeePage() {
       // Transform data to match API expected format (lowercase field names).
       // Important: `dob` and `hireDate` default to "" when not selected; sending ""
       // triggers backend validation ("must be a Date instance"), so we omit them.
+      createEmail = normalizeEmail(employeeData.email);
       const transformedData: any = {
         firstname: employeeData.firstName ?? "",
         lastname: employeeData.lastName ?? "",
@@ -1067,10 +1060,15 @@ export default function EmployeePage() {
       if (isOfflineNow()) {
         const exists = await hasExistingEmployeeEmail(transformedData.email);
         if (exists) {
+          const dupEmail = normalizeEmail(transformedData.email);
+          if (dupEmail) {
+            await purgePendingEmployeesByEmailFromCache(dupEmail);
+          }
           toast.error("Email already exists. Please use a different email address.", {
             toastId: "employee-create-duplicate-email-offline",
             autoClose: 7000,
           });
+          await loadEmployees({ conflictEmail: normalizeEmail(transformedData.email) || undefined });
           return;
         }
       }
@@ -1098,10 +1096,15 @@ export default function EmployeePage() {
         typeof msg === "string" &&
         msg.toLowerCase().includes("duplicate key value violates unique constraint")
       ) {
+        const dupEmail = createEmail || normalizeEmail(data.email);
+        if (dupEmail) {
+          await purgePendingEmployeesByEmailFromCache(dupEmail);
+        }
         toast.error("Email already exists. Please use a different email address.", {
           toastId: "employee-create-duplicate-email",
           autoClose: 7000,
         });
+        await loadEmployees({ conflictEmail: dupEmail || undefined });
         return;
       }
       if (typeof msg === "string" && msg.toLowerCase().includes("request entity too large")) {

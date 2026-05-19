@@ -46,7 +46,7 @@ const schema = z.object({
 /** Public support / contact form URL (override in env). */
 const SUPPORT_FORM_URL =
   (typeof process !== "undefined" && process.env.NEXT_PUBLIC_SUPPORT_FORM_URL?.trim()) ||
-  "mailto:support@locicare.com";
+  "mailto:support@joee.solutions";
 
 function dashboardHrefForTenant(tenantSlug?: string): string {
   const isSubdomain =
@@ -501,7 +501,7 @@ const TenantLoginPage = () => {
                     className="text-[#003465] underline font-medium hover:text-[#002147]"
                   >
                     here
-                  </Link>{" "} support@locicare.com
+                  </Link>{" "} support@joee.solutions
                   for support.
                 </p>
               </div>

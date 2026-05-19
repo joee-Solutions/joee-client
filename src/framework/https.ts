@@ -3,6 +3,7 @@ import axios from "axios";
 import { getRefreshToken, getToken } from "./get-token";
 import Cookies from "js-cookie";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
+import { isAxiosNetworkError } from "@/framework/api-errors";
 
 let httpNoAuth: any;
 let refreshingToking = false;
@@ -366,9 +367,7 @@ const processRequestNoAuth = async (
     if (method === "post") {
       rt = await httpNoAuth.post(`${path}`, data);
     } else if (method === "get") {
-      rt = await httpNoAuth.get(`${path}`, {
-        signal: controller.signal,
-      });
+      rt = await httpNoAuth.get(`${path}`);
     } else if (method === "put") {
       rt = await httpNoAuth.put(`${path}`, data);
     } else if (method === "delete") {
@@ -382,8 +381,14 @@ const processRequestNoAuth = async (
     }
 
     return rt.data;
-  } catch (error) {
-    console.log(error);
+  } catch (error: any) {
+    if (isAxiosNetworkError(error)) {
+      console.warn(
+        `Network unavailable for ${path} — check your connection or API server.`
+      );
+    } else {
+      console.warn(`Request failed for ${path}:`, error?.response?.data?.message || error?.message);
+    }
     if (callback) {
       callback(path, null, error);
     } else {
@@ -420,9 +425,7 @@ const processRequestAuth = async (
     if (method === "post") {
       rt = await httpAuth.post(`${path}`, data);
     } else if (method === "get") {
-      rt = await httpAuth.get(`${path}`, {
-        signal: controller.signal,
-      });
+      rt = await httpAuth.get(`${path}`);
     } else if (method === "put") {
       rt = await httpAuth.put(`${path}`, data);
     } else if (method === "patch") {
@@ -463,6 +466,10 @@ const processRequestAuth = async (
         status: error?.response?.status,
         message: error?.response?.data?.message || error?.message,
       });
+    } else if (isAxiosNetworkError(error)) {
+      console.warn(
+        `Network unavailable for ${path} — check your connection or API server; cached/offline data may be used.`
+      );
     } else if (error?.response?.status !== 401 && error?.response?.status !== 403) {
       // Only log non-auth errors (401/403 are handled by interceptor)
       console.error(error);

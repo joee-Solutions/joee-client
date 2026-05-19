@@ -3,7 +3,7 @@
 import DataTable, { Column } from "@/components/shared/table/DataTable";
 import { ListView } from "@/components/shared/table/DataTableFilter";
 import Pagination from "@/components/shared/table/pagination";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MoreVertical, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search";
@@ -49,8 +49,12 @@ export default function AppointmentList({
     setCurrentPage(event.selected);
   };
 
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [appointments.length, searchQuery]);
+
   // Filter appointments based on search
-  const filteredAppointments = appointments.filter((appointment) => {
+  const filteredAppointments = useMemo(() => appointments.filter((appointment) => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     return (
@@ -62,14 +66,27 @@ export default function AppointmentList({
       appointment.id?.toLowerCase().includes(query) ||
       (appointment.description?.toLowerCase().includes(query) ?? false)
     );
-  });
+  }), [appointments, searchQuery]);
+
+  const pageCount = Math.max(1, Math.ceil(filteredAppointments.length / pageSize));
+
+  useEffect(() => {
+    if (currentPage >= pageCount) {
+      setCurrentPage(Math.max(0, pageCount - 1));
+    }
+  }, [currentPage, pageCount]);
+
+  const paginatedAppointments = useMemo(() => {
+    const start = currentPage * pageSize;
+    return filteredAppointments.slice(start, start + pageSize);
+  }, [filteredAppointments, currentPage, pageSize]);
 
   const columns: Column<Appointment>[] = [
     {
       header: "S/N",
       render: (row, index = 0) => (
         <p className="font-semibold text-xs text-[#737373]">
-          {(index ?? 0) + 1}
+          {currentPage * pageSize + (index ?? 0) + 1}
         </p>
       ),
       size: 80,
@@ -155,13 +172,14 @@ export default function AppointmentList({
         </div>
         <DataTable
           columns={columns as any}
-          data={filteredAppointments as any}
+          data={paginatedAppointments as any}
           bgHeader="bg-[#003465] text-white"
         />
         <Pagination
           dataLength={filteredAppointments.length}
-          numOfPages={Math.ceil(filteredAppointments.length / pageSize)}
+          numOfPages={pageCount}
           pageSize={pageSize}
+          currentPage={currentPage}
           handlePageClick={handlePageClick}
         />
       </div>

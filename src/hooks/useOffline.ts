@@ -6,6 +6,7 @@ import {
   purgePendingEmployeesByEmailFromCache,
   storePendingEmployeeEmailConflict,
 } from '@/lib/offline-employee-conflict';
+import { leanQueuePayload } from '@/lib/offline-queue-payload';
 
 export interface OfflineStatus {
   isOnline: boolean;
@@ -70,9 +71,16 @@ function repairPatientDraftLocalStorage(serverId: number, createBody: Record<str
   }
 }
 
-function isEmployeeCreatePath(path: string): boolean {
+function isEmployeeCreatePath(path: string, method?: string): boolean {
+  if (method && method !== "post") return false;
   const norm = String(path || "").replace(/^\/+/, "").split("?")[0].toLowerCase();
   return norm.startsWith("tenant/employee/");
+}
+
+function normalizeQueuedPath(url: string): string {
+  let path = url.replace(/^\/api/, "") || url;
+  if (!path.startsWith("/")) path = `/${path}`;
+  return path;
 }
 
 function extractRequestMessage(error: any): string {
@@ -180,13 +188,13 @@ export const useOffline = () => {
 
   // Sync data when back online (replay queued requests via processRequestAuth for token refresh)
   const syncData = useCallback(async () => {
-    if (!status.isOnline) return;
+    if (typeof navigator !== "undefined" && !navigator.onLine) return;
 
     try {
       const queuedRequests = await offlineDB.getQueuedRequests();
       for (const request of queuedRequests) {
         try {
-          const path = request.url.replace(/^\/api/, '') || request.url;
+          const path = normalizeQueuedPath(request.url);
           const method = (request.method?.toLowerCase() || 'get') as 'get' | 'post' | 'put' | 'patch' | 'delete';
           let body: any = request.body;
           if (typeof body === 'string' && body) {
@@ -197,6 +205,9 @@ export const useOffline = () => {
             }
           }
           body = sanitizeQueuedEmployeePayload(method, path, body);
+          if (body && typeof body === "object") {
+            body = leanQueuePayload(method, path, body as Record<string, unknown>);
+          }
           const result = await processRequestAuth(method, path, body);
           const normPath = String(path || "").replace(/^\/+/, "");
           if (
@@ -225,10 +236,10 @@ export const useOffline = () => {
           await offlineDB.removeQueuedRequest(request.id);
         } catch (error) {
           const status = (error as any)?.response?.status;
-          const path = request.url.replace(/^\/api/, '') || request.url;
+          const path = normalizeQueuedPath(request.url);
           const method = (request.method?.toLowerCase() || 'get');
           const employeeCreateDuplicate =
-            method === "post" && isEmployeeCreatePath(path) && isDuplicateEmailError(error);
+            method === "post" && isEmployeeCreatePath(path, method) && isDuplicateEmailError(error);
 
           if (employeeCreateDuplicate) {
             let conflictedEmail = "";
@@ -308,10 +319,14 @@ export const useOffline = () => {
       }
 
       await updateQueueSizes();
+
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("offline-sync-complete"));
+      }
     } catch (error) {
       console.error('Error syncing data:', error);
     }
-  }, [status.isOnline, updateQueueSizes]);
+  }, [updateQueueSizes]);
 
   // Queue a request for later
   const queueRequest = useCallback(async (

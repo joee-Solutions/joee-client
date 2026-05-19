@@ -3,8 +3,18 @@
  * when offline reads from IndexedDB and queues mutations.
  */
 import { processRequestAuth, getTenantId } from "@/framework/https";
+import { isBackendUnreachableError } from "@/framework/api-errors";
 import { getToken } from "@/framework/get-token";
+import { getLastSession } from "@/lib/auth-store";
 import { offlineDB, type JoeeOfflineDB } from "@/lib/offline-db";
+import {
+  enrichAppointmentPayload,
+  enrichSchedulePayload,
+  lookupEmployeeNameFromCache,
+  lookupPatientNameFromCache,
+} from "@/lib/offline-optimistic-display";
+import { leanQueuePayload } from "@/lib/offline-queue-payload";
+import Cookies from "js-cookie";
 
 const getBaseURL = () => (typeof window === "undefined" ? "" : "/api");
 
@@ -49,22 +59,78 @@ function isOnline(): boolean {
   return typeof navigator !== "undefined" && navigator.onLine;
 }
 
-function isBackendUnreachableError(error: any): boolean {
-  const msg = String(error?.message || "").toLowerCase();
-  const code = String(error?.code || "").toUpperCase();
-  const status = Number(error?.response?.status ?? 0);
-  return (
-    code === "ENOTFOUND" ||
-    code === "ERR_NETWORK" ||
-    code === "ECONNABORTED" ||
-    code === "ETIMEDOUT" ||
-    msg.includes("getaddrinfo") ||
-    msg.includes("network error") ||
-    status === 500 ||
-    status === 502 ||
-    status === 503 ||
-    status === 504
-  );
+function isProfilePath(path: string): boolean {
+  return path.replace(/^\/+/, "").toLowerCase().startsWith("tenant/profile");
+}
+
+/** Shape compatible with parseTenantProfileResponse when API is unreachable. */
+async function getProfileOfflineFallback(): Promise<Record<string, unknown> | null> {
+  try {
+    const session = await getLastSession();
+    const user = session?.user;
+    if (user && typeof user === "object" && Object.keys(user).length > 0) {
+      return {
+        data: {
+          data: {
+            tenant: user,
+            role: (user as { roles?: unknown; role?: unknown }).roles ?? (user as { role?: unknown }).role,
+          },
+        },
+      };
+    }
+  } catch {
+    /* ignore */
+  }
+
+  const userCookie = Cookies.get("user");
+  if (!userCookie) return null;
+  try {
+    const parsed = JSON.parse(userCookie) as Record<string, unknown>;
+    if (parsed && typeof parsed === "object") {
+      return {
+        data: {
+          data: {
+            tenant: parsed,
+            role: parsed.roles ?? parsed.role,
+          },
+        },
+      };
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+async function handleUnreachableGet(
+  path: string,
+  storeName: keyof JoeeOfflineDB | null,
+  tenant: string | undefined,
+  callback?: (path: string, data: any, error?: any) => void
+): Promise<any | null> {
+  if (isProfilePath(path)) {
+    const profile = await getProfileOfflineFallback();
+    if (profile) {
+      if (callback) callback(path, profile);
+      return profile;
+    }
+  }
+
+  if (storeName && tenant) {
+    try {
+      await offlineDB.init();
+      const cached = await offlineDB.getCachedData(storeName, tenant);
+      const out = toResponseShape(cached);
+      if (callback) callback(path, out);
+      return out;
+    } catch {
+      /* fall through */
+    }
+  }
+
+  const empty = toResponseShape([]);
+  if (callback) callback(path, empty);
+  return empty;
 }
 
 function extractIdFromPath(path: string): string | null {
@@ -85,6 +151,62 @@ function normalizeOptimisticId(id: unknown): string | number | undefined {
   return asString;
 }
 
+function extractEmployeeIdFromSchedulePath(path: string): string | null {
+  const parts = path.split("?")[0].split("/").filter(Boolean);
+  const idx = parts.findIndex((p) => p === "schedule");
+  if (idx >= 0 && parts[idx + 1]) return parts[idx + 1];
+  return null;
+}
+
+async function enrichPayloadForOfflineCache(
+  storeName: keyof JoeeOfflineDB,
+  path: string,
+  method: "post" | "put" | "patch",
+  payload: Record<string, unknown>,
+  existing?: Record<string, unknown>,
+  tenant?: string
+): Promise<Record<string, unknown>> {
+  if (storeName === "appointments") {
+    let enriched = enrichAppointmentPayload(payload, existing);
+    if (tenant) {
+      const pid = enriched.patientId ?? enriched.patient_id;
+      const uid = enriched.userId ?? enriched.user_id;
+      if (pid != null && !enriched.patientName) {
+        const name = await lookupPatientNameFromCache(tenant, pid as string | number);
+        if (name) enriched = enrichAppointmentPayload({ ...enriched, patientName: name }, existing);
+      }
+      if (uid != null && !enriched.doctorName) {
+        const emp = await lookupEmployeeNameFromCache(tenant, uid as string | number);
+        if (emp.name) {
+          enriched = enrichAppointmentPayload(
+            { ...enriched, doctorName: emp.name },
+            existing
+          );
+        }
+      }
+    }
+    return enriched;
+  }
+
+  if (storeName === "schedules") {
+    const employeeIdFromPath = extractEmployeeIdFromSchedulePath(path);
+    let meta: Parameters<typeof enrichSchedulePayload>[2];
+    if (tenant && employeeIdFromPath) {
+      const emp = await lookupEmployeeNameFromCache(tenant, employeeIdFromPath);
+      meta = {
+        employeeId: employeeIdFromPath,
+        employeeName: emp.name,
+        firstname: emp.firstname,
+        lastname: emp.lastname,
+        department: emp.department || (payload.department as string),
+      };
+    }
+    return enrichSchedulePayload(payload, existing, meta);
+  }
+
+  return payload;
+}
+
 async function queueOfflineMutation(
   method: "post" | "put" | "patch" | "delete",
   path: string,
@@ -103,9 +225,18 @@ async function queueOfflineMutation(
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 
-  const body =
+  const cachePayload =
     data != null && typeof data === "object" && !(data instanceof FormData)
-      ? JSON.stringify(data)
+      ? ({ ...(data as Record<string, unknown>) } as Record<string, unknown>)
+      : undefined;
+  const queuePayload = leanQueuePayload(
+    method,
+    path,
+    cachePayload
+  );
+  const body =
+    queuePayload != null && typeof queuePayload === "object"
+      ? JSON.stringify(queuePayload)
       : undefined;
 
   await offlineDB.queueRequest({
@@ -116,42 +247,54 @@ async function queueOfflineMutation(
   });
 
   if (storeName && tenant && (method === "post" || method === "put" || method === "patch")) {
-    const payload = data && typeof data === "object" ? data : {};
+    const payload =
+      cachePayload ??
+      (data && typeof data === "object" ? ({ ...data } as Record<string, unknown>) : {});
     const idFromPath = extractIdFromPath(path);
+    const isAppointmentCreate =
+      method === "post" && path.replace(/^\/+/, "").toLowerCase().includes("tenant/appointment/");
     const optimisticIdRaw =
       method === "post"
-        ? payload.id ?? `offline-${Date.now()}`
+        ? payload.id ?? (isAppointmentCreate ? `offline-${Date.now()}` : idFromPath) ?? `offline-${Date.now()}`
         : payload.id ?? idFromPath ?? `offline-${Date.now()}`;
     const optimisticId = normalizeOptimisticId(optimisticIdRaw);
     try {
-      let optimisticRow: any = { ...payload, id: optimisticId };
+      let existing: Record<string, unknown> | undefined;
       if (method === "put" || method === "patch") {
-        // Merge PATCH/PUT payload into existing cached row so partial updates don't wipe fields.
         const existingRows = await offlineDB.getCachedData(storeName, tenant);
-        const existing = existingRows.find(
+        existing = existingRows.find(
           (item: any) => String(item?.id) === String(optimisticId)
-        );
-        if (existing) {
-          optimisticRow = { ...existing, ...payload, id: optimisticId };
-        }
+        ) as Record<string, unknown> | undefined;
+      }
+
+      let enrichedPayload = await enrichPayloadForOfflineCache(
+        storeName,
+        path,
+        method,
+        payload as Record<string, unknown>,
+        existing,
+        tenant
+      );
+
+      let optimisticRow: any = { ...enrichedPayload, id: optimisticId };
+      if (existing) {
+        optimisticRow = { ...existing, ...enrichedPayload, id: optimisticId };
       } else if (method === "post") {
         optimisticRow = {
           ...optimisticRow,
           _offline: true,
           _pending: true,
+          createdAt: optimisticRow.createdAt ?? new Date().toISOString(),
         };
       }
       await offlineDB.cacheData(storeName, [optimisticRow], tenant, "merge");
     } catch (_) {}
-  } else if (storeName && tenant && method === "delete") {
-    // Apply optimistic delete to local cache immediately so offline tables update without waiting for sync.
+  } else if (storeName && method === "delete") {
     try {
-      const cached = await offlineDB.getCachedData(storeName, tenant);
       const deleteId = extractIdFromPath(path);
-      const remaining = deleteId
-        ? cached.filter((item: any) => String(item?.id) !== String(deleteId))
-        : cached;
-      await offlineDB.cacheData(storeName, remaining, tenant, "replace");
+      if (deleteId) {
+        await offlineDB.removeCachedItemByIdEverywhere(storeName, deleteId);
+      }
     } catch (_) {}
   }
 
@@ -223,23 +366,35 @@ export async function processRequestOfflineAuth(
         }
       }
 
-      return result;
-    } catch (error) {
-      // If backend is unreachable (DNS/network) treat as offline fallback, even if navigator says "online".
-      if (isBackendUnreachableError(error)) {
-        if (method === "get" && storeName && tenant) {
+      if (
+        method === "delete" &&
+        storeName &&
+        tenant &&
+        !options.skipCache
+      ) {
+        const deleteId = extractIdFromPath(path);
+        if (deleteId) {
           try {
             await offlineDB.init();
-            const cached = await offlineDB.getCachedData(storeName, tenant);
-            const out = toResponseShape(cached);
-            if (callback) callback(path, out);
-            return out;
-          } catch (_) {}
-        } else if (method !== "get") {
+            await offlineDB.removeCachedItemByIdEverywhere(storeName, deleteId);
+          } catch (e) {
+            console.warn("Offline cache delete after online DELETE failed:", e);
+          }
+        }
+      }
+
+      return result;
+    } catch (error) {
+      // Backend unreachable while browser reports online — use cache/session instead of throwing.
+      if (isBackendUnreachableError(error)) {
+        if (method === "get") {
+          const fallback = await handleUnreachableGet(path, storeName, tenant, callback);
+          if (fallback != null) return fallback;
+        } else {
           return queueOfflineMutation(method, path, data, storeName, tenant, callback);
         }
       }
-      // Optional: on network error with GET, try cache as fallback
+      // Optional: on other GET failures, try cache when we have stored rows
       if (method === "get" && storeName && tenant) {
         try {
           await offlineDB.init();

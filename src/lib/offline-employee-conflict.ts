@@ -110,3 +110,48 @@ export async function findPendingEmployeeNumericIdsByEmail(email: string): Promi
   }
   return [...out];
 }
+
+/** Drop pending rows when a synced row already has the same email (e.g. after going online). */
+export function dedupeEmployeesUsersList<T extends Record<string, unknown>>(users: T[]): T[] {
+  const serverEmails = new Set<string>();
+  for (const u of users) {
+    if (!isPendingOfflineEmployeeRow(u)) {
+      const e = rowEmail(u);
+      if (e) serverEmails.add(e);
+    }
+  }
+  if (serverEmails.size === 0) return users;
+  return users.filter((u) => {
+    if (!isPendingOfflineEmployeeRow(u)) return true;
+    const e = rowEmail(u);
+    return !e || !serverEmails.has(e);
+  });
+}
+
+/** Remove stale pending employee rows from IndexedDB when server already has that email. */
+export async function purgeStalePendingEmployeesFromCache(
+  serverUsers: Record<string, unknown>[]
+): Promise<void> {
+  const serverEmails = new Set<string>();
+  for (const u of serverUsers) {
+    if (!isPendingOfflineEmployeeRow(u)) {
+      const e = rowEmail(u);
+      if (e) serverEmails.add(e);
+    }
+  }
+  if (serverEmails.size === 0) return;
+  try {
+    await offlineDB.init();
+    const all = await offlineDB.getAllEmployeeCacheRows();
+    for (const row of all) {
+      if (!isPendingOfflineEmployeeRow(row)) continue;
+      const e = rowEmail(row);
+      if (e && serverEmails.has(e)) {
+        const rowId = (row as { id?: string | number }).id;
+        if (rowId != null) await offlineDB.delete("employees", rowId);
+      }
+    }
+  } catch {
+    /* non-fatal */
+  }
+}

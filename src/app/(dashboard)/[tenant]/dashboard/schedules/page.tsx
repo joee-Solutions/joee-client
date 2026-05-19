@@ -8,6 +8,7 @@ import { Plus, Search, MoreVertical, Edit, Trash2 } from 'lucide-react';
 import { ListView } from '@/components/shared/table/DataTableFilter';
 import { Button } from '@/components/ui/button';
 import { processRequestOfflineAuth } from '@/framework/offline-https';
+import { offlineRowSortKey } from '@/lib/offline-optimistic-display';
 import { API_ENDPOINTS } from '@/framework/api-endpoints';
 import { toast } from "react-toastify";
 import {
@@ -221,6 +222,18 @@ const SchedulesPage: React.FC = () => {
   useEffect(() => {
     loadSchedules();
     loadEmployees();
+    const onSyncComplete = () => {
+      void loadSchedules();
+    };
+    const onOnline = () => {
+      void loadSchedules();
+    };
+    window.addEventListener("offline-sync-complete", onSyncComplete);
+    window.addEventListener("online", onOnline);
+    return () => {
+      window.removeEventListener("offline-sync-complete", onSyncComplete);
+      window.removeEventListener("online", onOnline);
+    };
   }, []);
 
   const loadSchedules = async () => {
@@ -240,19 +253,35 @@ const SchedulesPage: React.FC = () => {
       // Transform API data to TableDataItem format
       // Handle schedules that may have multiple availableDays - create one row per day
       const transformedSchedules: TableDataItem[] = [];
-      
-      schedules.forEach((schedule: any, scheduleIndex: number) => {
+      const sortedSchedules = [...schedules].sort(
+        (a, b) => offlineRowSortKey(b) - offlineRowSortKey(a)
+      );
+
+      sortedSchedules.forEach((schedule: any, scheduleIndex: number) => {
         // Extract user's firstname and lastname
-        const userFirstname = schedule.user?.firstname || schedule.user?.first_name || schedule.user?.firstName || "";
-        const userLastname = schedule.user?.lastname || schedule.user?.last_name || schedule.user?.lastName || "";
-        const employeeName = `${userFirstname} ${userLastname}`.trim() || "Unknown Employee";
-        
-        // Extract department
-        const department = schedule.department || 
-                          schedule.employee?.department?.name || 
-                          schedule.department?.name || 
-                          schedule.department_name || 
-                          "General";
+        const userFirstname =
+          schedule.user?.firstname ||
+          schedule.user?.first_name ||
+          schedule.user?.firstName ||
+          "";
+        const userLastname =
+          schedule.user?.lastname ||
+          schedule.user?.last_name ||
+          schedule.user?.lastName ||
+          "";
+        const employeeName =
+          (schedule.employeeName as string) ||
+          (schedule.employee_name as string) ||
+          `${userFirstname} ${userLastname}`.trim() ||
+          "Unknown Employee";
+
+        const deptRaw = schedule.department;
+        const department =
+          (typeof deptRaw === "string" ? deptRaw : deptRaw?.name) ||
+          schedule.employee?.department?.name ||
+          schedule.department_name ||
+          (schedule.departmentName as string) ||
+          "General";
         
         // Get user/employee ID
         const userId = schedule.user?.id || schedule.employee_id || schedule.employee?.id || schedule.employeeId;
@@ -449,8 +478,19 @@ const SchedulesPage: React.FC = () => {
         });
       }
 
-      const schedulePayload = {
+      const schedulePayload: Record<string, unknown> = {
         availableDays,
+        employeeId,
+        employeeName: selectedEmployee.name,
+        department: formData.department,
+        department_name: formData.department,
+        user: {
+          id: employeeId,
+          firstname: selectedEmployee.firstname,
+          lastname: selectedEmployee.lastname,
+          first_name: selectedEmployee.firstname,
+          last_name: selectedEmployee.lastname,
+        },
       };
 
       if (isEditMode && scheduleToEdit) {
