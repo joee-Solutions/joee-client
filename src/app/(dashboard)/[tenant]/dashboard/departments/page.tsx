@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Search, MoreVertical, Edit, Trash2 } from 'lucide-react';
 import Link from "next/link";
 import { ListView } from '@/components/shared/table/DataTableFilter';
+import { shouldSuppressUserFacingApiError } from '@/framework/api-errors';
 import { processRequestOfflineAuth } from '@/framework/offline-https';
 import { API_ENDPOINTS } from '@/framework/api-endpoints';
 import { getApiErrorMessagesString } from '@/utils/api-error';
@@ -294,6 +295,10 @@ export default function DepartmentPage() {
       refreshInterval: 30000,
       dedupingInterval: 5000,
       onError: (error: { response?: { status?: number } }) => {
+        if (shouldSuppressUserFacingApiError(error)) {
+          console.warn("Departments: backend unreachable, using cache or empty list");
+          return;
+        }
         console.error("Failed to load departments:", error);
         if (error?.response?.status === 403) {
           toast.error("Access denied. Please check your permissions or contact your administrator.", {

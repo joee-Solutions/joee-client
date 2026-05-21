@@ -1,3 +1,5 @@
+import { shouldSuppressUserFacingApiError } from "@/framework/api-errors";
+
 /**
  * Collects all error messages from an API error for display.
  * Handles: message, error, errors (array or record), and status-specific text.
@@ -6,6 +8,9 @@ export function getApiErrorMessages(
   error: unknown,
   fallback = "Something went wrong. Please try again."
 ): string[] {
+  if (shouldSuppressUserFacingApiError(error)) {
+    return [];
+  }
   const messages: string[] = [];
   const data = (error as any)?.response?.data;
   const status = (error as any)?.response?.status;
@@ -15,10 +20,10 @@ export function getApiErrorMessages(
     if (typeof data.message === "string" && data.message.trim()) {
       messages.push(data.message.trim());
     }
-    // Alternate single error field
+    // Alternate single error field (skip internal proxy codes)
     if (typeof data.error === "string" && data.error.trim()) {
       const s = data.error.trim();
-      if (!messages.includes(s)) messages.push(s);
+      if (s !== "backend_unreachable" && !messages.includes(s)) messages.push(s);
     }
     // Array of messages (e.g. validation errors)
     if (Array.isArray(data.errors)) {

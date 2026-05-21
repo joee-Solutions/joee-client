@@ -9,6 +9,7 @@ import { Plus, Search, Edit, Trash2, MoreVertical } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { usePathname, useParams, useRouter } from "next/navigation";
+import { shouldSuppressUserFacingApiError } from "@/framework/api-errors";
 import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { toast } from "react-toastify";
@@ -429,8 +430,16 @@ export default function PatientPage() {
         setFullPatientData([]);
       }
     } catch (error: any) {
+      if (shouldSuppressUserFacingApiError(error)) {
+        console.warn("Patients: backend unreachable, using cache or empty list");
+        setPatientCards([]);
+        setPatientsTableData([]);
+        setFullPatientData([]);
+        setIsLoading(false);
+        return;
+      }
       console.error("Failed to load patients:", error);
-      
+
       if (error?.response?.status === 403) {
         // Suppress 403 "No token" errors - these are expected when token is missing
         if (!error?.response?.data?.error?.toLowerCase().includes('no token')) {

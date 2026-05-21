@@ -8,6 +8,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import Cookies from "js-cookie";
 import { toast } from "react-toastify";
 import { clearLastSession } from "@/lib/auth-store";
+import { shouldSuppressUserFacingApiError } from "@/framework/api-errors";
 import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { useOffline } from "@/hooks/useOffline";
@@ -85,8 +86,12 @@ const MainHeaderContent = ({ onToggleMobileMenu }: MainHeaderProps) => {
         const status = Number(error?.response?.status ?? 0);
         const isAuthError = status === 401 || status === 403;
         // Do not console.error 401/403 — Next dev overlay treats it as an app error even though we fall back to cookies.
-        if (!isAuthError) {
-          console.error("Failed to fetch profile from API:", error);
+        if (shouldSuppressUserFacingApiError(error)) {
+          console.warn(
+            "[MainHeader] profile unavailable (API unreachable); using cached user if present"
+          );
+        } else if (!isAuthError) {
+          console.warn("Failed to fetch profile from API:", error?.response?.data?.message || error?.message);
         } else if (process.env.NODE_ENV === "development") {
           console.warn("[MainHeader] profile GET returned", status, "(using cookie/local user if present)");
         }
@@ -102,7 +107,7 @@ const MainHeaderContent = ({ onToggleMobileMenu }: MainHeaderProps) => {
           }
         }
 
-        if (!userCookie && !isAuthError) {
+        if (!userCookie && !isAuthError && !shouldSuppressUserFacingApiError(error)) {
           toast.error("Failed to load profile data", { toastId: "profile-load-error" });
         }
       }

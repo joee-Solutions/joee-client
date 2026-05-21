@@ -3,7 +3,10 @@ import axios from "axios";
 import { getRefreshToken, getToken } from "./get-token";
 import Cookies from "js-cookie";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
-import { isAxiosNetworkError } from "@/framework/api-errors";
+import {
+  isAxiosNetworkError,
+  shouldSuppressUserFacingApiError,
+} from "@/framework/api-errors";
 
 let httpNoAuth: any;
 let refreshingToking = false;
@@ -561,9 +564,23 @@ const refreshUser = async (): Promise<{ token: string; refresh_token: string; us
         return null;
       }
     } catch (error: any) {
-      const status = error?.response?.status;
-      const validationErrors = error?.response?.data?.validationErrors ?? error?.response?.data?.message;
-      console.error("Token refresh failed:", status, validationErrors, error?.response?.data);
+      const status = Number(error?.response?.status ?? 0);
+
+      // API down / proxy unreachable — keep tokens; offline cache + cookie fallback continue to work.
+      if (
+        shouldSuppressUserFacingApiError(error) ||
+        isAxiosNetworkError(error) ||
+        [500, 502, 503, 504].includes(status)
+      ) {
+        console.warn(
+          "Token refresh skipped (API unreachable or temporarily unavailable)."
+        );
+        return null;
+      }
+
+      const validationErrors =
+        error?.response?.data?.validationErrors ?? error?.response?.data?.message;
+      console.warn("Token refresh failed:", status, validationErrors);
 
       // Clear tokens only on definitive auth failure (401/403). Not on 500 or network errors.
       if (status === 401 || status === 403) {

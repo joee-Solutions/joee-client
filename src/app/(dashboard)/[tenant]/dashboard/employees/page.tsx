@@ -21,6 +21,7 @@ import {
   purgeStalePendingEmployeesFromCache,
   peekPendingEmployeeEmailConflict,
 } from "@/lib/offline-employee-conflict";
+import { shouldSuppressUserFacingApiError } from "@/framework/api-errors";
 import { getApiErrorMessagesString } from "@/utils/api-error";
 import { toast } from "react-toastify";
 import { useForm, Controller } from "react-hook-form";
@@ -464,8 +465,16 @@ export default function EmployeePage() {
         setFullEmployeeData([]);
       }
     } catch (error: any) {
+      if (shouldSuppressUserFacingApiError(error)) {
+        console.warn("Employees: backend unreachable, using cache or empty list");
+        setEmployeeCards([]);
+        setEmployeesTableData([]);
+        setFullEmployeeData([]);
+        setIsLoading(false);
+        return;
+      }
       console.error("Failed to load employees:", error);
-      
+
       // Handle specific error cases
       if (error?.response?.status === 403) {
         toast.error("Access denied. Please check your permissions or contact your administrator.", {
@@ -929,10 +938,12 @@ export default function EmployeePage() {
         return;
       }
       const errorText = getApiErrorMessagesString(error, "Failed to update employee.");
-      toast.error(errorText, {
-        toastId: "employee-update-error",
-        autoClose: 7000,
-      });
+      if (errorText.trim()) {
+        toast.error(errorText, {
+          toastId: "employee-update-error",
+          autoClose: 7000,
+        });
+      }
     }
   };
 
@@ -1126,10 +1137,12 @@ export default function EmployeePage() {
         return;
       }
       const errorText = getApiErrorMessagesString(error, "Failed to create employee.");
-      toast.error(errorText, {
-        toastId: "employee-create-error",
-        autoClose: 7000,
-      });
+      if (errorText.trim()) {
+        toast.error(errorText, {
+          toastId: "employee-create-error",
+          autoClose: 7000,
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }

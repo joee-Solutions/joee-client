@@ -1,3 +1,4 @@
+import { shouldSuppressUserFacingApiError } from "@/framework/api-errors";
 import { processRequestOfflineAuth } from "@/framework/offline-https";
 
 /**
@@ -25,7 +26,12 @@ export const authFectcher = async (url: string) => {
       console.warn(`401 Unauthorized for ${url}: Token may be expired`);
       return null;
     }
-    
+
+    if (shouldSuppressUserFacingApiError(error)) {
+      console.warn(`Backend unreachable for ${url}; using empty/cached data`);
+      return null;
+    }
+
     // For other errors, re-throw so SWR can handle them
     throw error;
   }

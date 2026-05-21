@@ -7,6 +7,7 @@ import Pagination from '@/components/shared/table/pagination';
 import { Plus, Search, MoreVertical, Edit, Trash2 } from 'lucide-react';
 import { ListView } from '@/components/shared/table/DataTableFilter';
 import { Button } from '@/components/ui/button';
+import { shouldSuppressUserFacingApiError } from '@/framework/api-errors';
 import { processRequestOfflineAuth } from '@/framework/offline-https';
 import { offlineRowSortKey } from '@/lib/offline-optimistic-display';
 import { API_ENDPOINTS } from '@/framework/api-endpoints';
@@ -353,10 +354,14 @@ const SchedulesPage: React.FC = () => {
 
       setSchedulesData(transformedSchedules);
     } catch (error: any) {
-      console.error("Failed to load schedules:", error);
       setSchedulesData([]);
-      if (error?.response?.status !== 500) {
-        toast.error("Failed to load schedules", { toastId: "schedule-load-error" });
+      if (shouldSuppressUserFacingApiError(error)) {
+        console.warn("Schedules: backend unreachable, using cache or empty list");
+      } else {
+        console.error("Failed to load schedules:", error);
+        if (error?.response?.status !== 500) {
+          toast.error("Failed to load schedules", { toastId: "schedule-load-error" });
+        }
       }
     } finally {
       setIsLoading(false);

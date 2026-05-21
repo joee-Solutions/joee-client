@@ -5,6 +5,7 @@ import { Download, RefreshCw } from "lucide-react";
 import Cookies from "js-cookie";
 import { toast } from "react-toastify";
 import { Button } from "@/components/ui/button";
+import { shouldSuppressUserFacingApiError } from "@/framework/api-errors";
 import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { getTenantId } from "@/framework/https";
@@ -337,9 +338,14 @@ export default function ReportsPage() {
       setRows(parsed.rows);
       setMeta(parsed.meta);
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || `Failed to load ${cfg.title.toLowerCase()} report`, {
-        toastId: `report-load-${tab}`,
-      });
+      if (!shouldSuppressUserFacingApiError(error)) {
+        toast.error(
+          error?.response?.data?.message || `Failed to load ${cfg.title.toLowerCase()} report`,
+          { toastId: `report-load-${tab}` }
+        );
+      } else {
+        console.warn(`Reports (${tab}): backend unreachable, showing empty/cached data`);
+      }
       setRows([]);
       setMeta(DEFAULT_META);
     } finally {

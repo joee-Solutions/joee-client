@@ -133,6 +133,20 @@ async function handleUnreachableGet(
   return empty;
 }
 
+/** Never surface backend_unreachable to callers for GET — cache, session, or empty list. */
+async function resolveUnreachableGet(
+  path: string,
+  storeName: keyof JoeeOfflineDB | null,
+  tenant: string | undefined,
+  callback?: (path: string, data: any, error?: any) => void
+): Promise<any> {
+  const fallback = await handleUnreachableGet(path, storeName, tenant, callback);
+  if (fallback != null) return fallback;
+  const empty = toResponseShape([]);
+  if (callback) callback(path, empty);
+  return empty;
+}
+
 function extractIdFromPath(path: string): string | null {
   const parts = path.split("?")[0].split("/").filter(Boolean);
   if (!parts.length) return null;
@@ -388,11 +402,9 @@ export async function processRequestOfflineAuth(
       // Backend unreachable while browser reports online — use cache/session instead of throwing.
       if (isBackendUnreachableError(error)) {
         if (method === "get") {
-          const fallback = await handleUnreachableGet(path, storeName, tenant, callback);
-          if (fallback != null) return fallback;
-        } else {
-          return queueOfflineMutation(method, path, data, storeName, tenant, callback);
+          return resolveUnreachableGet(path, storeName, tenant, callback);
         }
+        return queueOfflineMutation(method, path, data, storeName, tenant, callback);
       }
       // Optional: on other GET failures, try cache when we have stored rows
       if (method === "get" && storeName && tenant) {

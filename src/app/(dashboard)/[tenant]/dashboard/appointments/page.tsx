@@ -19,6 +19,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "react-toastify";
+import { shouldSuppressUserFacingApiError } from "@/framework/api-errors";
 import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { offlineDB } from "@/lib/offline-db";
@@ -167,10 +168,12 @@ export default function AppointmentsPage() {
         })
       );
     } catch (e: unknown) {
-      const msg =
-        (e as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        "Failed to load appointments";
-      toast.error(String(msg), { toastId: "appointments-load" });
+      if (!shouldSuppressUserFacingApiError(e)) {
+        const msg =
+          (e as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+          "Failed to load appointments";
+        toast.error(String(msg), { toastId: "appointments-load" });
+      }
       setAppointments([]);
     } finally {
       setLoading(false);

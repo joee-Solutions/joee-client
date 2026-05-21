@@ -8,6 +8,7 @@ import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { shouldSuppressUserFacingApiError } from "@/framework/api-errors";
 import { processRequestNoAuth } from "@/framework/https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { Spinner } from "@/components/icons/Spinner";
@@ -292,6 +293,27 @@ const TenantLoginPage = () => {
         });
       }
     } catch (error: any) {
+      if (shouldSuppressUserFacingApiError(error)) {
+        try {
+          const offlineResult = await offlineAuthService.verifyCredentialsOffline(
+            formData.email,
+            formData.password
+          );
+          if (offlineResult.success && offlineResult.token && offlineResult.userData) {
+            Cookies.set("auth_token", offlineResult.token, { expires: 1 });
+            Cookies.set("user", JSON.stringify(offlineResult.userData), { expires: 1 });
+            setUser(offlineResult.userData);
+            toast.success("Offline login successful", { toastId: "offline-login-success" });
+            router.push("/dashboard");
+            return;
+          }
+        } catch {
+          /* fall through — no user-facing backend_unreachable message */
+        }
+        console.warn("Login: API unreachable, no cached credentials");
+        return;
+      }
+
       // Check if error is due to offline
       if (!navigator.onLine || isOffline) {
         // Try offline login as fallback

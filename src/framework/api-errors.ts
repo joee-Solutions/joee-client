@@ -1,3 +1,16 @@
+/** Proxy returned `{ error: "backend_unreachable" }` (typically 503). */
+export function isBackendUnreachableApiError(error: unknown): boolean {
+  const data = (error as { response?: { data?: { error?: string }; status?: number } })
+    ?.response?.data;
+  if (data?.error === "backend_unreachable") return true;
+  return isBackendUnreachableError(error);
+}
+
+/** Do not toast or show proxy/backend-down messaging — use cache or empty UI instead. */
+export function shouldSuppressUserFacingApiError(error: unknown): boolean {
+  return isBackendUnreachableApiError(error);
+}
+
 /** True when axios failed before/during transport (no HTTP body, canceled, or proxy unreachable). */
 export function isAxiosNetworkError(error: unknown): boolean {
   if (!error || typeof error !== "object") return false;
