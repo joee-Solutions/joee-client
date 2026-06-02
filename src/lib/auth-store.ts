@@ -3,6 +3,18 @@ import { offlineDB } from "@/lib/offline-db";
 
 const COOKIE_OPTS = { sameSite: "lax" as const, path: "/" };
 
+export const LAST_TENANT_COOKIE = "last_tenant";
+
+function setLastTenantCookie(tenant?: string): void {
+  if (!tenant?.trim()) return;
+  Cookies.set(LAST_TENANT_COOKIE, tenant.trim(), { ...COOKIE_OPTS, expires: 30 });
+}
+
+export function clearLastTenantCookie(): void {
+  if (typeof window === "undefined") return;
+  Cookies.remove(LAST_TENANT_COOKIE, { path: "/" });
+}
+
 export type AuthSession = {
   tenant?: string;
   auth_token: string;
@@ -40,6 +52,7 @@ export async function saveLastSession(tenant?: string): Promise<void> {
     user: user ?? {},
     auth_user_id: Cookies.get("auth_user_id") ?? undefined,
   });
+  setLastTenantCookie(tenant);
 }
 
 /**
@@ -70,6 +83,7 @@ export async function restoreLastSessionToCookies(): Promise<boolean> {
   if (session.auth_user_id) {
     Cookies.set("auth_user_id", session.auth_user_id, { ...COOKIE_OPTS, expires: 7 });
   }
+  setLastTenantCookie(session.tenant);
   return true;
 }
 
@@ -80,4 +94,5 @@ export async function clearLastSession(): Promise<void> {
   if (typeof window === "undefined") return;
   await offlineDB.init();
   await offlineDB.clearAuthSession();
+  clearLastTenantCookie();
 }

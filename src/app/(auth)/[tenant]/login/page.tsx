@@ -16,6 +16,7 @@ import Cookies from "js-cookie";
 import { useRouter, useParams } from "next/navigation";
 import { toast } from "react-toastify";
 import { saveLastSession } from "@/lib/auth-store";
+import { getTenantSubdomainFromHost } from "@/lib/tenant-host";
 import { offlineAuthService } from "@/lib/offline/offlineAuth";
 import {
   AlertDialog,
@@ -50,11 +51,12 @@ const SUPPORT_FORM_URL =
   "mailto:support@joee.solutions";
 
 function dashboardHrefForTenant(tenantSlug?: string): string {
-  const isSubdomain =
-    typeof window !== "undefined" &&
-    window.location.hostname.split(".").length > 1 &&
-    window.location.hostname.split(".")[0] !== "www";
-  return isSubdomain ? "/dashboard" : tenantSlug ? `/${tenantSlug}/dashboard` : "/dashboard";
+  const hostTenant =
+    typeof window !== "undefined"
+      ? getTenantSubdomainFromHost(window.location.host)
+      : null;
+  if (hostTenant) return "/dashboard";
+  return tenantSlug ? `/${tenantSlug}/dashboard` : "/dashboard";
 }
 
 function normalizeEmail(email: string): string {

@@ -3,6 +3,7 @@ import { getRequestInfo } from "@/framework/log-request-helper";
 import { siteConfig } from "@/framework/site-config";
 import axios from "axios";
 import { NextResponse, type NextRequest } from "next/server";
+import { getTenantSubdomainFromHost } from "@/lib/tenant-host";
 const apiUrl = siteConfig.host;
 
 /** When the server cannot reach the backend (offline, DNS, firewall). Avoids leaking ENOTFOUND into JSON. */
@@ -31,64 +32,8 @@ function proxyNetworkErrorResponse(error: unknown): NextResponse {
   );
 }
 
-// Helper function to extract tenant subdomain from request
-const getTenantId = (req: NextRequest): string | undefined => {
-  const host = req.headers.get("host") || "";
-  
-  // Extract tenant subdomain - handle different domain structures
-  let subdomain: string | undefined = undefined;
-  
-  // For Vercel: {tenant}.{project}.vercel.app or {project}.vercel.app
-  if (host.includes(".vercel.app")) {
-    const parts = host.split(".");
-    // Pattern: tenant.project.vercel.app (4 parts) -> extract tenant (first part)
-    // Pattern: project.vercel.app (3 parts) -> no tenant, this is the root domain
-    if (parts.length >= 4) {
-      // Has tenant subdomain: doe.joee-client-blond.vercel.app
-      subdomain = parts[0];
-      console.log("✅ Extracted tenant ID from Vercel host:", host, "->", subdomain);
-    } else {
-      // No tenant subdomain: joee-client-blond.vercel.app
-      // This is the root domain, don't extract a subdomain
-      console.log("⚠️ Vercel root domain detected (no tenant):", host);
-      return undefined;
-    }
-  }
-  // For localhost: {tenant}.localhost:3000 or localhost:3000
-  else if (host.includes("localhost")) {
-    const parts = host.split(".");
-    if (parts.length >= 2 && parts[0] !== "localhost") {
-      // Has tenant: doe.localhost:3000
-      subdomain = parts[0];
-      console.log("✅ Extracted tenant ID from localhost:", host, "->", subdomain);
-    } else {
-      // No tenant: localhost:3000
-      console.log("⚠️ Localhost root domain detected (no tenant):", host);
-      return undefined;
-    }
-  }
-  // For production domains: {tenant}.domain.com or domain.com
-  else {
-    const parts = host.split(".");
-    if (parts.length >= 3 && parts[0] !== "www") {
-      // Has tenant subdomain: doe.joee.com.ng
-      subdomain = parts[0];
-      console.log("✅ Extracted tenant ID from production host:", host, "->", subdomain);
-    } else {
-      // No tenant: joee.com.ng (root domain)
-      console.log("⚠️ Production root domain detected (no tenant):", host);
-      return undefined;
-    }
-  }
-  
-  // Only return subdomain if it's a valid tenant (not localhost, www, or empty)
-  if (subdomain && subdomain !== "localhost" && subdomain !== "www" && subdomain.length > 0) {
-    return subdomain;
-  }
-  
-  console.warn("Could not extract tenant ID from host:", host);
-  return undefined;
-};
+const getTenantId = (req: NextRequest): string | undefined =>
+  getTenantSubdomainFromHost(req.headers.get("host")) ?? undefined;
 export async function GET(req: NextRequest) {
   const requestPath = new URL(req.url).pathname;
   const pathName = requestPath.split("/api")[1];

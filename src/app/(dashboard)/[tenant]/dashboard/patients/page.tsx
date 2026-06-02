@@ -10,6 +10,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { usePathname, useParams, useRouter } from "next/navigation";
 import { shouldSuppressUserFacingApiError } from "@/framework/api-errors";
+import { getTenantSubdomainFromHost } from "@/lib/tenant-host";
 import { processRequestOfflineAuth } from "@/framework/offline-https";
 import { API_ENDPOINTS } from "@/framework/api-endpoints";
 import { toast } from "react-toastify";
@@ -337,17 +338,9 @@ function slugifyPatientName(patient: Pick<PatientDTO, "firstName" | "lastName" |
 
 function patientDetailHref(tenant: string | undefined, patient: PatientDTO) {
   const slug = slugifyPatientName(patient);
-  let isSubdomainTenant = false;
-  if (typeof window !== "undefined") {
-    const host = window.location.hostname;
-    if (host.includes("localhost")) {
-      const parts = host.split(".");
-      isSubdomainTenant = parts.length >= 2 && parts[0] !== "localhost";
-    } else {
-      const parts = host.split(".");
-      isSubdomainTenant = parts.length >= 3 && parts[0] !== "www";
-    }
-  }
+  const isSubdomainTenant =
+    typeof window !== "undefined" &&
+    !!getTenantSubdomainFromHost(window.location.host);
   const path = isSubdomainTenant
     ? `/dashboard/patients/${slug}`
     : tenant

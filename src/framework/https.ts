@@ -7,6 +7,7 @@ import {
   isAxiosNetworkError,
   shouldSuppressUserFacingApiError,
 } from "@/framework/api-errors";
+import { getTenantSubdomainFromHost } from "@/lib/tenant-host";
 
 let httpNoAuth: any;
 let refreshingToking = false;
@@ -94,16 +95,8 @@ const getTenantFromPath = (): string | undefined => {
 
 // Tenant from host subdomain (e.g. doe.localhost:3000 -> "doe") so refresh and no-auth requests send correct x-tenant-id
 const getTenantFromHost = (): string | undefined => {
-  if (typeof window === "undefined" || !window.location?.hostname) return undefined;
-  const hostname = window.location.hostname;
-  if (hostname.includes("localhost")) {
-    const parts = hostname.split(".");
-    if (parts.length >= 2 && parts[0] !== "localhost") return parts[0];
-    return undefined;
-  }
-  const parts = hostname.split(".");
-  if (parts.length >= 3 && parts[0] !== "www") return parts[0];
-  return undefined;
+  if (typeof window === "undefined") return undefined;
+  return getTenantSubdomainFromHost(window.location.host) ?? undefined;
 };
 
 // Prefer subdomain tenant (doe.localhost) so we don't send "dashboard" as tenant when path is /dashboard/...
