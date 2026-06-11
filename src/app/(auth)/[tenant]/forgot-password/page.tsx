@@ -96,7 +96,7 @@ const ForgetPassword = () => {
               href={"/login"}
               className="text-[#FAD900] hover:underline"
             >
-              Login
+              ← Back to Login
             </Link>
           </div>
         </div>

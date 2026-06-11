@@ -175,7 +175,7 @@ const ResetPasswordClient = () => {
               href="/login"
               className="text-[#FAD900] hover:underline text-sm text-center mt-2"
             >
-              Back to Login
+              ← Back to Login
             </Link>
           </form>
         </div>
