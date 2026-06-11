@@ -49,7 +49,7 @@ export default function AuthLayout({
         </div>
         <ToastContainer />
         <p className="mt-auto pt-4 pb-2 md:pb-4 text-center md:text-left w-full text-gray-400 text-xs md:text-sm z-50">
-          Copyright © 2025 JOEE Solutions. All Rights Reserved
+          Copyright © 2026 JOEE Solutions. All Rights Reserved
         </p>
       </div>
     </main>

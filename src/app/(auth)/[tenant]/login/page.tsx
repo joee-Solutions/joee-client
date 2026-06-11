@@ -383,7 +383,7 @@ const TenantLoginPage = () => {
   return (
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 gap-6 px-4 sm:px-8 lg:px-24 py-10 items-center justify-center font-poppins place-items-center">
       <div className="content col-span-1 text-white hidden md:flex flex-col justify-center space-y-8 w-full max-w-3xl">
-        <h1 className="header font-bold text-3xl md:text-4xl lg:text-5xl leading-tight whitespace-nowrap">Welcome to LoCi Care!</h1>
+        <h1 className="header font-bold text-2xl md:text-3xl lg:text-4xl leading-tight ">Welcome to LoCiCare!</h1>
         <div className="line border-2 border-white w-40"></div>
         <div className="line border-3 border-white"></div>
         <span className="welcom md:w-3/4 text-lg leading-8">
@@ -401,8 +401,8 @@ const TenantLoginPage = () => {
               height={60}
               className="logo"
             />
-            <span className="flex items-center gap-4 whitespace-nowrap">
-              <span className="font-medium text-2xl md:text-3xl">
+            <span className="flex items-center gap-2 whitespace-nowrap">
+              <span className="text-base md:text-lg">
                 LociCare
               </span>
               <span className="text-base md:text-lg whitespace-nowrap">by JOEE Solutions</span>
@@ -498,7 +498,7 @@ const TenantLoginPage = () => {
               </AlertDialogHeader>
               <div className="text-sm text-gray-700 leading-relaxed space-y-3">
                 <p className="font-semibold text-gray-900">
-                  LociCare by JOEE stores sensitive health data, and it is our shared duty to protect it.
+                  LociCare by JOEE Solutions sensitive health data, and it is our shared duty to protect it.
                 </p>
                 <p>By logging into LociCare, I confirm that:</p>
                 <ul className="list-disc pl-5 space-y-2">

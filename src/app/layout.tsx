@@ -7,7 +7,7 @@ import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 
 
 export const metadata: Metadata = {
-  title: "Joee Solutions",
+  title: "LociCare",
   description: "Your health is our priority",
   icons: {
     icon: "/assets/logo/logo.png",
