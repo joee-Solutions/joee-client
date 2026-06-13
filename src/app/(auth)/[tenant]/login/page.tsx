@@ -498,7 +498,7 @@ const TenantLoginPage = () => {
               </AlertDialogHeader>
               <div className="text-sm text-gray-700 leading-relaxed space-y-3">
                 <p className="font-semibold text-gray-900">
-                  LociCare by JOEE Solutions sensitive health data, and it is our shared duty to protect it.
+                  LociCare by JOEE Solutions stores sensitive health data, and it is our shared duty to protect it.
                 </p>
                 <p>By logging into LociCare, I confirm that:</p>
                 <ul className="list-disc pl-5 space-y-2">
